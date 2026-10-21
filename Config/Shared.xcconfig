@@ -1,0 +1,4 @@
+// Shared build settings for all targets (committed).
+// Per-developer settings (e.g. DEVELOPMENT_TEAM) live in Config/Local.xcconfig,
+// which is gitignored. Copy Config/Local.xcconfig.example to create it.
+#include? "Local.xcconfig"

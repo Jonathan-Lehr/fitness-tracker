@@ -1,0 +1,55 @@
+name: Build
+on:
+  push:
+  pull_request:
+jobs:
+  build:
+    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        destination: ["generic/platform=iOS Simulator", "platform=macOS"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: Build
+        run: |
+          xcodebuild -project FitnessTracker.xcodeproj -scheme FitnessTracker \
+            -destination "${{ matrix.destination }}" -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO build | tail -200
+          exit ${PIPESTATUS[0]}
+
+  test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: Test (macOS)
+        run: |
+          code=0
+          xcodebuild -project FitnessTracker.xcodeproj -scheme FitnessTracker \
+            -destination "platform=macOS" CODE_SIGNING_ALLOWED=NO test > test.log 2>&1 || code=$?
+          grep -E -A60 "error:|OCR accuracy|Test Case .* (passed|failed)|\*\* TEST" test.log | cut -c1-400 || true
+          [ $code -eq 0 ] || tail -80 test.log
+          exit $code
+
+  # Verifies project.yml still generates a working project (doesn't commit anything).
+  xcodegen:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: Generate and test
+        run: |
+          brew install xcodegen
+          rm -rf FitnessTracker.xcodeproj
+          xcodegen
+          xcodebuild -project FitnessTracker.xcodeproj -scheme FitnessTracker \
+            -destination "platform=macOS" CODE_SIGNING_ALLOWED=NO test > test.log 2>&1 || { tail -80 test.log; exit 1; }
+          grep -E "OCR accuracy|\*\* TEST" test.log
