@@ -84,7 +84,7 @@ struct LogView: View {
                 }
                 #endif
             }
-            .sheet(isPresented: $showAdd) { WorkoutFormView(workout: nil) }
+            .sheet(isPresented: $showAdd) { AddRideView() }
             .sheet(isPresented: $showFilters) { FilterView(filter: $filter) }
             #if DEBUG
             .sheet(isPresented: $showDebug) { DebugMenuView() }

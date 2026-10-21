@@ -3,6 +3,9 @@ import SwiftData
 
 struct WorkoutFormView: View {
     let workout: Workout?   // nil = add new
+    /// Values parsed from a photo; fields the parser missed are flagged.
+    var draft: IFitSummary? = nil
+    var draftPhoto: Data? = nil
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \Program.title) private var programs: [Program]
@@ -20,39 +23,53 @@ struct WorkoutFormView: View {
     @State private var resAvg = 10
     @State private var resMax = 15
     @State private var notes = ""
+    @State private var photoData: Data?
+
+    private var missing: Set<IFitSummary.Field> { draft?.missingFields ?? [] }
 
     var body: some View {
         NavigationStack {
             Form {
+                if draft != nil && !missing.isEmpty {
+                    Section {
+                        Label("\(missing.count) field\(missing.count == 1 ? "" : "s") couldn't be read from the photo. Check the flagged values.",
+                              systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                    }
+                }
                 Section("Workout") {
                     TextField("iFit program title", text: $title)
+                        .overlay(alignment: .trailing) { flag(.title) }
                     if !programs.isEmpty {
                         Menu("Choose existing program") {
                             ForEach(programs) { p in Button(p.title) { title = p.title } }
                         }
                     }
-                    DatePicker("Start", selection: $date)
+                    DatePicker(selection: $date) { flaggedLabel("Start", .date) }
                 }
                 Section("Stats") {
-                    numberField("Duration (min)", value: $minutes)
-                    numberField("Distance (mi)", value: $miles)
-                    intField("Calories", value: $calories)
-                    intField("Elevation (ft)", value: $feet)
-                    intField("Avg RPM", value: $rpm)
-                    intField("Avg Watts", value: $watts)
-                    numberField("Incline avg %", value: $incAvg)
-                    numberField("Incline max %", value: $incMax)
-                    intField("Resistance avg", value: $resAvg)
-                    intField("Resistance max", value: $resMax)
+                    numberField("Duration (min)", value: $minutes, field: .duration)
+                    numberField("Distance (mi)", value: $miles, field: .distance)
+                    intField("Calories", value: $calories, field: .calories)
+                    intField("Elevation (ft)", value: $feet, field: .elevation)
+                    intField("Avg RPM", value: $rpm, field: .rpm)
+                    intField("Avg Watts", value: $watts, field: .watts)
+                    numberField("Incline avg %", value: $incAvg, field: .inclineAvg)
+                    numberField("Incline max %", value: $incMax, field: .inclineMax)
+                    intField("Resistance avg", value: $resAvg, field: .resistanceAvg)
+                    intField("Resistance max", value: $resMax, field: .resistanceMax)
                 }
                 Section("Notes") {
                     TextField("Notes", text: $notes, axis: .vertical)
                 }
-                Section {
-                    // TODO: Vision photo import — pick/capture a photo of the s22i summary screen,
-                    // run VNRecognizeTextRequest, parse values into the fields above, and store
-                    // the image in Workout.photoData. Not implemented yet.
-                    Button("Import from Photo (coming soon)") {}.disabled(true)
+                if let photoData, let image = ImageTools.cgImage(from: photoData, maxPixel: 800) {
+                    Section("Photo") {
+                        Image(decorative: image, scale: 1)
+                            .resizable().scaledToFit()
+                            .frame(maxHeight: 220)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        Button("Remove Photo", role: .destructive) { self.photoData = nil }
+                    }
                 }
             }
             .formStyle(.grouped)
@@ -71,28 +88,56 @@ struct WorkoutFormView: View {
         #endif
     }
 
-    private func numberField(_ label: String, value: Binding<Double>) -> some View {
-        LabeledContent(label) {
+    @ViewBuilder
+    private func flag(_ field: IFitSummary.Field) -> some View {
+        if missing.contains(field) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+                .help("Not found in photo")
+                .accessibilityLabel("Not found in photo")
+        }
+    }
+
+    private func flaggedLabel(_ label: String, _ field: IFitSummary.Field) -> some View {
+        HStack(spacing: 4) {
+            Text(label)
+            flag(field)
+        }
+        .foregroundStyle(missing.contains(field) ? Color.orange : Color.primary)
+    }
+
+    private func numberField(_ label: String, value: Binding<Double>, field: IFitSummary.Field) -> some View {
+        LabeledContent {
             TextField(label, value: value, format: .number)
                 .multilineTextAlignment(.trailing)
                 #if os(iOS)
                 .keyboardType(.decimalPad)
                 #endif
-        }
+        } label: { flaggedLabel(label, field) }
     }
 
-    private func intField(_ label: String, value: Binding<Int>) -> some View {
-        LabeledContent(label) {
+    private func intField(_ label: String, value: Binding<Int>, field: IFitSummary.Field) -> some View {
+        LabeledContent {
             TextField(label, value: value, format: .number)
                 .multilineTextAlignment(.trailing)
                 #if os(iOS)
                 .keyboardType(.numberPad)
                 #endif
-        }
+        } label: { flaggedLabel(label, field) }
     }
 
     private func load() {
+        if let d = draft {
+            title = d.title ?? ""; date = d.date ?? .now
+            minutes = d.durationMinutes ?? 0; miles = d.distanceMiles ?? 0
+            calories = d.calories ?? 0; feet = d.elevationFeet ?? 0
+            rpm = d.avgRPM ?? 0; watts = d.avgWatts ?? 0
+            incAvg = d.inclineAvg ?? 0; incMax = d.inclineMax ?? 0
+            resAvg = d.resistanceAvg ?? 0; resMax = d.resistanceMax ?? 0
+            photoData = draftPhoto
+        }
         guard let w = workout else { return }
+        photoData = w.photoData
         title = w.title; date = w.date; minutes = w.durationMinutes; miles = w.distanceMiles
         calories = w.calories; feet = w.elevationFeet; rpm = w.avgRPM; watts = w.avgWatts
         incAvg = w.inclineAvg; incMax = w.inclineMax; resAvg = w.resistanceAvg; resMax = w.resistanceMax
@@ -112,6 +157,7 @@ struct WorkoutFormView: View {
         w.calories = calories; w.elevationFeet = feet; w.avgRPM = rpm; w.avgWatts = watts
         w.inclineAvg = incAvg; w.inclineMax = incMax; w.resistanceAvg = resAvg; w.resistanceMax = resMax
         w.notes = notes.isEmpty ? nil : notes
+        w.photoData = photoData
         try? context.save()
     }
 }
