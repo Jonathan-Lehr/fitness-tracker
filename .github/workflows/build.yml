@@ -1,0 +1,22 @@
+name: Build
+on:
+  push:
+  pull_request:
+jobs:
+  build:
+    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        destination: ["generic/platform=iOS Simulator", "platform=macOS"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: Build
+        run: |
+          xcodebuild -project FitnessTracker.xcodeproj -scheme FitnessTracker \
+            -destination "${{ matrix.destination }}" -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO build | tail -200
+          exit ${PIPESTATUS[0]}
