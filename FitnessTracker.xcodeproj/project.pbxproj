@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXFileReference section */
+		C10000000000000000000003 /* FitnessTracker-iOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "FitnessTracker-iOS.entitlements"; sourceTree = "<group>"; };
+		C10000000000000000000004 /* FitnessTracker-macOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "FitnessTracker-macOS.entitlements"; sourceTree = "<group>"; };
+		C10000000000000000000005 /* Info-iOS.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info-iOS.plist"; sourceTree = "<group>"; };
 		C10000000000000000000001 /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
 		B10000000000000000000001 /* FitnessTrackerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FitnessTrackerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A10000000000000000000001 /* FitnessTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FitnessTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -67,6 +70,9 @@
 			isa = PBXGroup;
 			children = (
 				C10000000000000000000001 /* Shared.xcconfig */,
+				C10000000000000000000003 /* FitnessTracker-iOS.entitlements */,
+				C10000000000000000000004 /* FitnessTracker-macOS.entitlements */,
+				C10000000000000000000005 /* Info-iOS.plist */,
 			);
 			path = Config;
 			sourceTree = "<group>";
@@ -403,6 +409,10 @@
 				TARGETED_DEVICE_FAMILY = "1,2";
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				"CODE_SIGN_ENTITLEMENTS[sdk=iphone*]" = "Config/FitnessTracker-iOS.entitlements";
+				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "Config/FitnessTracker-macOS.entitlements";
+				"INFOPLIST_FILE[sdk=iphone*]" = "Config/Info-iOS.plist";
 				INFOPLIST_KEY_NSCameraUsageDescription = "FitnessTracker uses the camera to photograph the iFit workout summary screen.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "FitnessTracker reads photos of the iFit workout summary screen.";
 			};
@@ -439,6 +449,10 @@
 				TARGETED_DEVICE_FAMILY = "1,2";
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				"CODE_SIGN_ENTITLEMENTS[sdk=iphone*]" = "Config/FitnessTracker-iOS.entitlements";
+				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "Config/FitnessTracker-macOS.entitlements";
+				"INFOPLIST_FILE[sdk=iphone*]" = "Config/Info-iOS.plist";
 				INFOPLIST_KEY_NSCameraUsageDescription = "FitnessTracker uses the camera to photograph the iFit workout summary screen.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "FitnessTracker reads photos of the iFit workout summary screen.";
 			};

@@ -49,4 +49,18 @@ xcodegen        # reads project.yml, writes FitnessTracker.xcodeproj
 - `Program`: `title`, `type` (endurance / interval / recovery / climb / tempo / other, inferred from the title), `workouts`.
 - `Workout`: date, duration, distance, calories, elevation, avg RPM, avg watts, incline avg/max, resistance avg/max, notes, photo (external storage), `program`.
 
-The models are CloudKit-compatible: no unique constraints, every property defaulted or optional, optional relationships. iCloud sync is **off** for now (`cloudKitDatabase: .none` in `FitnessTrackerApp.swift`). To turn it on, add the iCloud (CloudKit) and Background Modes → Remote notifications capabilities, then switch to `.automatic`.
+The models are CloudKit-compatible: no unique constraints, every attribute defaulted or optional, and optional relationships with inverses.
+
+## iCloud sync
+
+Rides sync between your devices through CloudKit (private database, container `iCloud.com.jonathanlehr.FitnessTracker`). Tests and SwiftUI previews use an in-memory store without CloudKit, so unsigned CI builds still work.
+
+One-time setup (needs a paid Apple Developer membership):
+
+1. Make sure `Config/Local.xcconfig` exists with your `DEVELOPMENT_TEAM` (see Setup).
+2. In Xcode, open the FitnessTracker target → **Signing & Capabilities**. Check that **iCloud** shows CloudKit with the container `iCloud.com.jonathanlehr.FitnessTracker` (click **+** under Containers to create it if it shows red), **Push Notifications** is present, and on iOS **Background Modes → Remote notifications** is checked. The entitlements live in `Config/FitnessTracker-iOS.entitlements` and `Config/FitnessTracker-macOS.entitlements`. If Xcode offers to "fix" signing, let it register the App ID and container, then discard any `DEVELOPMENT_TEAM` line it writes into `project.pbxproj`.
+3. Sign in to the same iCloud account on each device, and run the app on each.
+
+Duplicates: CloudKit can't enforce uniqueness, so `DataDeduper` merges Programs with the same title and Workouts with the same title and start minute. It runs on launch and after each CloudKit import. The 4 real rides are seeded once per device and skipped if they already exist.
+
+**Before any TestFlight or App Store release:** open the [CloudKit Console](https://icloud.developer.apple.com), select the container, and **Deploy Schema Changes** from Development to Production. Production builds only see the Production schema. Also switch `aps-environment` to `production` (Xcode does this automatically for distribution builds).

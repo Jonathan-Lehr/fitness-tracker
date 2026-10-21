@@ -43,6 +43,12 @@ targets:
         # Mac sandbox + read access to user-selected files (file importer, drag & drop)
         ENABLE_APP_SANDBOX: YES
         ENABLE_USER_SELECTED_FILES: readonly
+        ENABLE_OUTGOING_NETWORK_CONNECTIONS: YES
+        # iCloud (CloudKit) + push entitlements, per platform
+        "CODE_SIGN_ENTITLEMENTS[sdk=iphone*]": Config/FitnessTracker-iOS.entitlements
+        "CODE_SIGN_ENTITLEMENTS[sdk=macosx*]": Config/FitnessTracker-macOS.entitlements
+        # iOS background mode remote-notification (merged with the generated Info.plist)
+        "INFOPLIST_FILE[sdk=iphone*]": Config/Info-iOS.plist
         INFOPLIST_KEY_CFBundleDisplayName: FitnessTracker
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.healthcare-fitness
         INFOPLIST_KEY_NSCameraUsageDescription: FitnessTracker uses the camera to photograph the iFit workout summary screen.

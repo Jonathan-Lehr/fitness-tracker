@@ -17,7 +17,9 @@ enum SeedData {
         Ride(date: "2026-10-20 16:06", title: "Mineral Bottom Endurance Ride", minutes: 48, miles: 9.85, cal: 376, feet: 1542, rpm: 75, watts: 88, incAvg: 3.6, incMax: 10.0, resAvg: 8, resMax: 15),
     ]
 
-    /// Inserts the real rides once (tracked in UserDefaults so deleting them doesn't re-seed).
+    /// Inserts the real rides once per device (tracked in UserDefaults so deleting them doesn't
+    /// re-seed). With iCloud sync, another device may already have them, so each ride is skipped
+    /// if a workout with the same date and title exists; DataDeduper cleans up any race.
     static func seedIfNeeded(_ context: ModelContext) {
         guard !UserDefaults.standard.bool(forKey: seededKey) else { return }
         insertRealRides(context)
@@ -29,9 +31,13 @@ enum SeedData {
         fmt.locale = Locale(identifier: "en_US_POSIX")
         fmt.timeZone = TimeZone(identifier: "America/New_York")
         fmt.dateFormat = "yyyy-MM-dd HH:mm"
+        let existing = (try? context.fetch(FetchDescriptor<Workout>())) ?? []
+        let existingKeys = Set(existing.map(DataDeduper.key))
         for r in realRides {
+            let date = fmt.date(from: r.date) ?? .now
+            if existingKeys.contains(DataDeduper.key(title: r.title, date: date)) { continue }
             let program = Program.findOrCreate(title: r.title, in: context)
-            let w = Workout(date: fmt.date(from: r.date) ?? .now, program: program,
+            let w = Workout(date: date, program: program,
                             durationMinutes: r.minutes, distanceMiles: r.miles, calories: r.cal,
                             elevationFeet: r.feet, avgRPM: r.rpm, avgWatts: r.watts,
                             inclineAvg: r.incAvg, inclineMax: r.incMax,
