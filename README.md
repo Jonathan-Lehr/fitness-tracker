@@ -8,7 +8,12 @@ Requirements: **Xcode 16 or later** (the project uses folder-synced groups, so a
 
 1. `git clone https://github.com/Jonathan-Lehr/fitness-tracker && cd fitness-tracker`
 2. `open FitnessTracker.xcodeproj`
-3. Select the FitnessTracker target → Signing & Capabilities → choose your Team (a free personal team works).
+3. Set your signing team once (it's kept out of git, so it won't revert on pull):
+   ```sh
+   cp Config/Local.xcconfig.example Config/Local.xcconfig
+   # edit Config/Local.xcconfig: DEVELOPMENT_TEAM = <your 10-character Team ID>
+   ```
+   Your Team ID is in Xcode → Settings → Accounts (a free personal team works). Don't pick the team in Signing & Capabilities, because that writes it into the shared project file. If Xcode did that, delete the `DEVELOPMENT_TEAM` line it added to `project.pbxproj`.
 4. Pick **My Mac** or an iPhone simulator/device and Run.
 
 If the committed project doesn't open for some reason, regenerate it with XcodeGen (`project.yml` mirrors the committed project, including the test target and shared scheme):
