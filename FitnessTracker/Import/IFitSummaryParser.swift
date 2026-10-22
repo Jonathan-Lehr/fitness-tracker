@@ -56,6 +56,13 @@ enum IFitSummaryParser {
         let lines = groupIntoLines(items)
         var summary = parse(lines: lines, calendar: calendar)
         if let t = titleByProximity(items) { summary.title = t }
+        // Geometry fallbacks when the unit landed on a different "line" than its value.
+        if summary.distanceMiles == nil, let v = valueLeftOf(unitPattern: miUnit, in: items) {
+            summary.distanceMiles = parseDistance(v + " mi")
+        }
+        if summary.elevationFeet == nil, let v = valueLeftOf(unitPattern: ftUnit, in: items) {
+            summary.elevationFeet = parseElevation(v + " ft")
+        }
         return summary
     }
 
@@ -74,11 +81,9 @@ enum IFitSummaryParser {
         } else if let m = firstMatch(#"(\d{1,3})\s*min\b"#, in: text) {
             s.durationMinutes = Double(m[1])
         }
-        if let m = firstMatch(#"(\d{1,3}[.,]\d{1,2})\s*mi\b"#, in: text) ?? firstMatch(#"(\d{1,3})\s*mi\b"#, in: text) {
-            s.distanceMiles = number(m[1])
-        }
+        s.distanceMiles = parseDistance(text)
         if let m = firstMatch(#"(\d{2,4})\s*ca[l1I]s?\b"#, in: text) { s.calories = Int(m[1]) }
-        if let m = firstMatch(#"(\d{1,5})\s*ft\b"#, in: text) { s.elevationFeet = Int(m[1]) }
+        s.elevationFeet = parseElevation(text)
         if let m = firstMatch(#"(\d{2,3})\s*avg\s*rpm"#, in: text) { s.avgRPM = Int(m[1]) }
         if let m = firstMatch(#"(\d{2,4})\s*avg\s*watts?"#, in: text) { s.avgWatts = Int(m[1]) }
 
@@ -99,6 +104,71 @@ enum IFitSummaryParser {
             s.resistanceMax = Int(m[1])
         }
         return s
+    }
+
+    // MARK: Distance & elevation (camera OCR is noisiest here)
+
+    /// Fuzzy "mi": OCR often reads ml, rni, mI, m1, or "mi." (only matched right after a number).
+    static let miUnit = #"(?:mi|ml|rni|m[I1l|]|nni)\b\.?"#
+    /// Fuzzy "ft": ff, fl, f t, it, Ft.
+    static let ftUnit = #"(?:f\s?t|ff|fl|[iI]t)\b"#
+
+    static func parseDistance(_ text: String) -> Double? {
+        // 1) number + mi; decimal may be ".", ",", a space, or dropped.
+        if let m = firstMatch(#"(?<![\d.,])(\d{1,2})\s?[.,·:\s]\s?(\d{1,2})\s*"# + miUnit, in: text),
+           let v = Double("\(m[1]).\(m[2])"), validDistance(v) { return v }
+        if let m = firstMatch(#"(?<![\d.,])(\d{1,4})\s*"# + miUnit, in: text), let v = droppedDecimal(m[1]) { return v }
+        // 2) unit missing/garbled: a two-decimal number not followed by % (iFit shows miles as x.xx,
+        //    incline uses one decimal plus %).
+        if let m = firstMatch(#"(?<![\d.,])(\d{1,2})[.,](\d{2})(?![\d%]|\s*%)"#, in: text),
+           let v = Double("\(m[1]).\(m[2])"), validDistance(v) { return v }
+        return nil
+    }
+
+    static func validDistance(_ v: Double) -> Bool { v > 0 && v <= 60 }
+
+    /// "1388" read without its decimal point -> 13.88 (miles always have two decimals on this screen).
+    static func droppedDecimal(_ digits: String) -> Double? {
+        guard let n = Double(digits) else { return nil }
+        if digits.count >= 3 { let v = n / 100; return validDistance(v) ? v : nil }
+        return validDistance(n) ? n : nil
+    }
+
+    static func parseElevation(_ text: String) -> Int? {
+        // Thousands separators: "1,543", "1.543", "1 543", or none.
+        let num = #"(?<![\d.,])(\d{1,2}[,.\s]\d{3}|\d{1,5})"#
+        if let m = firstMatch(num + #"\s*"# + ftUnit, in: text), let v = integer(m[1]), validElevation(v) { return v }
+        // Unit missing: the stats row is "... cals (est) <ft> <rpm> avg rpm ...", so take the
+        // number between calories and the rpm value.
+        if let m = firstMatch(#"ca[l1I|]s?\s*(?:\(?\s*est\s*\)?)?\s*"# + num + #"\b(?!\s*avg)\D{0,6}\d{2,3}\s*avg\s*rpm"#, in: text),
+           let v = integer(m[1]), validElevation(v) { return v }
+        return nil
+    }
+
+    static func validElevation(_ v: Int) -> Bool { v >= 0 && v <= 10_000 }
+
+    static func integer(_ s: String) -> Int? { Int(s.filter(\.isNumber)) }
+
+    // MARK: Geometry fallback
+
+    /// For a unit-only observation (e.g. "mi" on its own), find the nearest number to its left
+    /// on roughly the same row. Survives perspective skew that breaks line grouping.
+    static func valueLeftOf(unitPattern: String, in items: [RecognizedText]) -> String? {
+        let unitItems = items.filter {
+            $0.text.range(of: "^\\s*" + unitPattern + "\\s*$", options: [.regularExpression, .caseInsensitive]) != nil
+        }
+        for unit in unitItems {
+            let candidates = items.filter { item in
+                item.box.maxX <= unit.box.minX + unit.box.width * 0.5
+                    && unit.box.minX - item.box.maxX < 0.12
+                    && abs(item.box.midY - unit.box.midY) < max(item.box.height, unit.box.height) * 1.2
+                    && item.text.contains(where: \.isNumber)
+            }
+            if let nearest = candidates.max(by: { $0.box.maxX < $1.box.maxX }) {
+                return normalize(nearest.text)
+            }
+        }
+        return nil
     }
 
     // MARK: Title
@@ -180,9 +250,15 @@ enum IFitSummaryParser {
     // MARK: Helpers
 
     static func normalize(_ s: String) -> String {
-        s.replacingOccurrences(of: "\u{2013}", with: "-")
+        var t = s.replacingOccurrences(of: "\u{2013}", with: "-")
             .replacingOccurrences(of: "\u{2014}", with: "-")
             .trimmingCharacters(in: .whitespacesAndNewlines)
+        // Letter/digit confusions next to digits: "1O.O2" -> "10.02", "l3.88" -> "13.88".
+        for _ in 0..<2 {
+            t = t.replacingOccurrences(of: #"(?<=\d)[Oo]|(?<=\d[.,])[Oo]|[Oo](?=[.,]?\d)"#, with: "0", options: .regularExpression)
+            t = t.replacingOccurrences(of: #"(?<=\d)[lI|]|[lI|](?=\d)"#, with: "1", options: .regularExpression)
+        }
+        return t
     }
 
     static func number(_ s: String) -> Double? { Double(s.replacingOccurrences(of: ",", with: ".")) }

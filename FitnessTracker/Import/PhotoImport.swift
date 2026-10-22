@@ -39,6 +39,10 @@ enum TextRecognizer {
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.usesLanguageCorrection = false
+        // Language correction stays off (it "fixes" numbers into words). customWords is
+        // mainly used with correction on, but it's harmless and helps unit tokens.
+        request.customWords = ["mi", "ft", "cals", "est", "rpm", "avg", "watts", "Incline", "Resistance", "completed"]
+        request.revision = VNRecognizeTextRequestRevision3
         let handler = VNImageRequestHandler(cgImage: image, options: [:])
         try handler.perform([request])
         let observations = request.results ?? []
