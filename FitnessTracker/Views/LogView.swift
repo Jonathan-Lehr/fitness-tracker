@@ -34,8 +34,9 @@ struct LogView: View {
     @State private var showAdd = false
     @State private var showDebug = false
 
+    private var filtered: [Workout] { workouts.filter(filter.matches) }
+
     private var sections: [(start: Date, workouts: [Workout])] {
-        let filtered = workouts.filter(filter.matches)
         let grouped = Dictionary(grouping: filtered) { period.start(of: $0.date) }
         return grouped.keys.sorted(by: >).map { ($0, grouped[$0] ?? []) }
     }
@@ -43,11 +44,13 @@ struct LogView: View {
     var body: some View {
         NavigationStack {
             List {
-                Picker("Group by", selection: $period) {
-                    ForEach(GroupingPeriod.allCases) { Text($0.rawValue).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .listRowBackground(Color.clear)
+                PeriodSummaryCard(period: $period,
+                                  summary: PeriodSummary.compute(filtered, period: period),
+                                  filtered: filter.isActive)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .animation(.default, value: period)
 
                 if sections.isEmpty {
                     ContentUnavailableView("No Rides", systemImage: "bicycle",
@@ -97,10 +100,16 @@ struct SectionHeader: View {
     let title: String
     let totals: Totals
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title).font(.headline)
-            Text("\(totals.count) rides · \(totals.minutes.minutesText) · \(totals.miles.milesText) · \(totals.calories) cal · \(totals.feet) ft")
-                .font(.caption).foregroundStyle(.secondary)
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.headline)
+                Text("\(totals.count) rides · \(totals.minutes.minutesText) · \(totals.calories) cal · \(totals.feet) ft")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer()
+            Text(totals.miles.milesText)
+                .font(.headline.bold()).monospacedDigit()
+                .foregroundStyle(.primary)
         }
         .textCase(nil)
     }
@@ -108,6 +117,13 @@ struct SectionHeader: View {
 
 struct WorkoutRow: View {
     let workout: Workout
+    /// The Log's section headers already show the year, so rows omit it by default.
+    var showYear = false
+
+    private var dateText: String {
+        let base = Date.FormatStyle.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute()
+        return workout.date.formatted(showYear ? base.year() : base)
+    }
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
@@ -116,7 +132,7 @@ struct WorkoutRow: View {
                 Text("\(workout.avgWatts) W").monospacedDigit().foregroundStyle(.orange)
             }
             HStack(spacing: 12) {
-                Text(workout.date.formatted(date: .abbreviated, time: .shortened))
+                Text(dateText)
                 Text(workout.durationMinutes.minutesText)
                 Text(workout.distanceMiles.milesText)
                 Text("\(workout.calories) cal")
