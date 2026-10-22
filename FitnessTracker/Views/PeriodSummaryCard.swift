@@ -18,7 +18,7 @@ struct PeriodSummaryCard: View {
             HStack(alignment: .center, spacing: 28) {
                 hero
                 Divider().frame(height: 70)
-                stats
+                stats.fixedSize()
                 chart.frame(minWidth: 220, maxWidth: .infinity)
             }
             #else
@@ -30,8 +30,7 @@ struct PeriodSummaryCard: View {
             stats
             #endif
         }
-        .padding()
-        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 16))
+        .padding(.vertical, 6)
     }
 
     private var hero: some View {
@@ -58,20 +57,21 @@ struct PeriodSummaryCard: View {
     }
 
     private var stats: some View {
-        HStack(spacing: 0) {
+        HStack(alignment: .top, spacing: 24) {
             stat("\(summary.current.count)", "Rides")
             stat(summary.current.minutes.minutesText, "Time")
             stat("\(summary.current.calories)", "Calories")
             stat("\(summary.current.feet) ft", "Elevation")
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func stat(_ value: String, _ label: String) -> some View {
-        VStack(spacing: 2) {
+        VStack(alignment: .leading, spacing: 2) {
             Text(value).font(.headline.weight(.semibold)).monospacedDigit()
-            Text(label).font(.caption2).foregroundStyle(.secondary)
+            Text(label).font(.caption).foregroundStyle(.secondary)
         }
-        .frame(maxWidth: .infinity)
+        .fixedSize()
     }
 
     private var axisStride: (component: Calendar.Component, count: Int, format: Date.FormatStyle) {

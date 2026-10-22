@@ -44,13 +44,21 @@ struct LogView: View {
     var body: some View {
         NavigationStack {
             List {
-                PeriodSummaryCard(period: $period,
-                                  summary: PeriodSummary.compute(filtered, period: period),
-                                  filtered: filter.isActive)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                    .animation(.default, value: period)
+                // Its own section, so the card uses the list's row background, corner radius
+                // and insets on iOS (inset grouped) and macOS, lining up with the rows below.
+                Section {
+                    PeriodSummaryCard(period: $period,
+                                      summary: PeriodSummary.compute(filtered, period: period),
+                                      filtered: filter.isActive)
+                        .animation(.default, value: period)
+                        #if os(macOS)
+                        .listRowBackground(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color(nsColor: NSColor.alternatingContentBackgroundColors.last ?? .controlBackgroundColor))
+                                .padding(.horizontal, 6)
+                        )
+                        #endif
+                }
 
                 if sections.isEmpty {
                     ContentUnavailableView("No Rides", systemImage: "bicycle",
@@ -69,6 +77,9 @@ struct LogView: View {
                     }
                 }
             }
+            #if os(macOS)
+            .listStyle(.inset(alternatesRowBackgrounds: true))
+            #endif
             .navigationTitle("Rides")
             .navigationDestination(for: Workout.self) { WorkoutDetailView(workout: $0) }
             .toolbar {
@@ -104,13 +115,13 @@ struct SectionHeader: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.headline)
                 Text("\(totals.count) rides · \(totals.minutes.minutesText) · \(totals.calories) cal · \(totals.feet) ft")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.subheadline)
             }
             Spacer()
             Text(totals.miles.milesText)
                 .font(.headline.bold()).monospacedDigit()
-                .foregroundStyle(.primary)
         }
+        .foregroundStyle(.primary)
         .textCase(nil)
     }
 }
