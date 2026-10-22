@@ -24,8 +24,8 @@ struct PeriodSummaryCard: View {
             #else
             HStack(alignment: .bottom) {
                 hero
-                Spacer(minLength: 12)
-                chart.frame(width: 140)
+                Spacer(minLength: 16)
+                chart.frame(minWidth: 120, maxWidth: 200)
             }
             stats
             #endif
@@ -63,9 +63,13 @@ struct PeriodSummaryCard: View {
         }
         #else
         // 2x2 on iPhone: four columns with deltas are too tight.
-        Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 12) {
-            GridRow { stat(.rides); stat(.time) }
-            GridRow { stat(.calories); stat(.elevation) }
+        // Two equal flexible columns spanning the full card width (no dead space on the right).
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: 16, alignment: .leading),
+                            GridItem(.flexible(), spacing: 16, alignment: .leading)],
+                  alignment: .leading, spacing: 12) {
+            ForEach(PeriodSummary.Metric.allCases, id: \.self) { m in
+                stat(m).frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         #endif
@@ -91,7 +95,7 @@ struct PeriodSummaryCard: View {
                 .font(.caption2.weight(.medium)).monospacedDigit()
                 .foregroundStyle(d > 0 ? Color.green : (d < 0 ? Color.red : Color.secondary))
         }
-        .fixedSize()
+        .fixedSize(horizontal: true, vertical: false)
         .accessibilityElement(children: .combine)
     }
 
