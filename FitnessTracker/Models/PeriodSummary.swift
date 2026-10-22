@@ -15,6 +15,37 @@ struct PeriodSummary {
     let buckets: [Bucket]
 
     var milesDelta: Double { current.miles - previous.miles }
+    var ridesDelta: Int { current.count - previous.count }
+    var minutesDelta: Double { current.minutes - previous.minutes }
+    var caloriesDelta: Int { current.calories - previous.calories }
+    var feetDelta: Int { current.feet - previous.feet }
+
+    enum Metric: CaseIterable { case rides, time, calories, elevation }
+
+    /// Signed change vs the previous period, for coloring (>0 up, <0 down, 0 same).
+    func delta(_ m: Metric) -> Double {
+        switch m {
+        case .rides: Double(ridesDelta)
+        case .time: minutesDelta.rounded()
+        case .calories: Double(caloriesDelta)
+        case .elevation: Double(feetDelta)
+        }
+    }
+
+    /// Compact delta text, e.g. "▲ 2", "▼ 15m", "▲ 120 cal", "▲ 340 ft", "– 0".
+    func deltaText(_ m: Metric) -> String {
+        let d = delta(m)
+        let arrow = d > 0 ? "▲" : (d < 0 ? "▼" : "–")
+        let mag = abs(d)
+        let value: String
+        switch m {
+        case .rides: value = "\(Int(mag))"
+        case .time: value = mag.minutesText
+        case .calories: value = "\(Int(mag)) cal"
+        case .elevation: value = "\(Int(mag)) ft"
+        }
+        return "\(arrow) \(value)"
+    }
 
     /// Bucket size for the mini chart: days for week and month, months for year.
     static func bucketComponent(for period: GroupingPeriod) -> Calendar.Component {

@@ -57,21 +57,42 @@ struct PeriodSummaryCard: View {
     }
 
     private var stats: some View {
-        HStack(alignment: .top, spacing: 24) {
-            stat("\(summary.current.count)", "Rides")
-            stat(summary.current.minutes.minutesText, "Time")
-            stat("\(summary.current.calories)", "Calories")
-            stat("\(summary.current.feet) ft", "Elevation")
+        #if os(macOS)
+        HStack(alignment: .top, spacing: 28) {
+            ForEach(PeriodSummary.Metric.allCases, id: \.self) { stat($0) }
+        }
+        #else
+        // 2x2 on iPhone: four columns with deltas are too tight.
+        Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 12) {
+            GridRow { stat(.rides); stat(.time) }
+            GridRow { stat(.calories); stat(.elevation) }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        #endif
     }
 
-    private func stat(_ value: String, _ label: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(value).font(.headline.weight(.semibold)).monospacedDigit()
+    private func value(_ m: PeriodSummary.Metric) -> (String, String) {
+        let t = summary.current
+        switch m {
+        case .rides: return ("\(t.count)", "Rides")
+        case .time: return (t.minutes.minutesText, "Time")
+        case .calories: return ("\(t.calories)", "Calories")
+        case .elevation: return ("\(t.feet) ft", "Elevation")
+        }
+    }
+
+    private func stat(_ m: PeriodSummary.Metric) -> some View {
+        let (v, label) = value(m)
+        let d = summary.delta(m)
+        return VStack(alignment: .leading, spacing: 1) {
+            Text(v).font(.headline.weight(.semibold)).monospacedDigit()
             Text(label).font(.caption).foregroundStyle(.secondary)
+            Text(summary.deltaText(m))
+                .font(.caption2.weight(.medium)).monospacedDigit()
+                .foregroundStyle(d > 0 ? Color.green : (d < 0 ? Color.red : Color.secondary))
         }
         .fixedSize()
+        .accessibilityElement(children: .combine)
     }
 
     private var axisStride: (component: Calendar.Component, count: Int, format: Date.FormatStyle) {

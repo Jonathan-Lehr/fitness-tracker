@@ -86,4 +86,28 @@ final class PeriodSummaryTests: XCTestCase {
         XCTAssertEqual(s.current.count, 1)
         XCTAssertEqual(s.previous.count, 0)
     }
+
+    func testPerMetricDeltasWeek() {
+        // This week: 2 rides, 78 min, 676 cal, 2042 ft. Last week: 2 rides, 60 min, 600 cal, 1000 ft.
+        let s = PeriodSummary.compute(rides, period: .week, now: now, calendar: cal)
+        XCTAssertEqual(s.ridesDelta, 0)
+        XCTAssertEqual(s.minutesDelta, 18)
+        XCTAssertEqual(s.caloriesDelta, 76)
+        XCTAssertEqual(s.feetDelta, 1042)
+        XCTAssertEqual(s.deltaText(.rides), "– 0")
+        XCTAssertEqual(s.deltaText(.time), "▲ 18m")
+        XCTAssertEqual(s.deltaText(.calories), "▲ 76 cal")
+        XCTAssertEqual(s.deltaText(.elevation), "▲ 1042 ft")
+    }
+
+    func testPerMetricDeltasDownAndHours() {
+        let s = PeriodSummary.compute([ride(date(2026, 10, 14), 20, minutes: 95, cal: 800, ft: 900)],
+                                      period: .week, now: now, calendar: cal)
+        XCTAssertEqual(s.ridesDelta, -1)
+        XCTAssertEqual(s.deltaText(.rides), "▼ 1")
+        XCTAssertEqual(s.deltaText(.time), "▼ 1h 35m")
+        XCTAssertEqual(s.deltaText(.calories), "▼ 800 cal")
+        XCTAssertEqual(s.deltaText(.elevation), "▼ 900 ft")
+        XCTAssertLessThan(s.delta(.time), 0)
+    }
 }
