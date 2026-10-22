@@ -121,7 +121,7 @@ struct SectionHeader: View {
             Text(totals.miles.milesText)
                 .font(.headline.bold()).monospacedDigit()
         }
-        .foregroundStyle(.primary)
+        .foregroundStyle(.secondary)
         .textCase(nil)
     }
 }
