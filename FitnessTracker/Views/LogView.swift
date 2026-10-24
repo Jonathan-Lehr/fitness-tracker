@@ -118,7 +118,7 @@ struct SectionHeader: View {
                     .font(.subheadline)
             }
             Spacer()
-            Text(totals.miles.milesText)
+            Text(PeriodSummary.milesNumber(totals.miles) + " mi")
                 .font(.headline.bold()).monospacedDigit()
         }
         .foregroundStyle(.secondary)

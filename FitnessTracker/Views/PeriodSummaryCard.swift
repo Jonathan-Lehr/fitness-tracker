@@ -6,10 +6,14 @@ struct PeriodSummaryCard: View {
     let summary: PeriodSummary
     var filtered: Bool = false
 
+    static let columnSpacing: CGFloat = 16
+    /// Measured card width; drives the layout instead of size classes (a non-Max iPhone in
+    /// landscape reports a compact horizontal size class).
+    @State private var cardWidth: CGFloat = 0
+
     #if os(iOS)
-    @Environment(\.horizontalSizeClass) private var hSize
     @Environment(\.verticalSizeClass) private var vSize
-    private var useWideLayout: Bool { vSize == .compact || hSize == .regular }
+    private var useWideLayout: Bool { vSize == .compact || cardWidth > 600 }
     #else
     private let useWideLayout = true
     #endif
@@ -23,24 +27,26 @@ struct PeriodSummaryCard: View {
             .labelsHidden()
 
             if useWideLayout {
-                // Mac and iPhone landscape: miles | 4 stats with deltas | chart.
-                HStack(alignment: .center, spacing: 24) {
-                    hero.layoutPriority(1)
-                    Divider().frame(height: 70)
-                    statsRow.layoutPriority(1)
-                    chart.frame(minWidth: 120, maxWidth: 260)
+                // Wide (Mac, iPhone landscape): a 4-column grid. Top row: hero in columns 1–2,
+                // chart in columns 3–4; bottom row: one stat per column. The two halves use the
+                // same spacing as the grid, so their edges line up with the stat columns.
+                HStack(alignment: .bottom, spacing: Self.columnSpacing) {
+                    hero.frame(maxWidth: .infinity, alignment: .leading)
+                    chart.frame(maxWidth: .infinity)
                 }
+                statsGrid(columns: 4)
             } else {
-                // iPhone portrait: miles + chart, then a 2x2 grid.
+                // Narrow (iPhone portrait): miles + chart, then a 2x2 grid.
                 HStack(alignment: .bottom) {
                     hero.layoutPriority(1)
                     Spacer(minLength: 16)
                     chart.frame(minWidth: 80, maxWidth: 200)
                 }
-                statsGrid
+                statsGrid(columns: 2)
             }
         }
         .padding(.vertical, 6)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { cardWidth = $0 }
     }
 
     private var hero: some View {
@@ -70,17 +76,10 @@ struct PeriodSummaryCard: View {
         }
     }
 
-    private var statsRow: some View {
-        HStack(alignment: .top, spacing: 24) {
-            ForEach(PeriodSummary.Metric.allCases, id: \.self) { stat($0) }
-        }
-        .fixedSize(horizontal: true, vertical: false)
-    }
-
-    // Two equal flexible columns spanning the full card width (no dead space on the right).
-    private var statsGrid: some View {
-        LazyVGrid(columns: [GridItem(.flexible(), spacing: 16, alignment: .leading),
-                            GridItem(.flexible(), spacing: 16, alignment: .leading)],
+    /// Stats in equal flexible columns spanning the full card width, each leading-aligned.
+    private func statsGrid(columns: Int) -> some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Self.columnSpacing, alignment: .leading),
+                                 count: columns),
                   alignment: .leading, spacing: 12) {
             ForEach(PeriodSummary.Metric.allCases, id: \.self) { m in
                 stat(m).frame(maxWidth: .infinity, alignment: .leading)
@@ -109,7 +108,8 @@ struct PeriodSummaryCard: View {
                 .font(.caption2.weight(.medium)).monospacedDigit()
                 .foregroundStyle(d > 0 ? Color.green : (d < 0 ? Color.red : Color.secondary))
         }
-        .fixedSize(horizontal: true, vertical: false)
+        .lineLimit(1)
+        .minimumScaleFactor(0.8)
         .accessibilityElement(children: .combine)
     }
 
