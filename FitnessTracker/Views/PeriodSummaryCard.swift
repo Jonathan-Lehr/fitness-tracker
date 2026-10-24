@@ -140,29 +140,30 @@ struct PeriodSummaryCard: View {
         }
     }
 
-    /// Midpoints of the labeled buckets, so ticks and labels sit under the bar centers.
-    private var axisDates: [Date] {
-        let cal = Calendar.current
-        let unit = PeriodSummary.bucketComponent(for: summary.period)
-        return summary.buckets.enumerated().compactMap { i, b in
-            guard i % axisStride.count == 0,
-                  let next = cal.date(byAdding: unit, value: 1, to: b.start) else { return nil }
-            return b.start.addingTimeInterval(next.timeIntervalSince(b.start) / 2)
-        }
+    // The chart uses a categorical x axis (one band per bucket, keyed by index) so bars,
+    // tracks, ticks and labels all share the same band centers. Date-based x values put
+    // ticks/labels at bucket boundaries, which drifted half a slot from the bars.
+    private func key(_ index: Int) -> String { String(index) }
+
+    private var labeledKeys: [String] {
+        summary.buckets.indices.filter { $0 % axisStride.count == 0 }.map(key)
+    }
+
+    private func label(forKey k: String) -> String {
+        guard let i = Int(k), summary.buckets.indices.contains(i) else { return "" }
+        return summary.buckets[i].start.formatted(axisStride.format)
     }
 
     private var chart: some View {
-        let unit = PeriodSummary.bucketComponent(for: summary.period)
         let top = max(summary.buckets.map(\.miles).max() ?? 0, 0.1)
+        let keys = summary.buckets.indices.map(key)
         return Chart {
-            // Faint full-height track behind every bucket, so empty days read as empty.
-            ForEach(summary.buckets) { b in
-                BarMark(x: .value("Date", b.start, unit: unit), yStart: .value("Track", 0), yEnd: .value("Track", top))
+            ForEach(Array(summary.buckets.enumerated()), id: \.offset) { i, b in
+                // Faint full-height track behind every bucket, so empty days read as empty.
+                BarMark(x: .value("Bucket", key(i)), yStart: .value("Track", 0), yEnd: .value("Track", top))
                     .foregroundStyle(Color.secondary.opacity(0.1))
                     .cornerRadius(2)
-            }
-            ForEach(summary.buckets) { b in
-                BarMark(x: .value("Date", b.start, unit: unit), y: .value("Miles", b.miles))
+                BarMark(x: .value("Bucket", key(i)), yStart: .value("Start", 0), yEnd: .value("Miles", b.miles))
                     .foregroundStyle(Color.accentColor.gradient)
                     .cornerRadius(2)
             }
@@ -171,13 +172,16 @@ struct PeriodSummaryCard: View {
                 .lineStyle(StrokeStyle(lineWidth: 0.75))
                 .foregroundStyle(Color.secondary.opacity(0.5))
         }
+        .chartXScale(domain: keys)
         .chartYScale(domain: 0...top)
         .chartYAxis(.hidden)
         .chartXAxis {
-            AxisMarks(values: axisDates) { _ in
-                AxisTick(centered: true, length: 4, stroke: StrokeStyle(lineWidth: 0.75))
+            AxisMarks(values: labeledKeys) { value in
+                AxisTick(length: 4, stroke: StrokeStyle(lineWidth: 0.75))
                     .foregroundStyle(Color.secondary.opacity(0.6))
-                AxisValueLabel(format: axisStride.format, centered: true)
+                AxisValueLabel {
+                    if let k = value.as(String.self) { Text(label(forKey: k)) }
+                }
             }
         }
         .frame(height: 70)
