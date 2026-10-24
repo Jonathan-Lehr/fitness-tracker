@@ -10,6 +10,20 @@ struct PeriodSummaryCard: View {
     /// Measured card width; drives the layout instead of size classes (a non-Max iPhone in
     /// landscape reports a compact horizontal size class).
     @State private var cardWidth: CGFloat = 0
+    /// Measured content width of the Elevation stat (the chart's trailing edge stops there).
+    @State private var elevationWidth: CGFloat = 0
+
+    /// Width of one of the four equal stat columns.
+    private var wideColumnWidth: CGFloat {
+        max(0, (cardWidth - 3 * Self.columnSpacing) / 4)
+    }
+
+    /// Columns 2–3 plus the Elevation content, so the chart spans Time…Elevation.
+    private var wideChartWidth: CGFloat {
+        let col = wideColumnWidth
+        let elevation = elevationWidth > 0 ? min(elevationWidth, col) : col
+        return max(0, 2 * col + 2 * Self.columnSpacing + elevation)
+    }
 
     #if os(iOS)
     @Environment(\.verticalSizeClass) private var vSize
@@ -27,12 +41,13 @@ struct PeriodSummaryCard: View {
             .labelsHidden()
 
             if useWideLayout {
-                // Wide (Mac, iPhone landscape): a 4-column grid. Top row: hero in columns 1–2,
-                // chart in columns 3–4; bottom row: one stat per column. The two halves use the
-                // same spacing as the grid, so their edges line up with the stat columns.
+                // Wide (Mac, iPhone landscape): a 4-column grid. Top row: hero in column 1, chart
+                // from column 2's leading edge to the end of the Elevation stat's content;
+                // bottom row: one stat per column.
                 HStack(alignment: .bottom, spacing: Self.columnSpacing) {
-                    hero.frame(maxWidth: .infinity, alignment: .leading)
-                    chart.frame(maxWidth: .infinity)
+                    hero.frame(width: wideColumnWidth, alignment: .leading)
+                    chart.frame(width: wideChartWidth)
+                    Spacer(minLength: 0)
                 }
                 statsGrid(columns: 4)
             } else {
@@ -71,7 +86,7 @@ struct PeriodSummaryCard: View {
             Text(summary.deltaText)
                 .font(.caption.weight(.medium))
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .minimumScaleFactor(0.6)
                 .foregroundStyle(summary.milesDelta > 0 ? Color.green : (summary.milesDelta < 0 ? Color.red : Color.secondary))
         }
     }
@@ -82,7 +97,11 @@ struct PeriodSummaryCard: View {
                                  count: columns),
                   alignment: .leading, spacing: 12) {
             ForEach(PeriodSummary.Metric.allCases, id: \.self) { m in
-                stat(m).frame(maxWidth: .infinity, alignment: .leading)
+                stat(m)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { w in
+                        if m == .elevation { elevationWidth = w }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
