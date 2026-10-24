@@ -16,16 +16,16 @@ struct PeriodSummaryCard: View {
 
             #if os(macOS)
             HStack(alignment: .center, spacing: 28) {
-                hero
+                hero.layoutPriority(1)
                 Divider().frame(height: 70)
                 stats.fixedSize()
                 chart.frame(minWidth: 220, maxWidth: .infinity)
             }
             #else
             HStack(alignment: .bottom) {
-                hero
+                hero.layoutPriority(1)
                 Spacer(minLength: 16)
-                chart.frame(minWidth: 120, maxWidth: 200)
+                chart.frame(minWidth: 80, maxWidth: 200)
             }
             stats
             #endif
@@ -44,14 +44,18 @@ struct PeriodSummaryCard: View {
                 }
             }
             HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(String(format: "%.1f", summary.current.miles))
+                Text(PeriodSummary.milesNumber(summary.current.miles))
                     .font(.system(size: 48, weight: .bold, design: .rounded))
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
                     .contentTransition(.numericText())
                 Text("mi").font(.title3.weight(.semibold)).foregroundStyle(.secondary)
             }
             Text(summary.deltaText)
                 .font(.caption.weight(.medium))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
                 .foregroundStyle(summary.milesDelta > 0 ? Color.green : (summary.milesDelta < 0 ? Color.red : Color.secondary))
         }
     }

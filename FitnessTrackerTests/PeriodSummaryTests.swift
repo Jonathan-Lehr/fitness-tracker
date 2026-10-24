@@ -110,4 +110,22 @@ final class PeriodSummaryTests: XCTestCase {
         XCTAssertEqual(s.deltaText(.elevation), "▼ 900 ft")
         XCTAssertLessThan(s.delta(.time), 0)
     }
+
+    func testMilesNumberFormatting() {
+        let us = Locale(identifier: "en_US")
+        XCTAssertEqual(PeriodSummary.milesNumber(9.85, locale: us), "9.8")   // banker's rounding of 9.85 (binary 9.8499…)
+        XCTAssertEqual(PeriodSummary.milesNumber(43.25, locale: us), "43.2")
+        XCTAssertEqual(PeriodSummary.milesNumber(99.9, locale: us), "99.9")
+        XCTAssertEqual(PeriodSummary.milesNumber(99.96, locale: us), "100")
+        XCTAssertEqual(PeriodSummary.milesNumber(100.4, locale: us), "100")
+        XCTAssertEqual(PeriodSummary.milesNumber(1234.5, locale: us), "1,235")
+        XCTAssertEqual(PeriodSummary.milesNumber(0, locale: us), "0.0")
+    }
+
+    func testDeltaTextUsesWholeMilesAt100() {
+        let big = (1...12).map { ride(date(2026, 10, $0), 10) }   // 120 mi this month (Oct 1–12), 0 last month
+        let s = PeriodSummary.compute(big, period: .month, now: now, calendar: cal)
+        XCTAssertEqual(s.current.miles, 120, accuracy: 0.001)
+        XCTAssertTrue(s.deltaText.hasPrefix("+120 mi"), s.deltaText)
+    }
 }

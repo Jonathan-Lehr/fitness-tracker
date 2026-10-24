@@ -87,9 +87,19 @@ struct PeriodSummary {
         }
     }
 
-    /// e.g. "+4.2 mi vs last week"
+    /// Miles for display: one decimal below 100 ("9.9", "99.9"), whole number with grouping
+    /// at 100 and above ("100", "1,235") so month/year totals fit the hero slot.
+    static func milesNumber(_ miles: Double, locale: Locale = .current) -> String {
+        if abs(miles) < 99.95 {
+            return miles.formatted(.number.precision(.fractionLength(1)).rounded(rule: .toNearestOrEven).locale(locale))
+        }
+        return miles.formatted(.number.precision(.fractionLength(0)).rounded(rule: .toNearestOrAwayFromZero)
+            .grouping(.automatic).locale(locale))
+    }
+
+    /// e.g. "+4.2 mi vs last week", "+12 mi"… once >= 100: "+120 mi vs last month"
     var deltaText: String {
         let sign = milesDelta > 0 ? "+" : (milesDelta < 0 ? "−" : "±")
-        return "\(sign)\(String(format: "%.1f", abs(milesDelta))) mi vs last \(period.rawValue.lowercased())"
+        return "\(sign)\(Self.milesNumber(abs(milesDelta))) mi vs last \(period.rawValue.lowercased())"
     }
 }
