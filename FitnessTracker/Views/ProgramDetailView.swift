@@ -60,7 +60,7 @@ struct ProgramDetailView: View {
                         .buttonStyle(.borderless)
                         NavigationLink(value: w) {
                             HStack {
-                                WorkoutRow(workout: w)
+                                WorkoutRow(workout: w, showYear: true)
                                 if w.persistentModelID == best?.persistentModelID {
                                     Image(systemName: "star.fill").foregroundStyle(.orange)
                                 }

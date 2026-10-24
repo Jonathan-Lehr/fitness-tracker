@@ -34,8 +34,9 @@ struct LogView: View {
     @State private var showAdd = false
     @State private var showDebug = false
 
+    private var filtered: [Workout] { workouts.filter(filter.matches) }
+
     private var sections: [(start: Date, workouts: [Workout])] {
-        let filtered = workouts.filter(filter.matches)
         let grouped = Dictionary(grouping: filtered) { period.start(of: $0.date) }
         return grouped.keys.sorted(by: >).map { ($0, grouped[$0] ?? []) }
     }
@@ -43,11 +44,20 @@ struct LogView: View {
     var body: some View {
         NavigationStack {
             List {
-                Picker("Group by", selection: $period) {
-                    ForEach(GroupingPeriod.allCases) { Text($0.rawValue).tag($0) }
+                // Its own section, so the card uses the list's row background, corner radius
+                // and insets on iOS (inset grouped) and macOS, lining up with the rows below.
+                Section {
+                    PeriodSummaryCard(period: $period,
+                                      summary: PeriodSummary.compute(filtered, period: period),
+                                      filtered: filter.isActive)
+                        #if os(macOS)
+                        .listRowBackground(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color(nsColor: NSColor.alternatingContentBackgroundColors.last ?? .controlBackgroundColor))
+                                .padding(.horizontal, 6)
+                        )
+                        #endif
                 }
-                .pickerStyle(.segmented)
-                .listRowBackground(Color.clear)
 
                 if sections.isEmpty {
                     ContentUnavailableView("No Rides", systemImage: "bicycle",
@@ -66,6 +76,9 @@ struct LogView: View {
                     }
                 }
             }
+            #if os(macOS)
+            .listStyle(.inset(alternatesRowBackgrounds: true))
+            #endif
             .navigationTitle("Rides")
             .navigationDestination(for: Workout.self) { WorkoutDetailView(workout: $0) }
             .toolbar {
@@ -85,7 +98,7 @@ struct LogView: View {
                 #endif
             }
             .sheet(isPresented: $showAdd) { AddRideView() }
-            .sheet(isPresented: $showFilters) { FilterView(filter: $filter) }
+            .sheet(isPresented: $showFilters) { FilterView(filter: $filter.animation(.default)) }
             #if DEBUG
             .sheet(isPresented: $showDebug) { DebugMenuView() }
             #endif
@@ -97,17 +110,30 @@ struct SectionHeader: View {
     let title: String
     let totals: Totals
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title).font(.headline)
-            Text("\(totals.count) rides · \(totals.minutes.minutesText) · \(totals.miles.milesText) · \(totals.calories) cal · \(totals.feet) ft")
-                .font(.caption).foregroundStyle(.secondary)
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.headline)
+                Text("\(totals.count) rides · \(totals.minutes.minutesText) · \(totals.calories) cal · \(totals.feet) ft")
+                    .font(.subheadline)
+            }
+            Spacer()
+            Text(PeriodSummary.milesNumber(totals.miles) + " mi")
+                .font(.headline.bold()).monospacedDigit()
         }
+        .foregroundStyle(.secondary)
         .textCase(nil)
     }
 }
 
 struct WorkoutRow: View {
     let workout: Workout
+    /// The Log's section headers already show the year, so rows omit it by default.
+    var showYear = false
+
+    private var dateText: String {
+        let base = Date.FormatStyle.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute()
+        return workout.date.formatted(showYear ? base.year() : base)
+    }
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
@@ -116,7 +142,7 @@ struct WorkoutRow: View {
                 Text("\(workout.avgWatts) W").monospacedDigit().foregroundStyle(.orange)
             }
             HStack(spacing: 12) {
-                Text(workout.date.formatted(date: .abbreviated, time: .shortened))
+                Text(dateText)
                 Text(workout.durationMinutes.minutesText)
                 Text(workout.distanceMiles.milesText)
                 Text("\(workout.calories) cal")
