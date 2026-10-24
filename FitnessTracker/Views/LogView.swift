@@ -33,6 +33,7 @@ struct LogView: View {
     @State private var showFilters = false
     @State private var showAdd = false
     @State private var showDebug = false
+    @State private var showBackup = false
 
     private var filtered: [Workout] { workouts.filter(filter.matches) }
 
@@ -91,13 +92,19 @@ struct LogView: View {
                               ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
                     }
                 }
-                #if DEBUG
                 ToolbarItem {
-                    Button { showDebug = true } label: { Label("Debug", systemImage: "ladybug") }
+                    Menu {
+                        Button { showBackup = true } label: { Label("Backup & Restore…", systemImage: "externaldrive") }
+                        #if DEBUG
+                        Button { showDebug = true } label: { Label("Debug…", systemImage: "ladybug") }
+                        #endif
+                    } label: {
+                        Label("More", systemImage: "ellipsis.circle")
+                    }
                 }
-                #endif
             }
             .sheet(isPresented: $showAdd) { AddRideView() }
+            .sheet(isPresented: $showBackup) { BackupView() }
             .sheet(isPresented: $showFilters) { FilterView(filter: $filter.animation(.default)) }
             #if DEBUG
             .sheet(isPresented: $showDebug) { DebugMenuView() }
