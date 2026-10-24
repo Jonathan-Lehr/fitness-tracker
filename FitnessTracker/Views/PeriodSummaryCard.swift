@@ -7,6 +7,23 @@ struct PeriodSummaryCard: View {
     var filtered: Bool = false
 
     static let columnSpacing: CGFloat = 16
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// Rolling digits for numbers; a plain crossfade when Reduce Motion is on.
+    private func numeric(_ value: Double) -> ContentTransition {
+        reduceMotion ? .opacity : .numericText(value: value)
+    }
+
+    private func metricValue(_ m: PeriodSummary.Metric) -> Double {
+        let t = summary.current
+        switch m {
+        case .rides: return Double(t.count)
+        case .time: return t.minutes
+        case .calories: return Double(t.calories)
+        case .elevation: return Double(t.feet)
+        }
+    }
     /// Measured card width; drives the layout instead of size classes (a non-Max iPhone in
     /// landscape reports a compact horizontal size class).
     @State private var cardWidth: CGFloat = 0
@@ -68,6 +85,7 @@ struct PeriodSummaryCard: View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
                 Text(summary.title).font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
+                    .contentTransition(.opacity)
                 if filtered {
                     Image(systemName: "line.3.horizontal.decrease.circle.fill")
                         .font(.caption).foregroundStyle(.secondary)
@@ -80,10 +98,12 @@ struct PeriodSummaryCard: View {
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
-                    .contentTransition(.numericText())
+                    .contentTransition(numeric(summary.current.miles))
                 Text("mi").font(.title3.weight(.semibold)).foregroundStyle(.secondary)
             }
             Text(summary.deltaText)
+                .contentTransition(numeric(summary.milesDelta))
+                .monospacedDigit()
                 .font(.caption.weight(.medium))
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
@@ -122,8 +142,10 @@ struct PeriodSummaryCard: View {
         let d = summary.delta(m)
         return VStack(alignment: .leading, spacing: 1) {
             Text(v).font(.headline.weight(.semibold)).monospacedDigit()
+                .contentTransition(numeric(metricValue(m)))
             Text(label).font(.caption).foregroundStyle(.secondary)
             Text(summary.deltaText(m))
+                .contentTransition(numeric(d))
                 .font(.caption2.weight(.medium)).monospacedDigit()
                 .foregroundStyle(d > 0 ? Color.green : (d < 0 ? Color.red : Color.secondary))
         }
