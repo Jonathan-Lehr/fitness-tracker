@@ -177,9 +177,7 @@ struct PeriodSummaryCard: View {
         .chartYAxis(.hidden)
         .chartXAxis {
             AxisMarks(values: labeledKeys) { value in
-                AxisTick(length: 4, stroke: StrokeStyle(lineWidth: 0.75))
-                    .foregroundStyle(Color.secondary.opacity(0.6))
-                AxisValueLabel {
+                AxisValueLabel(verticalSpacing: 3) {
                     if let k = value.as(String.self) { Text(label(forKey: k)) }
                 }
             }
