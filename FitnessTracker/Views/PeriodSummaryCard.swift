@@ -140,17 +140,44 @@ struct PeriodSummaryCard: View {
         }
     }
 
+    /// Midpoints of the labeled buckets, so ticks and labels sit under the bar centers.
+    private var axisDates: [Date] {
+        let cal = Calendar.current
+        let unit = PeriodSummary.bucketComponent(for: summary.period)
+        return summary.buckets.enumerated().compactMap { i, b in
+            guard i % axisStride.count == 0,
+                  let next = cal.date(byAdding: unit, value: 1, to: b.start) else { return nil }
+            return b.start.addingTimeInterval(next.timeIntervalSince(b.start) / 2)
+        }
+    }
+
     private var chart: some View {
         let unit = PeriodSummary.bucketComponent(for: summary.period)
-        return Chart(summary.buckets) { b in
-            BarMark(x: .value("Date", b.start, unit: unit), y: .value("Miles", b.miles))
-                .foregroundStyle(Color.accentColor.gradient)
-                .cornerRadius(2)
+        let top = max(summary.buckets.map(\.miles).max() ?? 0, 0.1)
+        return Chart {
+            // Faint full-height track behind every bucket, so empty days read as empty.
+            ForEach(summary.buckets) { b in
+                BarMark(x: .value("Date", b.start, unit: unit), yStart: .value("Track", 0), yEnd: .value("Track", top))
+                    .foregroundStyle(Color.secondary.opacity(0.1))
+                    .cornerRadius(2)
+            }
+            ForEach(summary.buckets) { b in
+                BarMark(x: .value("Date", b.start, unit: unit), y: .value("Miles", b.miles))
+                    .foregroundStyle(Color.accentColor.gradient)
+                    .cornerRadius(2)
+            }
+            // Hairline baseline.
+            RuleMark(y: .value("Baseline", 0))
+                .lineStyle(StrokeStyle(lineWidth: 0.75))
+                .foregroundStyle(Color.secondary.opacity(0.5))
         }
+        .chartYScale(domain: 0...top)
         .chartYAxis(.hidden)
         .chartXAxis {
-            AxisMarks(values: .stride(by: axisStride.component, count: axisStride.count)) { _ in
-                AxisValueLabel(format: axisStride.format)
+            AxisMarks(values: axisDates) { _ in
+                AxisTick(centered: true, length: 4, stroke: StrokeStyle(lineWidth: 0.75))
+                    .foregroundStyle(Color.secondary.opacity(0.6))
+                AxisValueLabel(format: axisStride.format, centered: true)
             }
         }
         .frame(height: 70)
