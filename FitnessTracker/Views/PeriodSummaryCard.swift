@@ -6,6 +6,14 @@ struct PeriodSummaryCard: View {
     let summary: PeriodSummary
     var filtered: Bool = false
 
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var hSize
+    @Environment(\.verticalSizeClass) private var vSize
+    private var useWideLayout: Bool { vSize == .compact || hSize == .regular }
+    #else
+    private let useWideLayout = true
+    #endif
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Picker("Period", selection: $period) {
@@ -14,21 +22,23 @@ struct PeriodSummaryCard: View {
             .pickerStyle(.segmented)
             .labelsHidden()
 
-            #if os(macOS)
-            HStack(alignment: .center, spacing: 28) {
-                hero.layoutPriority(1)
-                Divider().frame(height: 70)
-                stats.fixedSize()
-                chart.frame(minWidth: 220, maxWidth: .infinity)
+            if useWideLayout {
+                // Mac and iPhone landscape: miles | 4 stats with deltas | chart.
+                HStack(alignment: .center, spacing: 24) {
+                    hero.layoutPriority(1)
+                    Divider().frame(height: 70)
+                    statsRow.layoutPriority(1)
+                    chart.frame(minWidth: 120, maxWidth: 260)
+                }
+            } else {
+                // iPhone portrait: miles + chart, then a 2x2 grid.
+                HStack(alignment: .bottom) {
+                    hero.layoutPriority(1)
+                    Spacer(minLength: 16)
+                    chart.frame(minWidth: 80, maxWidth: 200)
+                }
+                statsGrid
             }
-            #else
-            HStack(alignment: .bottom) {
-                hero.layoutPriority(1)
-                Spacer(minLength: 16)
-                chart.frame(minWidth: 80, maxWidth: 200)
-            }
-            stats
-            #endif
         }
         .padding(.vertical, 6)
     }
@@ -60,14 +70,15 @@ struct PeriodSummaryCard: View {
         }
     }
 
-    private var stats: some View {
-        #if os(macOS)
-        HStack(alignment: .top, spacing: 28) {
+    private var statsRow: some View {
+        HStack(alignment: .top, spacing: 24) {
             ForEach(PeriodSummary.Metric.allCases, id: \.self) { stat($0) }
         }
-        #else
-        // 2x2 on iPhone: four columns with deltas are too tight.
-        // Two equal flexible columns spanning the full card width (no dead space on the right).
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    // Two equal flexible columns spanning the full card width (no dead space on the right).
+    private var statsGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 16, alignment: .leading),
                             GridItem(.flexible(), spacing: 16, alignment: .leading)],
                   alignment: .leading, spacing: 12) {
@@ -76,7 +87,6 @@ struct PeriodSummaryCard: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        #endif
     }
 
     private func value(_ m: PeriodSummary.Metric) -> (String, String) {
