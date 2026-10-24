@@ -51,7 +51,10 @@ struct PeriodSummaryCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Picker("Period", selection: $period) {
+            // Drive the period change in an animated transaction so numericText content
+            // transitions (and the chart) animate; implicit .animation(value:) on a List row
+            // wasn't reliably applied.
+            Picker("Period", selection: $period.animation(.default)) {
                 ForEach(GroupingPeriod.allCases) { Text($0.rawValue).tag($0) }
             }
             .pickerStyle(.segmented)

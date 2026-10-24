@@ -50,7 +50,6 @@ struct LogView: View {
                     PeriodSummaryCard(period: $period,
                                       summary: PeriodSummary.compute(filtered, period: period),
                                       filtered: filter.isActive)
-                        .animation(.default, value: period)
                         #if os(macOS)
                         .listRowBackground(
                             RoundedRectangle(cornerRadius: 8)
@@ -99,7 +98,7 @@ struct LogView: View {
                 #endif
             }
             .sheet(isPresented: $showAdd) { AddRideView() }
-            .sheet(isPresented: $showFilters) { FilterView(filter: $filter) }
+            .sheet(isPresented: $showFilters) { FilterView(filter: $filter.animation(.default)) }
             #if DEBUG
             .sheet(isPresented: $showDebug) { DebugMenuView() }
             #endif
