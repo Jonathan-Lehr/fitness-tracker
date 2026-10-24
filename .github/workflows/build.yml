@@ -36,6 +36,7 @@ jobs:
             -destination "platform=macOS" -derivedDataPath "$DERIVED_DATA" \
             CODE_SIGNING_ALLOWED=NO test > test.log 2>&1 || code=$?
           grep -E -A60 "error:|OCR accuracy|Test Case .* (passed|failed)|\*\* TEST" test.log | cut -c1-400 || true
+          echo "::group::Warnings"; grep -E "warning:" test.log | sort -u || true; echo "::endgroup::"
           [ $code -eq 0 ] || tail -80 test.log
           exit $code
 
@@ -57,10 +58,11 @@ jobs:
       # build-for-testing compiles app + test bundle once, for one simulator arch only.
       - name: Build for testing (iOS Simulator, arm64)
         run: |
-          set -o pipefail
           xcodebuild -project FitnessTracker.xcodeproj -scheme FitnessTracker \
             -destination "generic/platform=iOS Simulator" -derivedDataPath "$DERIVED_DATA" \
-            ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO build-for-testing 2>&1 | tail -60
+            ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO build-for-testing > build.log 2>&1 || { tail -80 build.log; exit 1; }
+          tail -5 build.log
+          echo "::group::Warnings"; grep -E "warning:" build.log | sort -u || true; echo "::endgroup::"
 
   xcodegen:
     name: XcodeGen spec check
