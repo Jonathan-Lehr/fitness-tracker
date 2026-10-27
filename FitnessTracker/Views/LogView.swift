@@ -3,7 +3,7 @@ import SwiftData
 
 struct LogFilter: Equatable {
     var useDateRange = false
-    var startDate = Calendar.current.date(byAdding: .month, value: -3, to: .now) ?? .now
+    var startDate = Calendar.app.date(byAdding: .month, value: -3, to: .now) ?? .now
     var endDate = Date.now
     var programTitle: String? = nil
     var type: WorkoutType? = nil
@@ -13,7 +13,7 @@ struct LogFilter: Equatable {
 
     func matches(_ w: Workout) -> Bool {
         if useDateRange {
-            let cal = Calendar.current
+            let cal = Calendar.app
             let lo = cal.startOfDay(for: startDate)
             let hi = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: endDate)) ?? endDate
             if w.date < lo || w.date >= hi { return false }

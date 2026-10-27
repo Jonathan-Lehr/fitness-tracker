@@ -30,7 +30,7 @@ enum SimulatedData {
 
     static func generate(into context: ModelContext, months: Int = 18) {
         var rng = SystemRandomNumberGenerator()
-        let cal = Calendar.current
+        let cal = Calendar.app
         let end = cal.startOfDay(for: .now)
         guard let start = cal.date(byAdding: .month, value: -months, to: end) else { return }
         let totalDays = Double(cal.dateComponents([.day], from: start, to: end).day ?? 1)

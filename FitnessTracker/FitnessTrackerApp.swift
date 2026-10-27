@@ -38,6 +38,8 @@ struct FitnessTrackerApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                // Monday-first weeks for DatePickers and Swift Charts' week units.
+                .environment(\.calendar, .app)
                 .onAppear {
                     let context = container.mainContext
                     SeedData.seedIfNeeded(context)
