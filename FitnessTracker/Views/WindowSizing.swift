@@ -7,20 +7,22 @@ import SwiftUI
 @MainActor enum WindowSizing {
     /// UserDefaults key for the measured horizontal space between the window's content edge and
     /// the card (TabView content + inset List margins + row padding + scroller, both sides).
-    static let chromeKey = "summaryCardHorizontalChrome"
+    nonisolated static let chromeKey = "summaryCardHorizontalChrome"
     /// Used only until the first measurement (very first launch). An undershoot is corrected
     /// immediately: the measured value raises the window's minimum width, which grows the window.
-    static let fallbackChrome: CGFloat = 40
-    static let minHeight: CGFloat = 420
+    nonisolated static let fallbackChrome: CGFloat = 40
+    nonisolated static let minHeight: CGFloat = 420
     /// Default height as a fraction of the screen's visible height (below the menu bar, above the Dock).
-    static let heightFraction: CGFloat = 0.8
+    nonisolated static let heightFraction: CGFloat = 0.8
 
-    static func chrome(_ stored: Double) -> CGFloat {
+    nonisolated static func chrome(_ stored: Double) -> CGFloat {
         stored > 0 ? CGFloat(stored) : fallbackChrome
     }
 
-    static func minWidth(chrome stored: Double = UserDefaults.standard.double(forKey: chromeKey)) -> CGFloat {
-        (PeriodSummaryCard.narrowMinWidth + chrome(stored)).rounded(.up)
+    /// `stored` is the measured chrome (0 = not yet measured); nil reads it from UserDefaults.
+    static func minWidth(chrome stored: Double? = nil) -> CGFloat {
+        let value = stored ?? UserDefaults.standard.double(forKey: chromeKey)
+        return (PeriodSummaryCard.narrowMinWidth + chrome(value)).rounded(.up)
     }
 
     static func defaultSize(visible: CGRect) -> CGSize {
@@ -62,7 +64,7 @@ extension PeriodSummaryCard {
 
         // Hero (+ 16pt spacer + chart minimum of 80pt): title, big miles, delta line.
         let titleFont = NSFont.systemFont(ofSize: size(.subheadline), weight: .semibold)
-        let title = w("Last 365 Days", titleFont) + 6 + size(.caption) * 1.3   // + filter icon
+        let title = w("Last 365 Days", titleFont) + 6 + size(.caption1) * 1.3   // + filter icon
         let rounded = NSFont.systemFont(ofSize: 48, weight: .bold).fontDescriptor.withDesign(.rounded)
             .flatMap { NSFont(descriptor: $0, size: 48) } ?? NSFont.systemFont(ofSize: 48, weight: .bold)
         let miles = w("8888", rounded) + 4 + w("mi", NSFont.systemFont(ofSize: size(.title3), weight: .semibold))
