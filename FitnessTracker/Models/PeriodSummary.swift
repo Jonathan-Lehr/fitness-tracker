@@ -36,7 +36,20 @@ struct PeriodSummary {
 
     /// Display order on the card (grid reads left-to-right, top-to-bottom; the last stat's
     /// width sets where the landscape chart ends).
-    enum Metric: CaseIterable { case rides, time, watts, rpm, elevation, calories }
+    enum Metric: CaseIterable {
+        case rides, time, watts, rpm, elevation, calories
+
+        var label: String {
+            switch self {
+            case .rides: "Rides"
+            case .time: "Time"
+            case .watts: "Watts"
+            case .rpm: "RPM"
+            case .elevation: "Elevation"
+            case .calories: "Calories"
+            }
+        }
+    }
 
     /// Signed change vs the previous period, for coloring (>0 up, <0 down, 0 same/unknown).
     func delta(_ m: Metric) -> Double {
@@ -73,12 +86,12 @@ struct PeriodSummary {
     func valueText(_ m: Metric) -> (value: String, label: String) {
         let t = current
         switch m {
-        case .rides: return ("\(t.count)", "Rides")
-        case .time: return (t.minutes.minutesText, "Time")
-        case .calories: return ("\(t.calories)", "Calories")
-        case .elevation: return ("\(t.feet) ft", "Elevation")
-        case .watts: return (t.averageWatts.map { "\(Int($0.rounded())) W" } ?? "—", "Watts")
-        case .rpm: return (t.averageRPM.map { "\(Int($0.rounded()))" } ?? "—", "RPM")
+        case .rides: return ("\(t.count)", m.label)
+        case .time: return (t.minutes.minutesText, m.label)
+        case .calories: return ("\(t.calories)", m.label)
+        case .elevation: return ("\(t.feet) ft", m.label)
+        case .watts: return (t.averageWatts.map { "\(Int($0.rounded())) W" } ?? "—", m.label)
+        case .rpm: return (t.averageRPM.map { "\(Int($0.rounded()))" } ?? "—", m.label)
         }
     }
 

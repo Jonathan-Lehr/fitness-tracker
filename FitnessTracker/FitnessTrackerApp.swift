@@ -53,5 +53,11 @@ struct FitnessTrackerApp: App {
                 }
         }
         .modelContainer(container)
+        #if os(macOS)
+        // First launch / new windows only (macOS restores saved window frames): as narrow as the
+        // summary card's 3-column layout allows, ~80% of the main screen's visible height.
+        .defaultSize(WindowSizing.defaultSizeOnMainScreen)
+        .windowResizability(.contentMinSize)
+        #endif
     }
 }

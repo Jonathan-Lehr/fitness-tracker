@@ -88,7 +88,12 @@ struct PeriodSummaryCard: View {
             }
         }
         .padding(.vertical, 6)
-        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { cardWidth = $0 }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: {
+            cardWidth = $0
+            #if os(macOS)
+            SummaryCardMetrics.shared.cardWidth = $0
+            #endif
+        }
     }
 
     private var hero: some View {
