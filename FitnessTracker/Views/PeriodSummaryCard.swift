@@ -157,26 +157,18 @@ struct PeriodSummaryCard: View {
         .accessibilityElement(children: .combine)
     }
 
-    private var axisStride: (component: Calendar.Component, count: Int, format: Date.FormatStyle) {
-        switch summary.period {
-        case .week: (.day, 1, .dateTime.weekday(.narrow))
-        case .month: (.day, 7, .dateTime.day())
-        case .year: (.month, 3, .dateTime.month(.narrow))
-        }
-    }
-
     // The chart uses a categorical x axis (one band per bucket, keyed by index) so bars,
     // tracks, ticks and labels all share the same band centers. Date-based x values put
     // ticks/labels at bucket boundaries, which drifted half a slot from the bars.
     private func key(_ index: Int) -> String { String(index) }
 
     private var labeledKeys: [String] {
-        summary.buckets.indices.filter { $0 % axisStride.count == 0 }.map(key)
+        summary.buckets.indices.filter { summary.buckets[$0].label != nil }.map(key)
     }
 
     private func label(forKey k: String) -> String {
         guard let i = Int(k), summary.buckets.indices.contains(i) else { return "" }
-        return summary.buckets[i].start.formatted(axisStride.format)
+        return summary.buckets[i].label ?? ""
     }
 
     private var chart: some View {

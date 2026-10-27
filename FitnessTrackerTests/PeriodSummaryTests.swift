@@ -19,76 +19,112 @@ final class PeriodSummaryTests: XCTestCase {
                 resistanceAvg: 10, resistanceMax: 15)
     }
 
-    // Thu Oct 22, 2026; week = Sun Oct 18 ... Sat Oct 24
+    // Thu Oct 22, 2026 (noon, New York). Rolling windows end at midnight tonight:
+    // Week  = Fri Oct 16 … Thu Oct 22, prior = Oct 9 … Oct 15
+    // Month = Wed Sep 23 … Oct 22,     prior = Aug 24 … Sep 22
+    // Year  = Fri Oct 23 2025 … Oct 22 2026
     lazy var now = date(2026, 10, 22)
 
     lazy var rides: [Workout] = [
-        ride(date(2026, 10, 12, 14), 10.02),          // previous week
-        ride(date(2026, 10, 15, 12), 13.88),          // previous week
-        ride(date(2026, 10, 18, 15), 9.50),           // this week (Sun)
-        ride(date(2026, 10, 20, 16), 9.85, minutes: 48, cal: 376, ft: 1542), // this week (Tue)
-        ride(date(2026, 9, 30), 5.0),                 // previous month
-        ride(date(2025, 12, 31, 23), 20.0),           // previous year
+        ride(date(2026, 10, 12, 14), 10.02),          // prior 7 days
+        ride(date(2026, 10, 15, 12), 13.88),          // prior 7 days
+        ride(date(2026, 10, 18, 15), 9.50),           // last 7 days
+        ride(date(2026, 10, 20, 16), 9.85, minutes: 48, cal: 376, ft: 1542), // last 7 days
+        ride(date(2026, 9, 30), 5.0),                 // last 30 days
+        ride(date(2025, 12, 31, 23), 20.0),           // last 365 days only
     ]
 
     func testWeekTotalsAndDelta() {
         let s = PeriodSummary.compute(rides, period: .week, now: now, calendar: cal)
+        XCTAssertEqual(s.interval.start, date(2026, 10, 16, 0))
+        XCTAssertEqual(s.interval.end, date(2026, 10, 23, 0))
         XCTAssertEqual(s.current.count, 2)
         XCTAssertEqual(s.current.miles, 19.35, accuracy: 0.001)
         XCTAssertEqual(s.current.minutes, 78)
         XCTAssertEqual(s.current.calories, 676)
         XCTAssertEqual(s.current.feet, 2042)
-        XCTAssertEqual(s.previous.count, 2) // Oct 12 (Mon) and Oct 15 (Thu)
+        XCTAssertEqual(s.previous.count, 2) // Oct 12 and Oct 15
         XCTAssertEqual(s.previous.miles, 23.90, accuracy: 0.001)
         XCTAssertEqual(s.milesDelta, -4.55, accuracy: 0.001)
-        XCTAssertEqual(s.deltaText, "−4.5 mi vs last week")
-        XCTAssertEqual(s.title, "This Week")
+        XCTAssertEqual(s.deltaText, "−4.5 mi vs prior 7 days")
+        XCTAssertEqual(s.title, "Last 7 Days")
     }
 
-    func testWeekBucketsAreSevenDays() {
+    func testWeekBucketsAreSevenDaysEndingToday() {
         let s = PeriodSummary.compute(rides, period: .week, now: now, calendar: cal)
         XCTAssertEqual(s.buckets.count, 7)
-        XCTAssertEqual(s.buckets[0].miles, 9.50, accuracy: 0.001)  // Sunday
-        XCTAssertEqual(s.buckets[2].miles, 9.85, accuracy: 0.001)  // Tuesday
+        XCTAssertEqual(s.buckets.first?.start, date(2026, 10, 16, 0))
+        XCTAssertEqual(s.buckets.last?.start, date(2026, 10, 22, 0))
+        XCTAssertEqual(s.buckets[2].miles, 9.50, accuracy: 0.001)  // Sun Oct 18
+        XCTAssertEqual(s.buckets[4].miles, 9.85, accuracy: 0.001)  // Tue Oct 20
+        XCTAssertEqual(s.buckets.compactMap(\.label), ["F", "S", "S", "M", "T", "W", "T"])
         XCTAssertEqual(s.buckets.reduce(0) { $0 + $1.miles }, s.current.miles, accuracy: 0.001)
     }
 
-    func testMonthTotalsAndDelta() {
+    func testMonthIsLast30Days() {
         let s = PeriodSummary.compute(rides, period: .month, now: now, calendar: cal)
-        XCTAssertEqual(s.current.count, 4)
-        XCTAssertEqual(s.current.miles, 43.25, accuracy: 0.001)
-        XCTAssertEqual(s.previous.miles, 5.0, accuracy: 0.001)
-        XCTAssertEqual(s.buckets.count, 31)
-        XCTAssertTrue(s.deltaText.hasPrefix("+38.2"))
-        XCTAssertTrue(s.deltaText.hasSuffix("vs last month"))
+        XCTAssertEqual(s.interval.start, date(2026, 9, 23, 0))
+        XCTAssertEqual(s.current.count, 5)
+        XCTAssertEqual(s.current.miles, 48.25, accuracy: 0.001)
+        XCTAssertEqual(s.previous.count, 0)
+        XCTAssertEqual(s.title, "Last 30 Days")
+        XCTAssertEqual(s.deltaText, "+48.2 mi vs prior 30 days")
     }
 
-    func testYearBucketsAndPreviousYear() {
+    func testMonthBucketsDailyLabeledWeeklyFromToday() {
+        let s = PeriodSummary.compute(rides, period: .month, now: now, calendar: cal)
+        XCTAssertEqual(s.buckets.count, 30)
+        XCTAssertEqual(s.buckets.last?.start, date(2026, 10, 22, 0))
+        XCTAssertEqual(s.buckets.compactMap(\.label), ["24", "1", "8", "15", "22"])
+        XCTAssertEqual(s.buckets.last?.label, "22")
+        XCTAssertEqual(s.buckets.reduce(0) { $0 + $1.miles }, s.current.miles, accuracy: 0.001)
+    }
+
+    func testYearIsLast365DaysWithTwelveMonthlyBuckets() {
         let s = PeriodSummary.compute(rides, period: .year, now: now, calendar: cal)
-        XCTAssertEqual(s.current.count, 5)
-        XCTAssertEqual(s.previous.count, 1)
-        XCTAssertEqual(s.previous.miles, 20.0, accuracy: 0.001)
+        XCTAssertEqual(s.interval.start, date(2025, 10, 23, 0))
+        XCTAssertEqual(s.current.count, 6)
+        XCTAssertEqual(s.current.miles, 68.25, accuracy: 0.001)
+        XCTAssertEqual(s.title, "Last 365 Days")
         XCTAssertEqual(s.buckets.count, 12)
-        XCTAssertEqual(s.buckets[9].miles, 43.25, accuracy: 0.001) // October
-        XCTAssertEqual(s.buckets[8].miles, 5.0, accuracy: 0.001)   // September
+        XCTAssertEqual(s.buckets.first?.start, s.interval.start)      // first bar absorbs Oct 23–31, 2025
+        XCTAssertEqual(s.buckets.first?.end, date(2025, 12, 1, 0))
+        XCTAssertEqual(s.buckets.last?.start, date(2026, 10, 1, 0))
+        XCTAssertEqual(s.buckets[11].miles, 43.25, accuracy: 0.001) // October 2026
+        XCTAssertEqual(s.buckets[10].miles, 5.0, accuracy: 0.001)   // September
+        XCTAssertEqual(s.buckets[1].miles, 20.0, accuracy: 0.001)   // December 2025
+        XCTAssertEqual(s.buckets.compactMap(\.label), ["J", "A", "J", "O"])
+        XCTAssertEqual(s.buckets.reduce(0) { $0 + $1.miles }, s.current.miles, accuracy: 0.001)
     }
 
     func testEmptyAndZeroDelta() {
         let s = PeriodSummary.compute([], period: .week, now: now, calendar: cal)
         XCTAssertEqual(s.current.count, 0)
         XCTAssertEqual(s.milesDelta, 0)
-        XCTAssertEqual(s.deltaText, "±0.0 mi vs last week")
+        XCTAssertEqual(s.deltaText, "±0.0 mi vs prior 7 days")
     }
 
-    func testBoundaryMidnightBelongsToNewPeriod() {
-        let sundayMidnight = cal.date(from: DateComponents(year: 2026, month: 10, day: 18, hour: 0))!
-        let s = PeriodSummary.compute([ride(sundayMidnight, 3)], period: .week, now: now, calendar: cal)
-        XCTAssertEqual(s.current.count, 1)
-        XCTAssertEqual(s.previous.count, 0)
+    func testWindowBoundariesAtMidnight() {
+        let startOfWindow = date(2026, 10, 16, 0)
+        let justBefore = startOfWindow.addingTimeInterval(-60)
+        let lateToday = date(2026, 10, 22, 23)
+        let s = PeriodSummary.compute([ride(startOfWindow, 3), ride(justBefore, 4), ride(lateToday, 5)],
+                                      period: .week, now: now, calendar: cal)
+        XCTAssertEqual(s.current.count, 2)   // midnight Oct 16 and late today
+        XCTAssertEqual(s.previous.count, 1)  // 11:59 PM Oct 15
+    }
+
+    func testWeekAcrossDSTUsesCalendarDays() {
+        // DST ends Sun Nov 1, 2026 in New York; the window still covers 7 calendar days.
+        let s = PeriodSummary.compute([], period: .week, now: date(2026, 11, 3), calendar: cal)
+        XCTAssertEqual(s.interval.start, date(2026, 10, 28, 0))
+        XCTAssertEqual(s.interval.end, date(2026, 11, 4, 0))
+        XCTAssertEqual(s.buckets.count, 7)
+        XCTAssertEqual(s.buckets.map { cal.component(.day, from: $0.start) }, [28, 29, 30, 31, 1, 2, 3])
     }
 
     func testPerMetricDeltasWeek() {
-        // This week: 2 rides, 78 min, 676 cal, 2042 ft. Last week: 2 rides, 60 min, 600 cal, 1000 ft.
+        // Last 7 days: 2 rides, 78 min, 676 cal, 2042 ft. Prior 7: 2 rides, 60 min, 600 cal, 1000 ft.
         let s = PeriodSummary.compute(rides, period: .week, now: now, calendar: cal)
         XCTAssertEqual(s.ridesDelta, 0)
         XCTAssertEqual(s.minutesDelta, 18)
