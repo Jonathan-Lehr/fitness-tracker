@@ -25,6 +25,10 @@ struct PeriodSummaryCard: View {
     /// chart runs from column 3 to the end of the last stat's content.
     static let wideColumns = PeriodSummary.Metric.allCases.count   // 6
     static let heroColumns = 2
+    /// Narrow (iPhone portrait, narrow Mac window): 3 columns × 2 rows. On a 402-pt iPhone 16 Pro
+    /// each column is ~99 pt, enough for the longest typical value ("123h 45m") and delta
+    /// ("▲ 1234 cal") at full size; minimumScaleFactor covers outliers.
+    static let narrowColumns = 3
 
     private var wideColumnWidth: CGFloat {
         let n = CGFloat(Self.wideColumns)
@@ -46,7 +50,7 @@ struct PeriodSummaryCard: View {
     @Environment(\.verticalSizeClass) private var vSize
     private var useWideLayout: Bool { vSize == .compact || cardWidth > 600 }
     #else
-    // Six columns need room; a narrow Mac window falls back to the 2-column grid.
+    // Six columns need room; a narrow Mac window falls back to the 3-column grid.
     private var useWideLayout: Bool { cardWidth == 0 || cardWidth >= 560 }
     #endif
 
@@ -72,13 +76,14 @@ struct PeriodSummaryCard: View {
                 }
                 statsGrid(columns: Self.wideColumns)
             } else {
-                // Narrow (iPhone portrait): miles + chart, then a 2-column grid (3 rows).
+                // Narrow (iPhone portrait, narrow Mac): miles + chart, then a 3-column grid (2 rows):
+                // Rides | Time | Calories / Elevation | Watts | RPM.
                 HStack(alignment: .bottom) {
                     hero.layoutPriority(1)
                     Spacer(minLength: 16)
                     chart.frame(minWidth: 80, maxWidth: 200)
                 }
-                statsGrid(columns: 2)
+                statsGrid(columns: Self.narrowColumns)
             }
         }
         .padding(.vertical, 6)
@@ -144,7 +149,7 @@ struct PeriodSummaryCard: View {
                 .foregroundStyle(d > 0 ? Color.green : (d < 0 ? Color.red : Color.secondary))
         }
         .lineLimit(1)
-        .minimumScaleFactor(0.8)
+        .minimumScaleFactor(0.7)
         .accessibilityElement(children: .combine)
     }
 
