@@ -296,6 +296,6 @@ final class WattsRPMTests: XCTestCase {
     }
 
     func testMetricOrder() {
-        XCTAssertEqual(PeriodSummary.Metric.allCases, [.rides, .time, .calories, .elevation, .watts, .rpm])
+        XCTAssertEqual(PeriodSummary.Metric.allCases, [.rides, .time, .watts, .rpm, .elevation, .calories])
     }
 }

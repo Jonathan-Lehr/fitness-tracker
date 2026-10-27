@@ -18,7 +18,8 @@ struct PeriodSummaryCard: View {
     /// Measured card width; drives the layout instead of size classes (a non-Max iPhone in
     /// landscape reports a compact horizontal size class).
     @State private var cardWidth: CGFloat = 0
-    /// Measured content width of the last stat (RPM); the chart's trailing edge stops there.
+    /// Measured width of the last stat's value text (Calories, i.e. Metric.allCases.last);
+    /// the landscape chart's trailing edge stops there.
     @State private var lastStatWidth: CGFloat = 0
 
     /// Wide layout: one row of six equal stat columns. The hero spans columns 1–2 and the
@@ -67,7 +68,7 @@ struct PeriodSummaryCard: View {
 
             if useWideLayout {
                 // Wide (Mac, iPhone landscape): a 6-column grid. Top row: hero over columns 1–2,
-                // chart from column 3 to the end of the RPM stat's content; bottom row: one
+                // chart from column 3 to the end of the last (Calories) stat's value; bottom row: one
                 // stat per column.
                 HStack(alignment: .bottom, spacing: Self.columnSpacing) {
                     hero.frame(width: wideHeroWidth, alignment: .leading)
@@ -77,7 +78,7 @@ struct PeriodSummaryCard: View {
                 statsGrid(columns: Self.wideColumns)
             } else {
                 // Narrow (iPhone portrait, narrow Mac): miles + chart, then a 3-column grid (2 rows):
-                // Rides | Time | Calories / Elevation | Watts | RPM.
+                // Rides | Time | Watts / RPM | Elevation | Calories.
                 HStack(alignment: .bottom) {
                     hero.layoutPriority(1)
                     Spacer(minLength: 16)
@@ -127,9 +128,6 @@ struct PeriodSummaryCard: View {
                   alignment: .leading, spacing: 12) {
             ForEach(PeriodSummary.Metric.allCases, id: \.self) { m in
                 stat(m)
-                    .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { w in
-                        if m == PeriodSummary.Metric.allCases.last { lastStatWidth = w }
-                    }
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
@@ -142,6 +140,10 @@ struct PeriodSummaryCard: View {
         return VStack(alignment: .leading, spacing: 1) {
             Text(v).font(.headline.weight(.semibold)).monospacedDigit()
                 .contentTransition(numeric(summary.numericValue(m)))
+                // The last stat's value width sets where the landscape chart ends.
+                .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { w in
+                    if m == PeriodSummary.Metric.allCases.last { lastStatWidth = w }
+                }
             Text(label).font(.caption).foregroundStyle(.secondary)
             Text(summary.deltaText(m))
                 .contentTransition(numeric(d))

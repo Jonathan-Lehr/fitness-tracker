@@ -34,7 +34,9 @@ struct PeriodSummary {
         return Int(a.rounded()) - Int(b.rounded())
     }
 
-    enum Metric: CaseIterable { case rides, time, calories, elevation, watts, rpm }
+    /// Display order on the card (grid reads left-to-right, top-to-bottom; the last stat's
+    /// width sets where the landscape chart ends).
+    enum Metric: CaseIterable { case rides, time, watts, rpm, elevation, calories }
 
     /// Signed change vs the previous period, for coloring (>0 up, <0 down, 0 same/unknown).
     func delta(_ m: Metric) -> Double {
