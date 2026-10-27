@@ -24,20 +24,49 @@ struct PeriodSummary {
     var caloriesDelta: Int { current.calories - previous.calories }
     var feetDelta: Int { current.feet - previous.feet }
 
-    enum Metric: CaseIterable { case rides, time, calories, elevation }
+    /// Whole-number change in average watts / RPM; nil if either window has no data.
+    var wattsDelta: Int? {
+        guard let a = current.averageWatts, let b = previous.averageWatts else { return nil }
+        return Int(a.rounded()) - Int(b.rounded())
+    }
+    var rpmDelta: Int? {
+        guard let a = current.averageRPM, let b = previous.averageRPM else { return nil }
+        return Int(a.rounded()) - Int(b.rounded())
+    }
 
-    /// Signed change vs the previous period, for coloring (>0 up, <0 down, 0 same).
+    /// Display order on the card (grid reads left-to-right, top-to-bottom; the last stat's
+    /// width sets where the landscape chart ends).
+    enum Metric: CaseIterable {
+        case rides, time, watts, rpm, elevation, calories
+
+        var label: String {
+            switch self {
+            case .rides: "Rides"
+            case .time: "Time"
+            case .watts: "Watts"
+            case .rpm: "RPM"
+            case .elevation: "Elevation"
+            case .calories: "Calories"
+            }
+        }
+    }
+
+    /// Signed change vs the previous period, for coloring (>0 up, <0 down, 0 same/unknown).
     func delta(_ m: Metric) -> Double {
         switch m {
         case .rides: Double(ridesDelta)
         case .time: minutesDelta.rounded()
         case .calories: Double(caloriesDelta)
         case .elevation: Double(feetDelta)
+        case .watts: Double(wattsDelta ?? 0)
+        case .rpm: Double(rpmDelta ?? 0)
         }
     }
 
-    /// Compact delta text, e.g. "▲ 2", "▼ 15m", "▲ 120 cal", "▲ 340 ft", "– 0".
+    /// Compact delta text, e.g. "▲ 2", "▼ 15m", "▲ 120 cal", "▲ 340 ft", "▲ 12 W", "▼ 3 rpm",
+    /// "– 0"; "—" when an average can't be compared (no data in either window).
     func deltaText(_ m: Metric) -> String {
+        if (m == .watts && wattsDelta == nil) || (m == .rpm && rpmDelta == nil) { return "—" }
         let d = delta(m)
         let arrow = d > 0 ? "▲" : (d < 0 ? "▼" : "–")
         let mag = abs(d)
@@ -47,8 +76,36 @@ struct PeriodSummary {
         case .time: value = mag.minutesText
         case .calories: value = "\(Int(mag)) cal"
         case .elevation: value = "\(Int(mag)) ft"
+        case .watts: value = "\(Int(mag)) W"
+        case .rpm: value = "\(Int(mag)) rpm"
         }
         return "\(arrow) \(value)"
+    }
+
+    /// Display value and label for a metric ("—" for averages with no data).
+    func valueText(_ m: Metric) -> (value: String, label: String) {
+        let t = current
+        switch m {
+        case .rides: return ("\(t.count)", m.label)
+        case .time: return (t.minutes.minutesText, m.label)
+        case .calories: return ("\(t.calories)", m.label)
+        case .elevation: return ("\(t.feet) ft", m.label)
+        case .watts: return (t.averageWatts.map { "\(Int($0.rounded())) W" } ?? "—", m.label)
+        case .rpm: return (t.averageRPM.map { "\(Int($0.rounded()))" } ?? "—", m.label)
+        }
+    }
+
+    /// Numeric value driving the rolling-digit animation.
+    func numericValue(_ m: Metric) -> Double {
+        let t = current
+        switch m {
+        case .rides: return Double(t.count)
+        case .time: return t.minutes
+        case .calories: return Double(t.calories)
+        case .elevation: return Double(t.feet)
+        case .watts: return (t.averageWatts ?? 0).rounded()
+        case .rpm: return (t.averageRPM ?? 0).rounded()
+        }
     }
 
     /// Length of the rolling window in calendar days.
