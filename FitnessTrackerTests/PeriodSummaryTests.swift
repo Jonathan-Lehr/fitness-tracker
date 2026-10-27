@@ -165,3 +165,57 @@ final class PeriodSummaryTests: XCTestCase {
         XCTAssertTrue(s.deltaText.hasPrefix("+120 mi"), s.deltaText)
     }
 }
+
+final class MondayWeekTests: XCTestCase {
+    /// A base calendar whose locale would normally start weeks on Sunday.
+    var usCalendar: Calendar = {
+        var c = Calendar(identifier: .gregorian)
+        c.locale = Locale(identifier: "en_US")
+        c.timeZone = TimeZone(identifier: "America/New_York")!
+        return c
+    }()
+
+    func d(_ y: Int, _ m: Int, _ day: Int, _ h: Int = 12) -> Date {
+        usCalendar.date(from: DateComponents(year: y, month: m, day: day, hour: h))!
+    }
+
+    func testMondayFirstOverridesLocale() {
+        XCTAssertEqual(usCalendar.firstWeekday, 1)
+        let cal = Calendar.mondayFirst(usCalendar)
+        XCTAssertEqual(cal.firstWeekday, 2)
+        XCTAssertEqual(cal.minimumDaysInFirstWeek, 4)
+        XCTAssertEqual(cal.timeZone, usCalendar.timeZone)
+        XCTAssertEqual(Calendar.app.firstWeekday, 2)
+    }
+
+    func testWeekGroupingStartsMonday() {
+        let cal = Calendar.mondayFirst(usCalendar)
+        // Oct 2026: Mon 19 … Sun 25, Mon 26.
+        XCTAssertEqual(GroupingPeriod.week.start(of: d(2026, 10, 25), calendar: cal), d(2026, 10, 19, 0)) // Sunday → previous Monday
+        XCTAssertEqual(GroupingPeriod.week.start(of: d(2026, 10, 26), calendar: cal), d(2026, 10, 26, 0)) // Monday → itself
+        XCTAssertEqual(GroupingPeriod.week.start(of: d(2026, 10, 21), calendar: cal), d(2026, 10, 19, 0))
+        // Sunday and the following Monday land in different sections.
+        XCTAssertNotEqual(GroupingPeriod.week.start(of: d(2026, 10, 25, 23), calendar: cal),
+                          GroupingPeriod.week.start(of: d(2026, 10, 26, 0), calendar: cal))
+    }
+
+    func testWeekLabelShowsMonday() {
+        let cal = Calendar.mondayFirst(usCalendar)
+        let start = GroupingPeriod.week.start(of: d(2026, 10, 25), calendar: cal)
+        XCTAssertTrue(GroupingPeriod.week.label(for: start, calendar: cal).hasPrefix("Week of Oct 19"))
+    }
+
+    func testISOWeekNumbering() {
+        let cal = Calendar.mondayFirst(usCalendar)
+        // Jan 1, 2027 is a Friday, so ISO week 1 of 2027 starts Mon Jan 4; Jan 1 is in week 53 of 2026.
+        XCTAssertEqual(cal.component(.weekOfYear, from: d(2027, 1, 1)), 53)
+        XCTAssertEqual(cal.component(.weekOfYear, from: d(2027, 1, 4)), 1)
+    }
+
+    func testDefaultUsesAppCalendar() {
+        // Without an explicit calendar, grouping uses Calendar.app (Monday-first) on any device.
+        let sunday = Calendar.app.date(from: DateComponents(year: 2026, month: 10, day: 25, hour: 12))!
+        let start = GroupingPeriod.week.start(of: sunday)
+        XCTAssertEqual(Calendar.app.component(.weekday, from: start), 2)
+    }
+}

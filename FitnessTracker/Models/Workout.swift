@@ -57,13 +57,14 @@ enum GroupingPeriod: String, CaseIterable, Identifiable {
         }
     }
 
-    func start(of date: Date, calendar: Calendar = .current) -> Date {
+    /// Start of the calendar week (Monday), month or year containing `date`.
+    func start(of date: Date, calendar: Calendar = .app) -> Date {
         calendar.dateInterval(of: component, for: date)?.start ?? date
     }
 
-    func label(for start: Date) -> String {
+    func label(for start: Date, calendar: Calendar = .app) -> String {
         switch self {
-        case .week: "Week of " + start.formatted(.dateTime.month(.abbreviated).day().year())
+        case .week: "Week of " + start.formatted(Date.FormatStyle(calendar: calendar, timeZone: calendar.timeZone).month(.abbreviated).day().year())
         case .month: start.formatted(.dateTime.month(.wide).year())
         case .year: start.formatted(.dateTime.year())
         }
