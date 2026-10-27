@@ -219,3 +219,83 @@ final class MondayWeekTests: XCTestCase {
         XCTAssertEqual(Calendar.app.component(.weekday, from: start), 2)
     }
 }
+
+final class WattsRPMTests: XCTestCase {
+    var cal: Calendar = {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "America/New_York")!
+        return c
+    }()
+    func date(_ y: Int, _ m: Int, _ d: Int, _ h: Int = 12) -> Date {
+        cal.date(from: DateComponents(year: y, month: m, day: d, hour: h))!
+    }
+    func ride(_ d: Date, minutes: Double, watts: Int, rpm: Int) -> Workout {
+        Workout(date: d, program: nil, durationMinutes: minutes, distanceMiles: 10, calories: 300,
+                elevationFeet: 500, avgRPM: rpm, avgWatts: watts, inclineAvg: 0, inclineMax: 0,
+                resistanceAvg: 10, resistanceMax: 15)
+    }
+    lazy var now = date(2026, 10, 22)
+
+    func testTimeWeightedAverages() {
+        // 60 min @ 100 W / 80 rpm and 30 min @ 70 W / 74 rpm → (6000+2100)/90 = 90 W, (4800+2220)/90 = 78 rpm.
+        let t = Totals([ride(now, minutes: 60, watts: 100, rpm: 80), ride(now, minutes: 30, watts: 70, rpm: 74)])
+        XCTAssertEqual(t.averageWatts ?? -1, 90, accuracy: 0.001)
+        XCTAssertEqual(t.averageRPM ?? -1, 78, accuracy: 0.001)
+    }
+
+    func testRidesWithoutValueAreIgnored() {
+        // A ride with 0 W / 0 rpm (not recorded) doesn't drag the average down.
+        let t = Totals([ride(now, minutes: 45, watts: 88, rpm: 75), ride(now, minutes: 45, watts: 0, rpm: 0)])
+        XCTAssertEqual(t.averageWatts ?? -1, 88, accuracy: 0.001)
+        XCTAssertEqual(t.averageRPM ?? -1, 75, accuracy: 0.001)
+    }
+
+    func testSimpleMeanWhenNoDurations() {
+        let t = Totals([ride(now, minutes: 0, watts: 80, rpm: 70), ride(now, minutes: 0, watts: 90, rpm: 80)])
+        XCTAssertEqual(t.averageWatts ?? -1, 85, accuracy: 0.001)
+        XCTAssertEqual(t.averageRPM ?? -1, 75, accuracy: 0.001)
+    }
+
+    func testMissingValuesShowDash() {
+        let t = Totals([ride(now, minutes: 30, watts: 0, rpm: 0)])
+        XCTAssertNil(t.averageWatts)
+        XCTAssertNil(Totals([]).averageRPM)
+        let s = PeriodSummary.compute([], period: .week, now: now, calendar: cal)
+        XCTAssertEqual(s.valueText(.watts).value, "—")
+        XCTAssertEqual(s.valueText(.rpm).value, "—")
+        XCTAssertEqual(s.deltaText(.watts), "—")
+        XCTAssertNil(s.wattsDelta)
+        XCTAssertEqual(s.delta(.watts), 0)
+    }
+
+    func testDeltasVsPriorWindow() {
+        let rides = [
+            ride(date(2026, 10, 20), minutes: 48, watts: 88, rpm: 75),   // last 7 days
+            ride(date(2026, 10, 18), minutes: 46, watts: 97, rpm: 74),   // last 7 days
+            ride(date(2026, 10, 12), minutes: 42, watts: 79, rpm: 79),   // prior 7 days
+        ]
+        let s = PeriodSummary.compute(rides, period: .week, now: now, calendar: cal)
+        // Current: (88*48 + 97*46)/94 = 92.4 → 92 W; (75*48 + 74*46)/94 = 74.5 → 75 rpm (rounded)
+        XCTAssertEqual(s.valueText(.watts).value, "92 W")
+        XCTAssertEqual(s.valueText(.watts).label, "Watts")
+        XCTAssertEqual(s.valueText(.rpm).label, "RPM")
+        XCTAssertEqual(s.wattsDelta, 92 - 79)
+        XCTAssertEqual(s.deltaText(.watts), "▲ 13 W")
+        let rpm = Int(s.current.averageRPM!.rounded())
+        XCTAssertEqual(s.rpmDelta, rpm - 79)
+        XCTAssertEqual(s.deltaText(.rpm), "▼ \(79 - rpm) rpm")
+    }
+
+    func testNoPriorDataGivesDash() {
+        let s = PeriodSummary.compute([ride(date(2026, 10, 20), minutes: 48, watts: 88, rpm: 75)],
+                                      period: .week, now: now, calendar: cal)
+        XCTAssertEqual(s.valueText(.watts).value, "88 W")
+        XCTAssertEqual(s.valueText(.rpm).value, "75")
+        XCTAssertEqual(s.deltaText(.watts), "—")
+        XCTAssertEqual(s.deltaText(.rpm), "—")
+    }
+
+    func testMetricOrder() {
+        XCTAssertEqual(PeriodSummary.Metric.allCases, [.rides, .time, .calories, .elevation, .watts, .rpm])
+    }
+}

@@ -15,38 +15,39 @@ struct PeriodSummaryCard: View {
         reduceMotion ? .opacity : .numericText(value: value)
     }
 
-    private func metricValue(_ m: PeriodSummary.Metric) -> Double {
-        let t = summary.current
-        switch m {
-        case .rides: return Double(t.count)
-        case .time: return t.minutes
-        case .calories: return Double(t.calories)
-        case .elevation: return Double(t.feet)
-        }
-    }
     /// Measured card width; drives the layout instead of size classes (a non-Max iPhone in
     /// landscape reports a compact horizontal size class).
     @State private var cardWidth: CGFloat = 0
-    /// Measured content width of the Elevation stat (the chart's trailing edge stops there).
-    @State private var elevationWidth: CGFloat = 0
+    /// Measured content width of the last stat (RPM); the chart's trailing edge stops there.
+    @State private var lastStatWidth: CGFloat = 0
 
-    /// Width of one of the four equal stat columns.
+    /// Wide layout: one row of six equal stat columns. The hero spans columns 1–2 and the
+    /// chart runs from column 3 to the end of the last stat's content.
+    static let wideColumns = PeriodSummary.Metric.allCases.count   // 6
+    static let heroColumns = 2
+
     private var wideColumnWidth: CGFloat {
-        max(0, (cardWidth - 3 * Self.columnSpacing) / 4)
+        let n = CGFloat(Self.wideColumns)
+        return max(0, (cardWidth - (n - 1) * Self.columnSpacing) / n)
     }
 
-    /// Columns 2–3 plus the Elevation content, so the chart spans Time…Elevation.
+    private var wideHeroWidth: CGFloat {
+        CGFloat(Self.heroColumns) * wideColumnWidth + CGFloat(Self.heroColumns - 1) * Self.columnSpacing
+    }
+
     private var wideChartWidth: CGFloat {
         let col = wideColumnWidth
-        let elevation = elevationWidth > 0 ? min(elevationWidth, col) : col
-        return max(0, 2 * col + 2 * Self.columnSpacing + elevation)
+        let span = Self.wideColumns - Self.heroColumns            // columns 3…6
+        let last = lastStatWidth > 0 ? min(lastStatWidth, col) : col
+        return max(0, CGFloat(span - 1) * (col + Self.columnSpacing) + last)
     }
 
     #if os(iOS)
     @Environment(\.verticalSizeClass) private var vSize
     private var useWideLayout: Bool { vSize == .compact || cardWidth > 600 }
     #else
-    private let useWideLayout = true
+    // Six columns need room; a narrow Mac window falls back to the 2-column grid.
+    private var useWideLayout: Bool { cardWidth == 0 || cardWidth >= 560 }
     #endif
 
     var body: some View {
@@ -61,17 +62,17 @@ struct PeriodSummaryCard: View {
             .labelsHidden()
 
             if useWideLayout {
-                // Wide (Mac, iPhone landscape): a 4-column grid. Top row: hero in column 1, chart
-                // from column 2's leading edge to the end of the Elevation stat's content;
-                // bottom row: one stat per column.
+                // Wide (Mac, iPhone landscape): a 6-column grid. Top row: hero over columns 1–2,
+                // chart from column 3 to the end of the RPM stat's content; bottom row: one
+                // stat per column.
                 HStack(alignment: .bottom, spacing: Self.columnSpacing) {
-                    hero.frame(width: wideColumnWidth, alignment: .leading)
+                    hero.frame(width: wideHeroWidth, alignment: .leading)
                     chart.frame(width: wideChartWidth)
                     Spacer(minLength: 0)
                 }
-                statsGrid(columns: 4)
+                statsGrid(columns: Self.wideColumns)
             } else {
-                // Narrow (iPhone portrait): miles + chart, then a 2x2 grid.
+                // Narrow (iPhone portrait): miles + chart, then a 2-column grid (3 rows).
                 HStack(alignment: .bottom) {
                     hero.layoutPriority(1)
                     Spacer(minLength: 16)
@@ -122,7 +123,7 @@ struct PeriodSummaryCard: View {
             ForEach(PeriodSummary.Metric.allCases, id: \.self) { m in
                 stat(m)
                     .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { w in
-                        if m == .elevation { elevationWidth = w }
+                        if m == PeriodSummary.Metric.allCases.last { lastStatWidth = w }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -130,22 +131,12 @@ struct PeriodSummaryCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func value(_ m: PeriodSummary.Metric) -> (String, String) {
-        let t = summary.current
-        switch m {
-        case .rides: return ("\(t.count)", "Rides")
-        case .time: return (t.minutes.minutesText, "Time")
-        case .calories: return ("\(t.calories)", "Calories")
-        case .elevation: return ("\(t.feet) ft", "Elevation")
-        }
-    }
-
     private func stat(_ m: PeriodSummary.Metric) -> some View {
-        let (v, label) = value(m)
+        let (v, label) = summary.valueText(m)
         let d = summary.delta(m)
         return VStack(alignment: .leading, spacing: 1) {
             Text(v).font(.headline.weight(.semibold)).monospacedDigit()
-                .contentTransition(numeric(metricValue(m)))
+                .contentTransition(numeric(summary.numericValue(m)))
             Text(label).font(.caption).foregroundStyle(.secondary)
             Text(summary.deltaText(m))
                 .contentTransition(numeric(d))
