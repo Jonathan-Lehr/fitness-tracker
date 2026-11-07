@@ -161,4 +161,57 @@ final class CalendarPeriodSummaryTests: XCTestCase {
         XCTAssertEqual(s.title, "Last 7 Days")
         XCTAssertEqual(s.deltaText, "+3.0 mi vs prior 7 days")
     }
+
+    // MARK: Previous / Next navigation
+
+    func sel(_ p: GroupingPeriod, _ d: Date) -> PastPeriodSelection {
+        PastPeriodSelection(period: p, start: p.start(of: d, calendar: cal))
+    }
+
+    func testWeekNavigationAcrossDSTAndYearEnd() {
+        let w = sel(.week, date(2026, 10, 28))                 // Oct 26 – Nov 1 (DST ends Nov 1)
+        XCTAssertEqual(w.moved(by: 1, calendar: cal).start, date(2026, 11, 2, 0))
+        XCTAssertEqual(w.moved(by: -1, calendar: cal).start, date(2026, 10, 19, 0))
+        let dec = sel(.week, date(2026, 12, 23))               // Dec 21
+        XCTAssertEqual(dec.moved(by: 1, calendar: cal).start, date(2026, 12, 28, 0))
+        XCTAssertEqual(dec.moved(by: 2, calendar: cal).start, date(2027, 1, 4, 0))
+        XCTAssertEqual(cal.component(.weekday, from: dec.moved(by: 2, calendar: cal).start), 2) // Monday
+    }
+
+    func testMonthNavigationRolloverAndLeapFebruary() {
+        let jan = sel(.month, date(2028, 1, 31))
+        let feb = jan.moved(by: 1, calendar: cal)
+        XCTAssertEqual(feb.start, date(2028, 2, 1, 0))
+        XCTAssertEqual(PeriodSummary.computeCalendar([], period: .month, containing: feb.start, calendar: cal).buckets.count, 29)
+        XCTAssertEqual(feb.moved(by: 1, calendar: cal).start, date(2028, 3, 1, 0))
+        XCTAssertEqual(sel(.month, date(2026, 12, 5)).moved(by: 1, calendar: cal).start, date(2027, 1, 1, 0))
+        XCTAssertEqual(jan.moved(by: -1, calendar: cal).start, date(2027, 12, 1, 0))
+    }
+
+    func testYearNavigation() {
+        let y = sel(.year, date(2028, 2, 29))
+        XCTAssertEqual(y.moved(by: -1, calendar: cal).start, date(2027, 1, 1, 0))
+        XCTAssertEqual(y.moved(by: 1, calendar: cal).start, date(2029, 1, 1, 0))
+    }
+
+    func testNextStopsAtCurrentPeriod() {
+        let now = date(2026, 11, 4)                            // Wed; current week starts Mon Nov 2
+        XCTAssertTrue(sel(.week, date(2026, 10, 28)).hasNext(now: now, calendar: cal))
+        XCTAssertFalse(sel(.week, now).hasNext(now: now, calendar: cal))
+        XCTAssertTrue(sel(.month, date(2026, 10, 1)).hasNext(now: now, calendar: cal))
+        XCTAssertFalse(sel(.month, now).hasNext(now: now, calendar: cal))
+        XCTAssertFalse(sel(.year, now).hasNext(now: now, calendar: cal))
+        XCTAssertTrue(sel(.year, date(2025, 6, 1)).hasNext(now: now, calendar: cal))
+    }
+
+    func testNavigatingToEmptyPeriodGivesZeroSummary() {
+        let rides = [ride(date(2026, 11, 4), 10)]
+        let prev = sel(.week, date(2026, 11, 4)).moved(by: -1, calendar: cal)
+        let s = PeriodSummary.computeCalendar(rides, period: .week, containing: prev.start, calendar: cal)
+        XCTAssertEqual(s.current.count, 0)
+        XCTAssertEqual(s.current.miles, 0)
+        XCTAssertEqual(s.buckets.count, 7)
+        XCTAssertEqual(s.title, "Week of Oct 26, 2026")
+        XCTAssertEqual(s.dateRangeText, "Oct 26 – Nov 1, 2026")
+    }
 }
