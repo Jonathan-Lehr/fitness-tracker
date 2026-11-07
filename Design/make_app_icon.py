@@ -2,42 +2,41 @@
 #   python3 -m venv .venv && .venv/bin/pip install cairosvg pillow && .venv/bin/python Design/make_app_icon.py
 # iOS: 1024 full-bleed RGB (no alpha). macOS: the same art inside an 824/1024 rounded-rect body
 # with a drop shadow, rendered from vector at every size (16–512 pt @1x/@2x).
-# Design/AppIcon.svg is the art without the trend line's drop shadow, which is composited here
-# (PIL Gaussian blur 16, opacity 0.75, offset 16 down, all in 1024-unit space).
-import io, json, math, os, sys
+# Art mirrors the weekly summary chart: five full-height grey tracks with blue values on columns
+# 1/3/5 (85/70/100%), white background, light baseline; chart height = bar-group width / golden ratio.
+import io, json, os
 import cairosvg
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
-BG = '#141414'
-DEFS = f'''<defs><linearGradient id="o" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFA21F"/><stop offset="1" stop-color="#FF6A0F"/></linearGradient>
-<linearGradient id="g" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#5FD236"/><stop offset="1" stop-color="#8BEA3F"/></linearGradient>
-<radialGradient id="bg" cx="0.5" cy="0.4" r="0.75"><stop offset="0" stop-color="#2A2A2A"/><stop offset="1" stop-color="{BG}"/></radialGradient></defs>'''
-BOTTOM, BAR_W, BAR_XS, BAR_TOPS, BAR_R = 900, 170, [175, 427, 679], [230, 330, 100], 26
-LINE_PTS = [(120, 600), (260, 500), (512, 620), (905, 330)]
-LINE_W, JOIN_R = 68, 12
-SHADOW_BLUR, SHADOW_OPACITY, SHADOW_DY = 16, 0.75, 16
+PHI = (1 + 5 ** 0.5) / 2
+BAR_W, GAP, N = 128, 40, 5
+CHART_W = N * BAR_W + (N - 1) * GAP            # 800
+CHART_H = CHART_W / PHI                         # golden-ratio height, ~494.43
+CENTER_Y = 510
+TOP, BOTTOM = CENTER_Y - CHART_H / 2, CENTER_Y + CHART_H / 2
+X0 = (1024 - CHART_W) / 2
+BAR_R = 18
+FILLS = [0.85, None, 0.70, None, 1.0]           # blue value per column; None = empty (track only)
+TRACK, BASELINE, BASELINE_W, BASELINE_EXT = '#F2F2F4', '#CDCDD2', 6.5, 24
+DEFS = """<defs><linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22A8FF"/><stop offset="1" stop-color="#008AFF"/></linearGradient></defs>"""
 
-def bars():
-    return "".join(f'<rect x="{x}" y="{t}" width="{BAR_W}" height="{BOTTOM - t}" rx="{BAR_R}" fill="url(#o)"/>'
-                   for x, t in zip(BAR_XS, BAR_TOPS))
+def bar(x, y, fill):
+    r = BAR_R
+    return (f'<path d="M{x},{BOTTOM} V{y + r} Q{x},{y} {x + r},{y} H{x + BAR_W - r} '
+            f'Q{x + BAR_W},{y} {x + BAR_W},{y + r} V{BOTTOM} Z" fill="{fill}"/>')
 
-def rounded_path(pts, R):
-    """Polyline with each interior corner rounded by a quadratic curve R units from the vertex."""
-    d = f"M{pts[0][0]:.1f},{pts[0][1]:.1f}"
-    for i in range(1, len(pts) - 1):
-        p0, p1, p2 = pts[i - 1], pts[i], pts[i + 1]
-        def toward(a, b, r):
-            L = math.dist(a, b); return (a[0] + (b[0] - a[0]) * r / L, a[1] + (b[1] - a[1]) * r / L)
-        a = toward(p1, p0, R); b = toward(p1, p2, R)
-        d += f" L{a[0]:.1f},{a[1]:.1f} Q{p1[0]},{p1[1]} {b[0]:.1f},{b[1]:.1f}"
-    return d + f" L{pts[-1][0]},{pts[-1][1]}"
-
-def line(color):
-    return (f'<path d="{rounded_path(LINE_PTS, JOIN_R)}" fill="none" stroke="{color}" stroke-width="{LINE_W}" '
-            f'stroke-linecap="butt" stroke-linejoin="round"/>')
+def chart():
+    out = ''
+    for i, v in enumerate(FILLS):
+        x = X0 + i * (BAR_W + GAP)
+        out += bar(x, TOP, TRACK)
+        if v is not None:
+            out += bar(x, BOTTOM - CHART_H * v, 'url(#b)')
+    return out + (f'<rect x="{X0 - BASELINE_EXT}" y="{BOTTOM - BASELINE_W / 2}" width="{CHART_W + 2 * BASELINE_EXT}" '
+                  f'height="{BASELINE_W}" rx="{BASELINE_W / 2}" fill="{BASELINE}"/>')
 
 def svg_doc(body, background=True):
-    bg = '<rect width="1024" height="1024" fill="url(#bg)"/>' if background else ''
+    bg = '<rect width="1024" height="1024" fill="#FFFFFF"/>' if background else ''
     return f'<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">{DEFS}{bg}{body}</svg>'
 
 def render(doc, size):
@@ -45,16 +44,8 @@ def render(doc, size):
     return Image.open(io.BytesIO(png)).convert('RGBA')
 
 def art(size):
-    """Full-bleed art at `size` px: background + bars, blurred line shadow, line."""
-    s = size / 1024
-    base = render(svg_doc(bars()), size)
-    sil = render(svg_doc(line('#000'), background=False), size)
-    a = sil.split()[3].filter(ImageFilter.GaussianBlur(SHADOW_BLUR * s)).point(lambda v: int(v * SHADOW_OPACITY))
-    shadow = Image.new('RGBA', sil.size, (0, 0, 0, 0)); shadow.putalpha(a)
-    shadow = shadow.transform(sil.size, Image.AFFINE, (1, 0, 0, 0, 1, -SHADOW_DY * s),
-                              resample=Image.NEAREST if size == 1024 else Image.BILINEAR)
-    out = Image.alpha_composite(base, shadow)
-    return Image.alpha_composite(out, render(svg_doc(line('url(#g)'), background=False), size))
+    """Full-bleed art at `size` px: white background, grey tracks, blue values, baseline."""
+    return render(svg_doc(chart()), size)
 
 def mac_icon(px):
     """macOS icon at `px`: art in an 824/1024 rounded-rect body (radius 185/1024) with a drop shadow."""
@@ -75,7 +66,7 @@ if __name__ == '__main__':
     here = os.path.dirname(os.path.abspath(__file__))
     dest = os.path.join(here, '..', 'FitnessTracker', 'Assets.xcassets', 'AppIcon.appiconset')
     with open(os.path.join(here, 'AppIcon.svg'), 'w') as f:
-        f.write(svg_doc(bars() + line('url(#g)')) + '\n')
+        f.write(svg_doc(chart()) + '\n')
     images = [{"idiom": "universal", "platform": "ios", "size": "1024x1024", "filename": "icon-ios-1024.png"}]
     art(1024).convert('RGB').save(os.path.join(dest, 'icon-ios-1024.png'), optimize=True)
     for pt in (16, 32, 128, 256, 512):
