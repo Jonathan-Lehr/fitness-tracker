@@ -34,6 +34,10 @@ enum AppEnvironment {
 @main
 struct FitnessTrackerApp: App {
     let container = AppEnvironment.makeContainer()
+    #if os(iOS)
+    // Reports OrientationLock's mask so individual screens can be portrait-only on iPhone.
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+    #endif
 
     var body: some Scene {
         WindowGroup {

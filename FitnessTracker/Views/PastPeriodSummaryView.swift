@@ -98,6 +98,12 @@ struct PastPeriodSummaryView: View {
                 }
             }
         }
+        #if os(iOS)
+        // Portrait-only on iPhone while the sheet is shown (including after an interactive
+        // swipe-down dismissal, which also triggers onDisappear); other screens keep landscape.
+        .onAppear { OrientationLock.setPortraitOnly(true) }
+        .onDisappear { OrientationLock.setPortraitOnly(false) }
+        #endif
         #if os(macOS)
         .frame(minWidth: 620, idealWidth: 680, minHeight: 360, idealHeight: 400)
         #endif
