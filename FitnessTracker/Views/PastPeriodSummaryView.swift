@@ -41,24 +41,31 @@ struct PastPeriodSummaryView: View {
         withAnimation(.default) { selection = selection.moved(by: offset) }
     }
 
-    /// Previous / Next calendar period; Next stops at the current period.
+    /// Previous / Next calendar period below the card: two equal-width prominent buttons;
+    /// Next is disabled (dimmed) at the current period.
     private var navigation: some View {
-        HStack {
-            Button { go(-1) } label: { Label("Previous", systemImage: "chevron.left") }
-                .accessibilityLabel("Previous \(unit)")
-                .keyboardShortcut(.leftArrow, modifiers: [])
-            Spacer()
+        HStack(spacing: 12) {
+            Button { go(-1) } label: {
+                Label("Previous", systemImage: "chevron.left")
+                    .frame(maxWidth: .infinity)
+            }
+            .accessibilityLabel("Previous \(unit)")
+            .keyboardShortcut(.leftArrow, modifiers: [])
             Button { go(1) } label: {
-                HStack(spacing: 4) { Text("Next"); Image(systemName: "chevron.right") }
+                HStack(spacing: 6) { Text("Next"); Image(systemName: "chevron.right") }
+                    .frame(maxWidth: .infinity)
             }
             .accessibilityLabel("Next \(unit)")
             .keyboardShortcut(.rightArrow, modifiers: [])
             .disabled(!selection.hasNext())
         }
-        .buttonStyle(.borderless)
+        .buttonStyle(.borderedProminent)
+        .controlSize(.large)
         .labelStyle(.titleAndIcon)
+        .font(.body.weight(.semibold))
         .textCase(nil)
-        .font(.body)
+        .frame(maxWidth: 480)
+        .frame(maxWidth: .infinity)
     }
 
     private var summary: PeriodSummary {
@@ -72,10 +79,13 @@ struct PastPeriodSummaryView: View {
                 Section {
                     PeriodSummaryCard(period: .constant(selection.period), summary: s,
                                       filtered: filtered, showsPeriodPicker: false)
-                } header: {
-                    navigation
                 } footer: {
-                    Text("Compared with the \(s.comparisonText).")
+                    VStack(spacing: 12) {
+                        navigation
+                        Text("Compared with the \(s.comparisonText).")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding(.top, 8)
                 }
             }
             .navigationTitle(s.title)
@@ -89,7 +99,7 @@ struct PastPeriodSummaryView: View {
             }
         }
         #if os(macOS)
-        .frame(minWidth: 620, idealWidth: 680, minHeight: 300, idealHeight: 340)
+        .frame(minWidth: 620, idealWidth: 680, minHeight: 360, idealHeight: 400)
         #endif
     }
 }
