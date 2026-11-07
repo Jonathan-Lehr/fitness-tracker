@@ -34,6 +34,7 @@ struct LogView: View {
     @State private var showAdd = false
     @State private var showDebug = false
     @State private var showBackup = false
+    @State private var pastPeriod: PastPeriodSelection?
 
     private var filtered: [Workout] { workouts.filter(filter.matches) }
 
@@ -73,7 +74,15 @@ struct LogView: View {
                             for i in offsets { context.delete(section.workouts[i]) }
                         }
                     } header: {
-                        SectionHeader(title: period.label(for: section.start), totals: Totals(section.workouts))
+                        // Tapping a section header opens that calendar period's summary card.
+                        Button {
+                            pastPeriod = PastPeriodSelection(period: period, start: section.start)
+                        } label: {
+                            SectionHeader(title: period.label(for: section.start), totals: Totals(section.workouts),
+                                          showsDisclosure: true)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityHint("Shows the summary for this \(period.rawValue.lowercased())")
                     }
                 }
             }
@@ -105,6 +114,9 @@ struct LogView: View {
             }
             .sheet(isPresented: $showAdd) { AddRideView() }
             .sheet(isPresented: $showBackup) { BackupView() }
+            .sheet(item: $pastPeriod) { sel in
+                PastPeriodSummaryView(selection: sel, workouts: filtered, filtered: filter.isActive)
+            }
             .sheet(isPresented: $showFilters) { FilterView(filter: $filter.animation(.default)) }
             #if DEBUG
             .sheet(isPresented: $showDebug) { DebugMenuView() }
@@ -116,17 +128,30 @@ struct LogView: View {
 struct SectionHeader: View {
     let title: String
     let totals: Totals
+    /// Shows a chevron marking the header as tappable (opens the period's summary).
+    var showsDisclosure = false
+    /// Duration-weighted average watts (rides without watts skipped); "— W" if none recorded.
+    private var wattsText: String {
+        totals.averageWatts.map { "\(Int($0.rounded())) W" } ?? "— W"
+    }
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.headline)
-                Text("\(totals.count) rides · \(totals.minutes.minutesText) · \(totals.calories) cal · \(totals.feet) ft")
+                Text("\(totals.count) rides · \(totals.minutes.minutesText) · \(wattsText) · \(totals.feet) ft")
                     .font(.subheadline)
             }
             Spacer()
             Text(PeriodSummary.milesNumber(totals.miles) + " mi")
                 .font(.headline.bold()).monospacedDigit()
+            if showsDisclosure {
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+                    .accessibilityHidden(true)
+            }
         }
+        .contentShape(Rectangle())
         .foregroundStyle(.secondary)
         .textCase(nil)
     }

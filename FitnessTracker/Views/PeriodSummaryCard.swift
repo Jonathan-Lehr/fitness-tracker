@@ -5,6 +5,9 @@ struct PeriodSummaryCard: View {
     @Binding var period: GroupingPeriod
     let summary: PeriodSummary
     var filtered: Bool = false
+    /// The Log's overview card shows the Week/Month/Year picker and drives Mac window sizing;
+    /// the past-period sheet shows a fixed period and does neither.
+    var showsPeriodPicker: Bool = true
 
     static let columnSpacing: CGFloat = 16
 
@@ -60,11 +63,13 @@ struct PeriodSummaryCard: View {
             // Drive the period change in an animated transaction so numericText content
             // transitions (and the chart) animate; implicit .animation(value:) on a List row
             // wasn't reliably applied.
-            Picker("Period", selection: $period.animation(.default)) {
-                ForEach(GroupingPeriod.allCases) { Text($0.rawValue).tag($0) }
+            if showsPeriodPicker {
+                Picker("Period", selection: $period.animation(.default)) {
+                    ForEach(GroupingPeriod.allCases) { Text($0.rawValue).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
 
             if useWideLayout {
                 // Wide (Mac, iPhone landscape): a 6-column grid. Top row: hero over columns 1–2,
@@ -91,7 +96,7 @@ struct PeriodSummaryCard: View {
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: {
             cardWidth = $0
             #if os(macOS)
-            SummaryCardMetrics.shared.cardWidth = $0
+            if showsPeriodPicker { SummaryCardMetrics.shared.cardWidth = $0 }
             #endif
         }
     }
@@ -106,6 +111,10 @@ struct PeriodSummaryCard: View {
                         .font(.caption).foregroundStyle(.secondary)
                         .help("Filters applied")
                 }
+            }
+            if summary.kind == .calendar {
+                Text(summary.dateRangeText).font(.caption).foregroundStyle(.secondary)
+                    .lineLimit(1).minimumScaleFactor(0.7)
             }
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(PeriodSummary.milesNumber(summary.current.miles))
