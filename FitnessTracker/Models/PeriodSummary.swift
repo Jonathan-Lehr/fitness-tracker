@@ -1,8 +1,14 @@
 import Foundation
 
-/// Totals for a rolling window ending today (last 7 / 30 / 365 calendar days, inclusive of
-/// today, local time zone), the equally long window before it, and per-bucket miles for the chart.
+/// Totals for a window, the comparison window before it, and per-bucket miles for the chart.
+/// Two kinds:
+/// - rolling: last 7 / 30 / 365 calendar days ending today (local time zone) vs the equally long
+///   window before it (the Log's overview card);
+/// - calendar: one calendar week (Monday-first), month or year vs the calendar period before it
+///   (the past-period summary sheet).
 struct PeriodSummary {
+    enum Kind: Equatable { case rolling, calendar }
+
     struct Bucket: Identifiable, Equatable {
         let start: Date
         let end: Date
@@ -17,6 +23,9 @@ struct PeriodSummary {
     let current: Totals
     let previous: Totals
     let buckets: [Bucket]
+    var kind: Kind = .rolling
+    /// Calendar used to build the summary (labels and date range text use it too).
+    var calendar: Calendar = .app
 
     var milesDelta: Double { current.miles - previous.miles }
     var ridesDelta: Int { current.count - previous.count }
@@ -117,15 +126,24 @@ struct PeriodSummary {
         }
     }
 
-    /// Chart buckets:
+    /// Chart buckets (rolling):
     /// - Week: 7 daily bars ending today, every day labeled (weekday initial).
     /// - Month: 30 daily bars ending today, labeled every 7th day counting back from today.
     /// - Year: 12 monthly bars ending with the current month; the first bar also absorbs the
     ///   few days of the 365-day window that fall before it. Labeled every 3rd month from the end.
+    ///
+    /// Calendar-aligned (`calendarAligned: true`, interval is exactly one calendar period):
+    /// - Week: 7 daily bars Monday…Sunday, every day labeled.
+    /// - Month: one daily bar per day of the month (28–31), labeled days 1, 8, 15, 22, 29.
+    /// - Year: 12 monthly bars January…December, labeled J, A, J, O.
     static func makeBuckets(period: GroupingPeriod, interval: DateInterval, calendar: Calendar,
+                            calendarAligned: Bool = false,
                             miles: (DateInterval) -> Double) -> [Bucket] {
         var bounds: [Date] = []
         switch period {
+        case .year where calendarAligned:
+            bounds = (0..<12).compactMap { calendar.date(byAdding: .month, value: $0, to: interval.start) }
+                .filter { $0 < interval.end }
         case .week, .month:
             var d = interval.start
             while d < interval.end {
@@ -147,10 +165,12 @@ struct PeriodSummary {
         }
         return bounds.enumerated().map { i, start in
             let end = i + 1 < bounds.count ? bounds[i + 1] : interval.end
-            // Label from the end so today / the current month is always labeled.
-            let labeled = (bounds.count - 1 - i) % every == 0
-            // For the Year's first (stretched) bucket, label by the month it mostly covers.
-            let labelDate = period == .year && i == 0 ? (calendar.date(byAdding: .day, value: -1, to: end) ?? start) : start
+            // Rolling: label from the end so today / the current month is always labeled.
+            // Calendar-aligned: label from the start (1st of the month, January).
+            let labeled = (calendarAligned ? i : bounds.count - 1 - i) % every == 0
+            // For the rolling Year's first (stretched) bucket, label by the month it mostly covers.
+            let labelDate = period == .year && i == 0 && !calendarAligned
+                ? (calendar.date(byAdding: .day, value: -1, to: end) ?? start) : start
             return Bucket(start: start, end: end,
                           miles: miles(DateInterval(start: start, end: end)),
                           label: labeled ? labelDate.formatted(format) : nil)
@@ -175,10 +195,55 @@ struct PeriodSummary {
             current.filter { inside($0, slot) }.reduce(0) { $0 + $1.distanceMiles }
         }
         return PeriodSummary(period: period, interval: interval,
-                             current: Totals(current), previous: Totals(previous), buckets: buckets)
+                             current: Totals(current), previous: Totals(previous), buckets: buckets,
+                             kind: .rolling, calendar: calendar)
     }
 
-    var title: String { "Last \(Self.days(for: period)) Days" }
+    /// Summary of the calendar week (Monday-first with `.app`), month or year containing `date`,
+    /// compared with the calendar period immediately before it. Read-only over `workouts`.
+    static func computeCalendar(_ workouts: [Workout], period: GroupingPeriod, containing date: Date,
+                                calendar: Calendar = .app) -> PeriodSummary {
+        let interval = calendar.dateInterval(of: period.component, for: date)
+            ?? DateInterval(start: calendar.startOfDay(for: date), duration: 0)
+        let beforeStart = calendar.date(byAdding: .second, value: -1, to: interval.start) ?? interval.start
+        let previousInterval = calendar.dateInterval(of: period.component, for: beforeStart)
+            ?? DateInterval(start: interval.start, duration: 0)
+
+        func inside(_ w: Workout, _ i: DateInterval) -> Bool { w.date >= i.start && w.date < i.end }
+        let current = workouts.filter { inside($0, interval) }
+        let previous = workouts.filter { inside($0, previousInterval) }
+        let buckets = makeBuckets(period: period, interval: interval, calendar: calendar, calendarAligned: true) { slot in
+            current.filter { inside($0, slot) }.reduce(0) { $0 + $1.distanceMiles }
+        }
+        return PeriodSummary(period: period, interval: interval,
+                             current: Totals(current), previous: Totals(previous), buckets: buckets,
+                             kind: .calendar, calendar: calendar)
+    }
+
+    var title: String {
+        switch kind {
+        case .rolling: "Last \(Self.days(for: period)) Days"
+        case .calendar: period.label(for: interval.start, calendar: calendar)
+        }
+    }
+
+    /// Inclusive date range, e.g. "Nov 2 – Nov 8, 2026", "Dec 28, 2026 – Jan 3, 2027".
+    var dateRangeText: String {
+        let lastDay = calendar.date(byAdding: .day, value: -1, to: interval.end) ?? interval.start
+        let base = Date.FormatStyle(calendar: calendar, timeZone: calendar.timeZone)
+        let md = base.month(.abbreviated).day()
+        let mdy = md.year()
+        let sameYear = calendar.component(.year, from: interval.start) == calendar.component(.year, from: lastDay)
+        return "\(interval.start.formatted(sameYear ? md : mdy)) – \(lastDay.formatted(mdy))"
+    }
+
+    /// What the deltas compare against, e.g. "prior 7 days", "prior week".
+    var comparisonText: String {
+        switch kind {
+        case .rolling: "prior \(Self.days(for: period)) days"
+        case .calendar: "prior \(period.rawValue.lowercased())"
+        }
+    }
 
     /// Miles for display: one decimal below 100 ("9.9", "99.9"), whole number with grouping
     /// at 100 and above ("100", "1,235") so month/year totals fit the hero slot.
@@ -190,9 +255,10 @@ struct PeriodSummary {
             .grouping(.automatic).locale(locale))
     }
 
-    /// e.g. "+4.2 mi vs prior 7 days"; whole miles at 100+: "+120 mi vs prior 30 days"
+    /// e.g. "+4.2 mi vs prior 7 days"; whole miles at 100+: "+120 mi vs prior 30 days";
+    /// calendar summaries: "+4.2 mi vs prior week"
     var deltaText: String {
         let sign = milesDelta > 0 ? "+" : (milesDelta < 0 ? "−" : "±")
-        return "\(sign)\(Self.milesNumber(abs(milesDelta))) mi vs prior \(Self.days(for: period)) days"
+        return "\(sign)\(Self.milesNumber(abs(milesDelta))) mi vs \(comparisonText)"
     }
 }
