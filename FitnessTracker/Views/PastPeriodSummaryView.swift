@@ -14,6 +14,21 @@ struct PastPeriodSelection: Identifiable, Hashable {
         return PastPeriodSelection(period: period, start: period.start(of: shifted, calendar: calendar))
     }
 
+    /// Whether an earlier period exists that isn't before the calendar period containing the
+    /// earliest workout (`nil` = no workouts: no earlier period).
+    func hasPrevious(earliest: Date?, calendar: Calendar = .app) -> Bool {
+        guard let earliest else { return false }
+        return start > period.start(of: earliest, calendar: calendar)
+    }
+
+    /// This selection kept within [period of `earliest`, current period]; unchanged if already inside.
+    func clamped(earliest: Date?, now: Date = .now, calendar: Calendar = .app) -> PastPeriodSelection {
+        var s = period.start(of: start, calendar: calendar)
+        s = min(s, period.start(of: now, calendar: calendar))
+        if let earliest { s = max(s, period.start(of: earliest, calendar: calendar)) }
+        return PastPeriodSelection(period: period, start: s)
+    }
+
     /// Whether a next period exists that isn't after the current calendar period containing `now`.
     func hasNext(now: Date = .now, calendar: Calendar = .app) -> Bool {
         moved(by: 1, calendar: calendar).start <= period.start(of: now, calendar: calendar)
@@ -35,10 +50,20 @@ struct PastPeriodSummaryView: View {
         self.filtered = filtered
     }
 
-    private var unit: String { selection.period.rawValue }
+    /// Earliest workout in the (filtered) data the sheet summarizes; bounds Previous.
+    private var earliest: Date? { workouts.map(\.date).min() }
+
+    /// The shown period: the selection clamped to [earliest workout's period, current period],
+    /// so it stays valid if rides are deleted or edited while the sheet is open.
+    private var current: PastPeriodSelection { selection.clamped(earliest: earliest) }
+    private var canGoBack: Bool { current.hasPrevious(earliest: earliest) }
+    private var canGoForward: Bool { current.hasNext() }
+
+    private var unit: String { current.period.rawValue }
 
     private func go(_ offset: Int) {
-        withAnimation(.default) { selection = selection.moved(by: offset) }
+        guard offset < 0 ? canGoBack : canGoForward else { return }
+        withAnimation(.default) { selection = current.moved(by: offset) }
     }
 
     private var previousButton: some View {
@@ -47,6 +72,7 @@ struct PastPeriodSummaryView: View {
         }
         .accessibilityLabel("Previous \(unit)")
         .keyboardShortcut(.leftArrow, modifiers: [])
+        .disabled(!canGoBack)
     }
 
     private var nextButton: some View {
@@ -55,15 +81,15 @@ struct PastPeriodSummaryView: View {
         }
         .accessibilityLabel("Next \(unit)")
         .keyboardShortcut(.rightArrow, modifiers: [])
-        .disabled(!selection.hasNext())
+        .disabled(!canGoForward)
     }
 
     private var summary: PeriodSummary {
-        PeriodSummary.computeCalendar(workouts, period: selection.period, containing: selection.start)
+        PeriodSummary.computeCalendar(workouts, period: current.period, containing: current.start)
     }
 
     private var periodWorkouts: [Workout] {
-        PeriodSummary.calendarWorkouts(workouts, period: selection.period, containing: selection.start)
+        PeriodSummary.calendarWorkouts(workouts, period: current.period, containing: current.start)
     }
 
     var body: some View {
@@ -72,7 +98,7 @@ struct PastPeriodSummaryView: View {
         NavigationStack {
             List {
                 Section {
-                    PeriodSummaryCard(period: .constant(selection.period), summary: s,
+                    PeriodSummaryCard(period: .constant(current.period), summary: s,
                                       filtered: filtered, showsPeriodPicker: false)
                 } footer: {
                     Text("Compared with the \(s.comparisonText).")
@@ -97,17 +123,11 @@ struct PastPeriodSummaryView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }
-                #if os(iOS)
-                // Standard bottom toolbar (hidden when a ride's detail is pushed).
-                ToolbarItemGroup(placement: .bottomBar) {
-                    previousButton
-                    Spacer()
-                    nextButton
-                }
-                #endif
             }
-            #if os(macOS)
-            // macOS has no bottom toolbar placement: a bar-material strip pinned below the list.
+            // Bottom toolbar: a bar-material strip pinned below the list on iOS and macOS, with
+            // plain SwiftUI buttons so .disabled reliably blocks touches, highlight and shortcuts.
+            // (Custom title + chevron labels inside a system bottomBar ToolbarItemGroup kept
+            // highlighting on touch while disabled.)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 VStack(spacing: 0) {
                     Divider()
@@ -118,11 +138,11 @@ struct PastPeriodSummaryView: View {
                     }
                     .buttonStyle(.borderless)
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 10)
+                    .frame(minHeight: 44)
                 }
                 .background(.bar)
             }
-            #endif
         }
         #if os(iOS)
         // Portrait-only on iPhone while the sheet is shown (including after an interactive

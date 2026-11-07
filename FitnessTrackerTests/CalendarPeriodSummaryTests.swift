@@ -248,4 +248,58 @@ final class CalendarPeriodSummaryTests: XCTestCase {
         let list = PeriodSummary.calendarWorkouts([late], period: .week, containing: date(2026, 10, 27), calendar: cal)
         XCTAssertEqual(list.count, 1)
     }
+
+    // MARK: Previous bound (earliest workout) and clamping
+
+    func testPreviousStopsAtEarliestWorkoutsWeek() {
+        let earliest = date(2026, 9, 16, 7)                          // Wed; its week starts Mon Sep 14
+        let first = sel(.week, earliest)
+        XCTAssertEqual(first.start, date(2026, 9, 14, 0))
+        XCTAssertFalse(first.hasPrevious(earliest: earliest, calendar: cal))
+        XCTAssertTrue(first.moved(by: 1, calendar: cal).hasPrevious(earliest: earliest, calendar: cal))
+        // Empty weeks between the earliest ride and now remain reachable.
+        XCTAssertTrue(sel(.week, date(2026, 10, 5)).hasPrevious(earliest: earliest, calendar: cal))
+    }
+
+    func testPreviousStopsAtEarliestMonthAndYear() {
+        let earliest = date(2025, 3, 31, 23, 30)
+        XCTAssertFalse(sel(.month, date(2025, 3, 1)).hasPrevious(earliest: earliest, calendar: cal))
+        XCTAssertTrue(sel(.month, date(2025, 4, 1)).hasPrevious(earliest: earliest, calendar: cal))
+        XCTAssertFalse(sel(.year, date(2025, 7, 1)).hasPrevious(earliest: earliest, calendar: cal))
+        XCTAssertTrue(sel(.year, date(2026, 1, 1)).hasPrevious(earliest: earliest, calendar: cal))
+    }
+
+    func testNoWorkoutsDisablesPrevious() {
+        XCTAssertFalse(sel(.week, date(2026, 11, 4)).hasPrevious(earliest: nil, calendar: cal))
+    }
+
+    func testClampKeepsSelectionWithinEarliestAndCurrent() {
+        let now = date(2026, 11, 4)
+        let earliest = date(2026, 6, 10)
+        // Before the earliest ride's month → clamped up to June.
+        XCTAssertEqual(sel(.month, date(2026, 2, 3)).clamped(earliest: earliest, now: now, calendar: cal).start, date(2026, 6, 1, 0))
+        // Future → clamped down to the current month.
+        XCTAssertEqual(sel(.month, date(2027, 1, 3)).clamped(earliest: earliest, now: now, calendar: cal).start, date(2026, 11, 1, 0))
+        // Inside → unchanged.
+        let inside = sel(.month, date(2026, 8, 20))
+        XCTAssertEqual(inside.clamped(earliest: earliest, now: now, calendar: cal), inside)
+        // No workouts → only the future bound applies.
+        XCTAssertEqual(inside.clamped(earliest: nil, now: now, calendar: cal), inside)
+    }
+
+    func testFilteredDatasetDrivesEarliest() {
+        // Filtering out the oldest ride moves the Previous bound to the oldest remaining ride.
+        let all = [ride(date(2026, 1, 5), 1, watts: 50), ride(date(2026, 8, 5), 2, watts: 120)]
+        let filtered = all.filter { $0.avgWatts >= 100 }
+        let earliest = filtered.map(\.date).min()
+        XCTAssertFalse(sel(.month, date(2026, 8, 1)).hasPrevious(earliest: earliest, calendar: cal))
+        XCTAssertTrue(sel(.month, date(2026, 8, 1)).hasPrevious(earliest: all.map(\.date).min(), calendar: cal))
+    }
+
+    func testCurrentPeriodHasNoNextAndEarliestEqualsCurrent() {
+        let now = date(2026, 11, 4)
+        let only = sel(.week, now)
+        XCTAssertFalse(only.hasNext(now: now, calendar: cal))
+        XCTAssertFalse(only.hasPrevious(earliest: now, calendar: cal))
+    }
 }
