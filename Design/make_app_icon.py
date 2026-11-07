@@ -3,15 +3,14 @@
 # iOS: 1024 full-bleed RGB (no alpha). macOS: the same art inside an 824/1024 rounded-rect body
 # with a drop shadow, rendered from vector at every size (16–512 pt @1x/@2x).
 # Art mirrors the weekly summary chart: five full-height grey tracks with blue values on columns
-# 1/3/5 (85/70/100%), white background, light baseline; chart height = bar-group width / golden ratio.
+# 1/3/5 (85/70/100%), white background, light baseline; chart 800x648 centred at y=510.
 import io, json, os
 import cairosvg
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
-PHI = (1 + 5 ** 0.5) / 2
 BAR_W, GAP, N = 128, 40, 5
 CHART_W = N * BAR_W + (N - 1) * GAP            # 800
-CHART_H = CHART_W / PHI                         # golden-ratio height, ~494.43
+CHART_H = 648                                   # 90% of the original 720 plot height
 CENTER_Y = 510
 TOP, BOTTOM = CENTER_Y - CHART_H / 2, CENTER_Y + CHART_H / 2
 X0 = (1024 - CHART_W) / 2
