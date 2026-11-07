@@ -16,7 +16,7 @@ TOP, BOTTOM = CENTER_Y - CHART_H / 2, CENTER_Y + CHART_H / 2
 X0 = (1024 - CHART_W) / 2
 BAR_R = 18
 FILLS = [0.85, None, 0.70, None, 1.0]           # blue value per column; None = empty (track only)
-TRACK, BASELINE, BASELINE_W, BASELINE_EXT = '#F2F2F4', '#CDCDD2', 6.5, 24
+TRACK, BASELINE, BASELINE_W, BASELINE_EXT = '#F2F2F4', '#CDCDD2', 13, 24
 DEFS = """<defs><linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22A8FF"/><stop offset="1" stop-color="#008AFF"/></linearGradient></defs>"""
 
 def bar(x, y, fill):
