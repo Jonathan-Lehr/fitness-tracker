@@ -203,8 +203,7 @@ struct PeriodSummary {
     /// compared with the calendar period immediately before it. Read-only over `workouts`.
     static func computeCalendar(_ workouts: [Workout], period: GroupingPeriod, containing date: Date,
                                 calendar: Calendar = .app) -> PeriodSummary {
-        let interval = calendar.dateInterval(of: period.component, for: date)
-            ?? DateInterval(start: calendar.startOfDay(for: date), duration: 0)
+        let interval = calendarInterval(period, containing: date, calendar: calendar)
         let beforeStart = calendar.date(byAdding: .second, value: -1, to: interval.start) ?? interval.start
         let previousInterval = calendar.dateInterval(of: period.component, for: beforeStart)
             ?? DateInterval(start: interval.start, duration: 0)
@@ -218,6 +217,21 @@ struct PeriodSummary {
         return PeriodSummary(period: period, interval: interval,
                              current: Totals(current), previous: Totals(previous), buckets: buckets,
                              kind: .calendar, calendar: calendar)
+    }
+
+    /// The calendar week (Monday-first with `.app`), month or year containing `date`, local time.
+    static func calendarInterval(_ period: GroupingPeriod, containing date: Date,
+                                 calendar: Calendar = .app) -> DateInterval {
+        calendar.dateInterval(of: period.component, for: date)
+            ?? DateInterval(start: calendar.startOfDay(for: date), duration: 0)
+    }
+
+    /// Workouts in the calendar period containing `date` (half-open, same range as
+    /// `computeCalendar`'s totals), newest first like the Log.
+    static func calendarWorkouts(_ workouts: [Workout], period: GroupingPeriod, containing date: Date,
+                                 calendar: Calendar = .app) -> [Workout] {
+        let i = calendarInterval(period, containing: date, calendar: calendar)
+        return workouts.filter { $0.date >= i.start && $0.date < i.end }.sorted { $0.date > $1.date }
     }
 
     var title: String {

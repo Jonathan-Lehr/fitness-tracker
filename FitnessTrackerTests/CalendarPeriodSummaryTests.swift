@@ -214,4 +214,38 @@ final class CalendarPeriodSummaryTests: XCTestCase {
         XCTAssertEqual(s.title, "Week of Oct 26, 2026")
         XCTAssertEqual(s.dateRangeText, "Oct 26 – Nov 1, 2026")
     }
+
+    // MARK: Workout list
+
+    func testPeriodWorkoutsBoundariesAndNewestFirst() {
+        let a = ride(date(2026, 11, 1, 23, 59), 1)   // Sun, prior week
+        let b = ride(date(2026, 11, 2, 0, 0), 2)     // Mon midnight
+        let c = ride(date(2026, 11, 5, 7), 3)
+        let d = ride(date(2026, 11, 8, 23, 59), 4)   // Sun, last minute
+        let e = ride(date(2026, 11, 9, 0, 0), 5)     // next Monday
+        let list = PeriodSummary.calendarWorkouts([c, e, a, d, b], period: .week, containing: date(2026, 11, 4), calendar: cal)
+        XCTAssertEqual(list.map(\.distanceMiles), [4, 3, 2])
+        let s = summary([c, e, a, d, b], .week, date(2026, 11, 4))
+        XCTAssertEqual(s.current.count, list.count)
+        XCTAssertEqual(s.current.miles, list.reduce(0) { $0 + $1.distanceMiles }, accuracy: 0.001)
+    }
+
+    func testPeriodWorkoutsFollowNavigation() {
+        let rides = [ride(date(2026, 10, 30), 1), ride(date(2026, 11, 3), 2), ride(date(2026, 12, 2), 3)]
+        var sel = self.sel(.month, date(2026, 11, 15))
+        XCTAssertEqual(PeriodSummary.calendarWorkouts(rides, period: .month, containing: sel.start, calendar: cal).map(\.distanceMiles), [2])
+        sel = sel.moved(by: -1, calendar: cal)
+        XCTAssertEqual(PeriodSummary.calendarWorkouts(rides, period: .month, containing: sel.start, calendar: cal).map(\.distanceMiles), [1])
+        sel = sel.moved(by: 2, calendar: cal)
+        XCTAssertEqual(PeriodSummary.calendarWorkouts(rides, period: .month, containing: sel.start, calendar: cal).map(\.distanceMiles), [3])
+        sel = sel.moved(by: 1, calendar: cal)                   // January 2027: empty
+        XCTAssertTrue(PeriodSummary.calendarWorkouts(rides, period: .month, containing: sel.start, calendar: cal).isEmpty)
+        XCTAssertEqual(summary(rides, .month, sel.start).current.count, 0)
+    }
+
+    func testPeriodWorkoutsAcrossDSTWeek() {
+        let late = ride(date(2026, 11, 1, 23, 30), 6)           // after fall-back, still Sun Nov 1
+        let list = PeriodSummary.calendarWorkouts([late], period: .week, containing: date(2026, 10, 27), calendar: cal)
+        XCTAssertEqual(list.count, 1)
+    }
 }

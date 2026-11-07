@@ -41,54 +41,55 @@ struct PastPeriodSummaryView: View {
         withAnimation(.default) { selection = selection.moved(by: offset) }
     }
 
-    /// Previous / Next calendar period below the card: two equal-width prominent buttons;
-    /// Next is disabled (dimmed) at the current period.
-    private var navigation: some View {
-        HStack(spacing: 12) {
-            Button { go(-1) } label: {
-                Label("Previous", systemImage: "chevron.left")
-                    .frame(maxWidth: .infinity)
-            }
-            .accessibilityLabel("Previous \(unit)")
-            .keyboardShortcut(.leftArrow, modifiers: [])
-            Button { go(1) } label: {
-                HStack(spacing: 6) { Text("Next"); Image(systemName: "chevron.right") }
-                    .frame(maxWidth: .infinity)
-            }
-            .accessibilityLabel("Next \(unit)")
-            .keyboardShortcut(.rightArrow, modifiers: [])
-            .disabled(!selection.hasNext())
+    private var previousButton: some View {
+        Button { go(-1) } label: {
+            Label("Previous", systemImage: "chevron.left").labelStyle(.titleAndIcon)
         }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-        .labelStyle(.titleAndIcon)
-        .font(.body.weight(.semibold))
-        .textCase(nil)
-        .frame(maxWidth: 480)
-        .frame(maxWidth: .infinity)
+        .accessibilityLabel("Previous \(unit)")
+        .keyboardShortcut(.leftArrow, modifiers: [])
+    }
+
+    private var nextButton: some View {
+        Button { go(1) } label: {
+            HStack(spacing: 4) { Text("Next"); Image(systemName: "chevron.right") }
+        }
+        .accessibilityLabel("Next \(unit)")
+        .keyboardShortcut(.rightArrow, modifiers: [])
+        .disabled(!selection.hasNext())
     }
 
     private var summary: PeriodSummary {
         PeriodSummary.computeCalendar(workouts, period: selection.period, containing: selection.start)
     }
 
+    private var periodWorkouts: [Workout] {
+        PeriodSummary.calendarWorkouts(workouts, period: selection.period, containing: selection.start)
+    }
+
     var body: some View {
         let s = summary
+        let rides = periodWorkouts
         NavigationStack {
             List {
                 Section {
                     PeriodSummaryCard(period: .constant(selection.period), summary: s,
                                       filtered: filtered, showsPeriodPicker: false)
                 } footer: {
-                    VStack(spacing: 12) {
-                        Text("Compared with the \(s.comparisonText).")
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        navigation
+                    Text("Compared with the \(s.comparisonText).")
+                }
+                Section("Rides") {
+                    if rides.isEmpty {
+                        ContentUnavailableView("No Rides", systemImage: "bicycle",
+                                               description: Text(filtered ? "No rides this \(unit.lowercased()) match the filters."
+                                                                 : "No rides this \(unit.lowercased())."))
                     }
-                    .padding(.top, 8)
+                    ForEach(rides) { w in
+                        NavigationLink(value: w) { WorkoutRow(workout: w) }
+                    }
                 }
             }
             .navigationTitle(s.title)
+            .navigationDestination(for: Workout.self) { WorkoutDetailView(workout: $0) }
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -96,7 +97,32 @@ struct PastPeriodSummaryView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }
+                #if os(iOS)
+                // Standard bottom toolbar (hidden when a ride's detail is pushed).
+                ToolbarItemGroup(placement: .bottomBar) {
+                    previousButton
+                    Spacer()
+                    nextButton
+                }
+                #endif
             }
+            #if os(macOS)
+            // macOS has no bottom toolbar placement: a bar-material strip pinned below the list.
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                VStack(spacing: 0) {
+                    Divider()
+                    HStack {
+                        previousButton
+                        Spacer()
+                        nextButton
+                    }
+                    .buttonStyle(.borderless)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                }
+                .background(.bar)
+            }
+            #endif
         }
         #if os(iOS)
         // Portrait-only on iPhone while the sheet is shown (including after an interactive
@@ -105,7 +131,7 @@ struct PastPeriodSummaryView: View {
         .onDisappear { OrientationLock.setPortraitOnly(false) }
         #endif
         #if os(macOS)
-        .frame(minWidth: 620, idealWidth: 680, minHeight: 360, idealHeight: 400)
+        .frame(minWidth: 620, idealWidth: 680, minHeight: 480, idealHeight: 560)
         #endif
     }
 }
