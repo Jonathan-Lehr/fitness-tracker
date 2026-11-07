@@ -81,9 +81,9 @@ struct PastPeriodSummaryView: View {
                                       filtered: filtered, showsPeriodPicker: false)
                 } footer: {
                     VStack(spacing: 12) {
-                        navigation
                         Text("Compared with the \(s.comparisonText).")
                             .frame(maxWidth: .infinity, alignment: .leading)
+                        navigation
                     }
                     .padding(.top, 8)
                 }
