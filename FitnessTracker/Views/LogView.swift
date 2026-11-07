@@ -130,11 +130,15 @@ struct SectionHeader: View {
     let totals: Totals
     /// Shows a chevron marking the header as tappable (opens the period's summary).
     var showsDisclosure = false
+    /// Duration-weighted average watts (rides without watts skipped); "— W" if none recorded.
+    private var wattsText: String {
+        totals.averageWatts.map { "\(Int($0.rounded())) W" } ?? "— W"
+    }
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.headline)
-                Text("\(totals.count) rides · \(totals.minutes.minutesText) · \(totals.calories) cal · \(totals.feet) ft")
+                Text("\(totals.count) rides · \(totals.minutes.minutesText) · \(wattsText) · \(totals.feet) ft")
                     .font(.subheadline)
             }
             Spacer()
