@@ -24,7 +24,7 @@ struct InProgressComparisonView: View {
                     Text("")
                     Text("So far").font(.caption).foregroundStyle(.secondary).dataColumn()
                     Text("Last \(noun)").font(.caption).foregroundStyle(.secondary).dataColumn()
-                    Text("Change").font(.caption).foregroundStyle(.secondary).dataColumn()
+                    Text("Change").font(.caption).foregroundStyle(.secondary).changeColumn()
                 }
                 row("Ride time", cur.minutes, prev.minutes) { $0.minutesText }
                 row("Distance", cur.miles, prev.miles) { $0.milesText }
@@ -45,7 +45,7 @@ struct InProgressComparisonView: View {
             Text(title).lineLimit(1).fixedSize()
             Text(format(a)).dataColumn()
             Text(format(b)).foregroundStyle(.secondary).dataColumn()
-            Text(Self.change(a, b)).foregroundStyle(.secondary).dataColumn()
+            Text(Self.change(a, b)).foregroundStyle(.secondary).changeColumn()
         }
     }
 
@@ -55,7 +55,7 @@ struct InProgressComparisonView: View {
             Text(cur.averageWatts.map { "\(Int($0.rounded())) W" } ?? "— W").dataColumn()
             Text(prev.averageWatts.map { "\(Int($0.rounded())) W" } ?? "— W").foregroundStyle(.secondary).dataColumn()
             Text(cur.averageWatts.flatMap { a in prev.averageWatts.map { Self.change(a, $0) } } ?? "—")
-                .foregroundStyle(.secondary).dataColumn()
+                .foregroundStyle(.secondary).changeColumn()
         }
     }
 
@@ -80,5 +80,13 @@ private extension View {
         lineLimit(1)
             .minimumScaleFactor(0.75)
             .frame(maxWidth: .infinity, alignment: .trailing)
+    }
+
+    /// The short Change column (e.g. "+12%") keeps a compact fixed minimum width instead of an equal share,
+    /// so the So far and Last columns get the extra space and Last sits further right.
+    func changeColumn() -> some View {
+        lineLimit(1)
+            .minimumScaleFactor(0.75)
+            .frame(minWidth: 56, alignment: .trailing)
     }
 }
