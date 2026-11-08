@@ -17,6 +17,12 @@ struct TrendsView: View {
         return grouped.keys.sorted().map { Bucket(start: $0, totals: Totals(grouped[$0] ?? [])) }
     }
 
+    private struct WattsPoint: Identifiable {
+        let start: Date
+        let watts: Double
+        var id: Date { start }
+    }
+
     private var unit: Calendar.Component { period == .week ? .weekOfYear : .month }
 
     var body: some View {
@@ -32,13 +38,34 @@ struct TrendsView: View {
                     chart("Ride Time (min)") { b in BarMark(x: .value("Period", b.start, unit: unit), y: .value("Minutes", b.totals.minutes)) }
                     chart("Distance (mi)") { b in BarMark(x: .value("Period", b.start, unit: unit), y: .value("Miles", b.totals.miles)) }
                     chart("Calories") { b in BarMark(x: .value("Period", b.start, unit: unit), y: .value("Calories", b.totals.calories)) }
-                    chart("Average Watts") { b in
-                        LineMark(x: .value("Period", b.start, unit: unit), y: .value("Watts", b.totals.avgWatts))
-                    }
+                    wattsChart
                 }
                 .padding()
             }
             .navigationTitle("Trends")
+        }
+    }
+
+    /// Average Watts per period over rides that recorded watts (periods without watts are omitted),
+    /// with the Y axis fitted to the plotted values (see `WattsAxis`).
+    private var wattsChart: some View {
+        let points = buckets.compactMap { b in b.totals.averageWatts.map { WattsPoint(start: b.start, watts: $0) } }
+        let domain = WattsAxis.domain(for: points.map(\.watts))
+        return VStack(alignment: .leading) {
+            Text("Average Watts").font(.headline)
+            Chart(points) { p in
+                LineMark(x: .value("Period", p.start, unit: unit), y: .value("Watts", p.watts))
+                PointMark(x: .value("Period", p.start, unit: unit), y: .value("Watts", p.watts))
+                    .symbolSize(20)
+            }
+            .chartYScale(domain: domain ?? 0...100)
+            .chartYAxis { AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) }
+            .overlay {
+                if points.isEmpty {
+                    Text("No rides with watts").font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            .frame(height: 180)
         }
     }
 
