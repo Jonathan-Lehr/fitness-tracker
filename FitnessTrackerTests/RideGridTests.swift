@@ -28,14 +28,32 @@ final class RideGridTests: XCTestCase {
         XCTAssertEqual(LogLayout(rawValue: "grid"), .grid)
     }
 
-    func testCropRectStaysInScenicBandAndMatchesAspect() throws {
+    func testCropRectIsTopAnchoredTallAndRightOfCenter() throws {
+        for aspect in [2.0, 4.0 / 3.0] {
+            let r = try XCTUnwrap(ThumbnailCropper.cropRect(width: 1600, height: 1200, aspect: aspect))
+            // Starts near the top (heads) and uses the full band height.
+            XCTAssertEqual(r.minY, 1200 * ThumbnailCropper.bandTop, accuracy: 1)
+            XCTAssertEqual(r.height, 1200 * (ThumbnailCropper.bandBottom - ThumbnailCropper.bandTop), accuracy: 1)
+            XCTAssertLessThanOrEqual(r.minY, 1200 * 0.05 + 1)
+            XCTAssertEqual(r.width / r.height, aspect, accuracy: 0.02)
+            XCTAssertEqual(r.midX, 1600 * ThumbnailCropper.centerX, accuracy: 1)
+            XCTAssertGreaterThanOrEqual(r.minX, 1600 * ThumbnailCropper.sideInset - 1)
+            XCTAssertLessThanOrEqual(r.maxX, 1600 * (1 - ThumbnailCropper.sideInset) + 1)
+        }
+    }
+
+    func testCropRectIsTallerThanPreviousNarrowBand() throws {
+        // Previous framing kept only 10–36% of height (312 px of 1200).
         let r = try XCTUnwrap(ThumbnailCropper.cropRect(width: 1600, height: 1200, aspect: 2))
-        XCTAssertGreaterThanOrEqual(r.minY, 1200 * ThumbnailCropper.bandTop - 1)
-        XCTAssertLessThanOrEqual(r.maxY, 1200 * ThumbnailCropper.bandBottom + 1)
-        XCTAssertGreaterThanOrEqual(r.minX, 0)
-        XCTAssertLessThanOrEqual(r.maxX, 1600)
-        XCTAssertEqual(r.width / r.height, 2, accuracy: 0.05)
-        XCTAssertEqual(r.midX, 800, accuracy: 1)
+        XCTAssertGreaterThan(r.height, 1200 * 0.26 + 50)
+        XCTAssertLessThan(r.minY, 1200 * 0.10)
+    }
+
+    func testCropRectClampsInsideBandForWideCrops() throws {
+        // A very wide aspect is limited by band width and stays inside the side insets.
+        let r = try XCTUnwrap(ThumbnailCropper.cropRect(width: 1600, height: 1200, aspect: 5))
+        XCTAssertEqual(r.minX, 1600 * ThumbnailCropper.sideInset, accuracy: 1)
+        XCTAssertEqual(r.maxX, 1600 * (1 - ThumbnailCropper.sideInset), accuracy: 1)
     }
 
     func testCropRectPortraitImageAndDegenerate() throws {
@@ -96,16 +114,18 @@ final class RideGridTests: XCTestCase {
         XCTAssertTrue(c === d, "second lookup should return the cached image")
     }
 
-    func testSampleScreenshotsProduceUsableCrops() throws {
+    func testSampleScreenshotsProduceUsableCropsAtCardAspects() throws {
         let bundle = Bundle(for: Self.self)
         let urls = ["ride-2026-10-12", "ride-2026-10-15", "ride-2026-10-18", "ride-2026-10-20"]
             .compactMap { bundle.url(forResource: $0, withExtension: "jpg") }
-        try XCTSkipIf(urls.isEmpty, "sample photos not bundled")
+        XCTAssertEqual(urls.count, 4, "sample photos should be bundled")
         for url in urls {
-            let data = try Data(contentsOf: url)
-            let stored = try XCTUnwrap(ImageTools.storageJPEG(from: data))
-            let t = ThumbnailCropper.thumbnail(from: stored, aspect: 2)
-            print("thumbnail \(url.lastPathComponent): \(t.map { "\($0.width)x\($0.height)" } ?? "placeholder")")
+            let stored = try XCTUnwrap(ImageTools.storageJPEG(from: try Data(contentsOf: url)))
+            for aspect in [2.0, 4.0 / 3.0] {
+                let t = try XCTUnwrap(ThumbnailCropper.thumbnail(from: stored, aspect: aspect),
+                                      "\(url.lastPathComponent) should yield a usable crop")
+                XCTAssertEqual(Double(t.width) / Double(t.height), aspect, accuracy: 0.03)
+            }
         }
     }
 }

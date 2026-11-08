@@ -63,7 +63,8 @@ struct RideImage: View {
         ZStack {
             ScenePlaceholder(type: workout.type)
             if let image {
-                Image(decorative: image, scale: 1).resizable().scaledToFill()
+                // The crop already has the card's aspect; fit (not fill) so nothing more is cut.
+                Image(decorative: image, scale: 1).resizable().scaledToFit()
             }
         }
         .aspectRatio(aspect, contentMode: .fit)

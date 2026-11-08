@@ -4,16 +4,20 @@ import CoreGraphics
 /// Builds card thumbnails from a ride's saved (already downscaled) photo.
 /// The saved photo is never modified; thumbnails are derived and cached in memory only.
 enum ThumbnailCropper {
-    /// Fraction of image height kept for the scenic band. iFit summary screens put the scenery
-    /// header above the title/stats panel; camera shots of the screen add bezel, so the band
-    /// starts a little below the top. Conservative fixed bounds, not content-aware.
-    static let bandTop = 0.10
-    static let bandBottom = 0.36
+    /// Source band (fractions of image size). iFit summary screens put the scenery/rider header
+    /// above the title and stats panel, with "Nice job!" text on the left, so the rider usually
+    /// sits right of center. The band starts near the top so heads aren't cut; camera shots may
+    /// show a sliver of bezel at the top instead. Conservative fixed bounds, not content-aware.
+    static let bandTop = 0.05
+    static let bandBottom = 0.40
     /// Horizontal inset trimming bezel/edge UI on camera shots.
     static let sideInset = 0.06
+    /// Horizontal center of the crop when the band is wider than the card aspect.
+    static let centerX = 0.62
 
-    /// Crop rect (pixels, top-left origin) for the scenic band, trimmed to `aspect` (width/height),
-    /// centered horizontally within the band. Returns nil for degenerate sizes.
+    /// Crop rect (pixels, top-left origin) at `aspect` (width/height) inside the scenic band:
+    /// as tall as the band allows, anchored to the band top, centered at `centerX` and clamped
+    /// inside the band. Returns nil for degenerate sizes.
     static func cropRect(width: Int, height: Int, aspect: Double) -> CGRect? {
         guard width >= 32, height >= 32, aspect > 0, aspect.isFinite else { return nil }
         let w = Double(width), h = Double(height)
@@ -21,9 +25,8 @@ enum ThumbnailCropper {
         let bandY = h * bandTop, bandH = h * (bandBottom - bandTop)
         var cropW = bandW, cropH = bandW / aspect
         if cropH > bandH { cropH = bandH; cropW = bandH * aspect }
-        let x = bandX + (bandW - cropW) / 2
-        let y = bandY + (bandH - cropH) / 2
-        return CGRect(x: x, y: y, width: cropW, height: cropH).integral
+        let x = min(max(w * centerX - cropW / 2, bandX), bandX + bandW - cropW)
+        return CGRect(x: x, y: bandY, width: cropW, height: cropH).integral
             .intersection(CGRect(x: 0, y: 0, width: w, height: h))
     }
 
