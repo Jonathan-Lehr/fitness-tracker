@@ -53,7 +53,7 @@ struct LogView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if layout == .grid { gridBody } else { listBody }
+                listBody
             }
             .navigationTitle("Rides")
             .navigationDestination(for: Workout.self) { WorkoutDetailView(workout: $0) }
@@ -123,89 +123,49 @@ struct LogView: View {
                                description: Text(filter.isActive ? "No rides match the filters." : "Add a ride to get started."))
     }
 
-    private var gridBody: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 20) {
-                // Match the List's row metrics so the card sits the same in both modes:
-                // iOS inset-grouped rows use ~16 pt content insets and 10 pt corners;
-                // macOS inset rows use 8 pt corners.
-                summaryCard
-                    .padding(.horizontal, GridMetrics.rowInset)
-                    .padding(.vertical, 11)
-                    .background(LogSurface.card, in: RoundedRectangle(cornerRadius: GridMetrics.cornerRadius))
-                if sections.isEmpty { emptyState }
-                ForEach(sections, id: \.start) { section in
-                    VStack(alignment: .leading, spacing: 10) {
-                        header(for: section.start, workouts: section.workouts)
-                            // List section headers align with row content, not the row edge.
-                            .padding(.horizontal, GridMetrics.headerInset)
-                        RideGridSection(workouts: section.workouts, wide: wideGrid) { context.delete($0) }
-                    }
-                }
-            }
-            .padding()
-        }
-        .background(LogSurface.page)
-    }
-
+    /// One List for both modes: the summary card, empty state and period headers are the same
+    /// views with the same list style, so they keep identical size and position when switching.
+    /// Only each period's rows change (ride rows vs. one full-bleed grid row).
     private var listBody: some View {
         List {
-                // Its own section, so the card uses the list's row background, corner radius
-                // and insets on iOS (inset grouped) and macOS, lining up with the rows below.
-                Section {
-                    PeriodSummaryCard(period: $period,
-                                      summary: PeriodSummary.compute(filtered, period: period),
-                                      filtered: filter.isActive)
-                        #if os(macOS)
-                        .listRowBackground(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color(nsColor: NSColor.alternatingContentBackgroundColors.last ?? .controlBackgroundColor))
-                                .padding(.horizontal, 6)
-                        )
-                        #endif
-                }
+            // Its own section, so the card uses the list's row background, corner radius
+            // and insets on iOS (inset grouped) and macOS, lining up with the rows below.
+            Section {
+                summaryCard
+                    #if os(macOS)
+                    .listRowBackground(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color(nsColor: NSColor.alternatingContentBackgroundColors.last ?? .controlBackgroundColor))
+                            .padding(.horizontal, 6)
+                    )
+                    #endif
+            }
 
-                if sections.isEmpty {
-                    ContentUnavailableView("No Rides", systemImage: "bicycle",
-                                           description: Text(filter.isActive ? "No rides match the filters." : "Add a ride to get started."))
-                }
-                ForEach(sections, id: \.start) { section in
-                    Section {
+            if sections.isEmpty { emptyState }
+            ForEach(sections, id: \.start) { section in
+                Section {
+                    if layout == .grid {
+                        RideGridSection(workouts: section.workouts, wide: wideGrid) { context.delete($0) }
+                            .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                    } else {
                         ForEach(section.workouts) { w in
                             NavigationLink(value: w) { WorkoutRow(workout: w) }
                         }
                         .onDelete { offsets in
                             for i in offsets { context.delete(section.workouts[i]) }
                         }
-                    } header: {
-                        // Tapping a section header opens that calendar period's summary card.
-                        Button {
-                            pastPeriod = PastPeriodSelection(period: period, start: section.start)
-                        } label: {
-                            SectionHeader(title: period.label(for: section.start), totals: Totals(section.workouts),
-                                          showsDisclosure: true)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityHint("Shows the summary for this \(period.rawValue.lowercased())")
                     }
+                } header: {
+                    header(for: section.start, workouts: section.workouts)
                 }
             }
-            #if os(macOS)
-            .listStyle(.inset(alternatesRowBackgrounds: true))
-            #endif
+        }
+        #if os(macOS)
+        .listStyle(.inset(alternatesRowBackgrounds: true))
+        #endif
     }
-}
-
-private enum GridMetrics {
-    #if os(macOS)
-    static let rowInset: CGFloat = 12
-    static let headerInset: CGFloat = 0
-    static let cornerRadius: CGFloat = 8
-    #else
-    static let rowInset: CGFloat = 16
-    static let headerInset: CGFloat = 16
-    static let cornerRadius: CGFloat = 10
-    #endif
 }
 
 struct SectionHeader: View {

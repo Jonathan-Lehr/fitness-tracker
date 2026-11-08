@@ -1,14 +1,11 @@
 import SwiftUI
 import SwiftData
 
-/// Backgrounds matching the Log List's style, so switching modes doesn't change the look:
-/// iOS default List style is inset grouped (white rows on grouped gray); macOS uses an inset list.
+/// Card fill matching the Log List's rows (inset grouped on iOS, inset list on macOS).
 enum LogSurface {
     #if os(macOS)
-    static let page = Color(nsColor: .controlBackgroundColor)
     static let card = Color(nsColor: NSColor.alternatingContentBackgroundColors.last ?? .controlBackgroundColor)
     #else
-    static let page = Color(uiColor: .systemGroupedBackground)
     static let card = Color(uiColor: .secondarySystemGroupedBackground)
     #endif
 }
