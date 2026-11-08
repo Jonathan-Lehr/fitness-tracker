@@ -126,13 +126,19 @@ struct LogView: View {
     private var gridBody: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 20) {
+                // Match the List's row metrics so the card sits the same in both modes:
+                // iOS inset-grouped rows use ~16 pt content insets and 10 pt corners;
+                // macOS inset rows use 8 pt corners.
                 summaryCard
-                    .padding(12)
-                    .background(.background.secondary, in: RoundedRectangle(cornerRadius: 12))
+                    .padding(.horizontal, GridMetrics.rowInset)
+                    .padding(.vertical, 11)
+                    .background(.background.secondary, in: RoundedRectangle(cornerRadius: GridMetrics.cornerRadius))
                 if sections.isEmpty { emptyState }
                 ForEach(sections, id: \.start) { section in
                     VStack(alignment: .leading, spacing: 10) {
                         header(for: section.start, workouts: section.workouts)
+                            // List section headers align with row content, not the row edge.
+                            .padding(.horizontal, GridMetrics.headerInset)
                         RideGridSection(workouts: section.workouts, wide: wideGrid) { context.delete($0) }
                     }
                 }
@@ -187,6 +193,18 @@ struct LogView: View {
             .listStyle(.inset(alternatesRowBackgrounds: true))
             #endif
     }
+}
+
+private enum GridMetrics {
+    #if os(macOS)
+    static let rowInset: CGFloat = 12
+    static let headerInset: CGFloat = 0
+    static let cornerRadius: CGFloat = 8
+    #else
+    static let rowInset: CGFloat = 16
+    static let headerInset: CGFloat = 16
+    static let cornerRadius: CGFloat = 10
+    #endif
 }
 
 struct SectionHeader: View {
