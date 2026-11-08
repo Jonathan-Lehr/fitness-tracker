@@ -60,7 +60,7 @@ struct TrendsView: View {
     private var wattsChart: some View {
         let points = buckets.compactMap { b in b.totals.averageWatts.map { WattsPoint(start: b.start, watts: $0) } }
         let domain = WattsAxis.domain(for: points.map(\.watts))
-        let xDomain = WattsAxis.dateDomain(periodStarts: buckets.map(\.start), period: period)
+        let xDomain = WattsAxis.dateDomain(periodStarts: points.map(\.start), period: period)
         return VStack(alignment: .leading) {
             Text("Average Watts").font(.headline)
             Chart(points) { p in
