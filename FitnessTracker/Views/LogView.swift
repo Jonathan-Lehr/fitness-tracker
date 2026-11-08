@@ -36,6 +36,8 @@ struct LogView: View {
     @State private var showBackup = false
     @State private var pastPeriod: PastPeriodSelection?
     @AppStorage("logLayout") private var layout: LogLayout = .list
+    /// Explicit path so grid cards (several per List row) append exactly one destination.
+    @State private var path = NavigationPath()
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var sizeClass
     private var wideGrid: Bool { sizeClass == .regular }
@@ -59,10 +61,8 @@ struct LogView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                listBody
-            }
+        NavigationStack(path: $path) {
+            listBody
             .navigationTitle("Rides")
             .navigationDestination(for: Workout.self) { WorkoutDetailView(workout: $0) }
             .toolbar {
@@ -157,7 +157,9 @@ struct LogView: View {
             ForEach(sections, id: \.start) { section in
                 Section {
                     if layout == .grid {
-                        RideGridSection(workouts: section.workouts, wide: wideGrid) { context.delete($0) }
+                        RideGridSection(workouts: section.workouts, wide: wideGrid,
+                                         onOpen: { path.append($0) },
+                                         onDelete: { context.delete($0) })
                             // Keep the List's default leading/trailing insets so day headers
                             // and cards line up with period section headers (and list-mode rows).
                             .listRowBackground(Color.clear)

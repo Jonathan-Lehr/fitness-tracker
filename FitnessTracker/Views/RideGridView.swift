@@ -153,6 +153,9 @@ private struct DayHeader: View {
 struct RideGridSection: View {
     let workouts: [Workout]
     let wide: Bool
+    /// Opens a single ride detail. Must not use NavigationLink here: several cards share one
+    /// List row, and multiple NavigationLinks in that row can push several destinations at once.
+    let onOpen: (Workout) -> Void
     let onDelete: (Workout) -> Void
 
     private var days: [DayGroup<Workout>] { DayGroup.group(workouts, date: \.date) }
@@ -183,7 +186,7 @@ struct RideGridSection: View {
     }
 
     private func link<C: View>(_ w: Workout, @ViewBuilder _ content: () -> C) -> some View {
-        NavigationLink(value: w) { content() }
+        Button { onOpen(w) } label: { content() }
             .buttonStyle(.plain)
             .contextMenu {
                 Button(role: .destructive) { onDelete(w) } label: { Label("Delete", systemImage: "trash") }
