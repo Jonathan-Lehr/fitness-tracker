@@ -36,4 +36,84 @@ final class WattsAxisTests: XCTestCase {
         XCTAssertTrue(values.allSatisfy { d.contains($0) })
         XCTAssertLessThan(d.lowerBound, 88.9)
     }
+
+    // MARK: Date (X) domain
+
+    private var nyCal: Calendar {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "America/New_York")!
+        return Calendar.mondayFirst(c)
+    }
+
+    private func day(_ y: Int, _ m: Int, _ d: Int) -> Date {
+        nyCal.date(from: DateComponents(year: y, month: m, day: d))!
+    }
+
+    func testDateDomainEmptyIsNil() {
+        XCTAssertNil(WattsAxis.dateDomain(periodStarts: [], period: .week, calendar: nyCal))
+    }
+
+    func testWeeklyDomainIsExactlyFirstToLastPointWithNoPadding() {
+        let starts = [day(2026, 10, 12), day(2026, 10, 19), day(2026, 10, 26)] // Mondays
+        XCTAssertEqual(WattsAxis.dateDomain(periodStarts: starts, period: .week, calendar: nyCal),
+                       day(2026, 10, 12)...day(2026, 10, 26))
+    }
+
+    func testMonthlyDomainIsExactlyFirstToLastAndHandlesUnsortedInput() {
+        let starts = [day(2026, 10, 1), day(2026, 9, 1)]
+        XCTAssertEqual(WattsAxis.dateDomain(periodStarts: starts, period: .month, calendar: nyCal),
+                       day(2026, 9, 1)...day(2026, 10, 1))
+    }
+
+    func testDomainAcrossYearBoundaryAndDST() {
+        XCTAssertEqual(WattsAxis.dateDomain(periodStarts: [day(2026, 10, 26), day(2027, 1, 4)], period: .week, calendar: nyCal),
+                       day(2026, 10, 26)...day(2027, 1, 4))
+    }
+
+    func testSinglePointIsCenteredInOnePeriod() {
+        let d = WattsAxis.dateDomain(periodStarts: [day(2026, 10, 26)], period: .week, calendar: nyCal)!
+        // DST week: 169 hours, centered on the point.
+        XCTAssertEqual(day(2026, 10, 26).timeIntervalSince(d.lowerBound), 169 * 1800)
+        XCTAssertEqual(d.upperBound.timeIntervalSince(day(2026, 10, 26)), 169 * 1800)
+        let m = WattsAxis.dateDomain(periodStarts: [day(2026, 12, 1)], period: .month, calendar: nyCal)!
+        XCTAssertEqual(m.upperBound.timeIntervalSince(m.lowerBound), 31 * 86_400)
+    }
+
+    // MARK: Segments
+
+    private func pt(_ y: Int, _ m: Int, _ d: Int, _ w: Double) -> WattsAxis.Point { .init(start: day(y, m, d), watts: w) }
+
+    func testSegmentsEmptyAndSingle() {
+        XCTAssertEqual(WattsAxis.segments([], period: .week, calendar: nyCal), [])
+        let one = pt(2026, 10, 12, 120)
+        XCTAssertEqual(WattsAxis.segments([one], period: .week, calendar: nyCal), [.init(isGap: false, points: [one])])
+    }
+
+    func testConsecutiveWeeksAreOneSolidRun() {
+        let p = [pt(2026, 10, 12, 120), pt(2026, 10, 19, 125), pt(2026, 10, 26, 130)]
+        XCTAssertEqual(WattsAxis.segments(p, period: .week, calendar: nyCal), [.init(isGap: false, points: p)])
+    }
+
+    func testInteriorMissingWeekBecomesDashedBridgeBetweenMeasuredPoints() {
+        let a = pt(2026, 10, 5, 110), b = pt(2026, 10, 12, 120), c = pt(2026, 10, 26, 130) // Oct 19 missing
+        XCTAssertEqual(WattsAxis.segments([c, a, b], period: .week, calendar: nyCal), [
+            .init(isGap: false, points: [a, b]),
+            .init(isGap: true, points: [b, c]),
+            .init(isGap: false, points: [c]),
+        ])
+    }
+
+    func testWeekSpanningDSTIsStillConsecutive() {
+        let a = pt(2026, 10, 26, 120), b = pt(2026, 11, 2, 125) // 169-hour week between them
+        XCTAssertEqual(WattsAxis.segments([a, b], period: .week, calendar: nyCal), [.init(isGap: false, points: [a, b])])
+    }
+
+    func testMonthlyGapsAndYearBoundary() {
+        let a = pt(2026, 11, 1, 100), b = pt(2026, 12, 1, 105), c = pt(2027, 3, 1, 110)
+        XCTAssertEqual(WattsAxis.segments([a, b, c], period: .month, calendar: nyCal), [
+            .init(isGap: false, points: [a, b]),
+            .init(isGap: true, points: [b, c]),
+            .init(isGap: false, points: [c]),
+        ])
+    }
 }
