@@ -32,4 +32,37 @@ enum WattsAxis {
         let end = calendar.date(byAdding: period.component, value: 1, to: last) ?? last
         return first...max(end, first)
     }
+
+    struct Point: Equatable {
+        let start: Date
+        let watts: Double
+    }
+
+    /// A run of points to draw as one line: solid between adjacent periods, or a dashed bridge
+    /// between two measured points separated by one or more periods without watts.
+    struct Segment: Equatable {
+        let isGap: Bool
+        let points: [Point]
+    }
+
+    /// Splits measured points into solid runs of consecutive periods and dashed two-point bridges across
+    /// missing periods. Only measured points are used: nothing is interpolated, zero-filled or extended past the ends.
+    static func segments(_ points: [Point], period: GroupingPeriod, calendar: Calendar = .app) -> [Segment] {
+        let sorted = points.sorted { $0.start < $1.start }
+        guard var run = sorted.first.map({ [$0] }) else { return [] }
+        var result: [Segment] = []
+        for p in sorted.dropFirst() {
+            let prev = run[run.count - 1]
+            let next = calendar.date(byAdding: period.component, value: 1, to: prev.start) ?? prev.start
+            if p.start <= next {
+                run.append(p)
+            } else {
+                result.append(Segment(isGap: false, points: run))
+                result.append(Segment(isGap: true, points: [prev, p]))
+                run = [p]
+            }
+        }
+        result.append(Segment(isGap: false, points: run))
+        return result
+    }
 }

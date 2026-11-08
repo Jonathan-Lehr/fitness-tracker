@@ -60,13 +60,24 @@ struct TrendsView: View {
     private var wattsChart: some View {
         let points = buckets.compactMap { b in b.totals.averageWatts.map { WattsPoint(start: b.start, watts: $0) } }
         let domain = WattsAxis.domain(for: points.map(\.watts))
+        let segments = WattsAxis.segments(points.map { WattsAxis.Point(start: $0.start, watts: $0.watts) }, period: period)
         let xDomain = WattsAxis.dateDomain(periodStarts: points.map(\.start), period: period)
         return VStack(alignment: .leading) {
             Text("Average Watts").font(.headline)
-            Chart(points) { p in
-                LineMark(x: .value("Period", p.start, unit: unit), y: .value("Watts", p.watts))
-                PointMark(x: .value("Period", p.start, unit: unit), y: .value("Watts", p.watts))
-                    .symbolSize(20)
+            Chart {
+                ForEach(Array(segments.enumerated()), id: \.offset) { i, seg in
+                    ForEach(seg.points, id: \.start) { p in
+                        LineMark(x: .value("Period", p.start, unit: unit), y: .value("Watts", p.watts),
+                                 series: .value("Segment", i))
+                            .lineStyle(seg.isGap ? StrokeStyle(lineWidth: 1.5, dash: [4, 4]) : StrokeStyle(lineWidth: 2))
+                            .foregroundStyle(seg.isGap ? Color.accentColor.opacity(0.6) : Color.accentColor)
+                    }
+                }
+                ForEach(points) { p in
+                    PointMark(x: .value("Period", p.start, unit: unit), y: .value("Watts", p.watts))
+                        .symbolSize(20)
+                        .foregroundStyle(Color.accentColor)
+                }
             }
             .chartYScale(domain: domain ?? 0...100)
             .chartXScale(domain: xDomain ?? Date.now...Date.now.addingTimeInterval(7 * 86_400))
@@ -77,6 +88,10 @@ struct TrendsView: View {
                 }
             }
             .frame(height: 180)
+            if segments.contains(where: \.isGap) {
+                Text("Dashed lines span periods without Watts data; they are not measured values.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
         }
     }
 

@@ -78,4 +78,42 @@ final class WattsAxisTests: XCTestCase {
         XCTAssertEqual(WattsAxis.dateDomain(periodStarts: [day(2026, 12, 28)], period: .week, calendar: nyCal),
                        day(2026, 12, 28)...day(2027, 1, 4))
     }
+
+    // MARK: Segments
+
+    private func pt(_ y: Int, _ m: Int, _ d: Int, _ w: Double) -> WattsAxis.Point { .init(start: day(y, m, d), watts: w) }
+
+    func testSegmentsEmptyAndSingle() {
+        XCTAssertEqual(WattsAxis.segments([], period: .week, calendar: nyCal), [])
+        let one = pt(2026, 10, 12, 120)
+        XCTAssertEqual(WattsAxis.segments([one], period: .week, calendar: nyCal), [.init(isGap: false, points: [one])])
+    }
+
+    func testConsecutiveWeeksAreOneSolidRun() {
+        let p = [pt(2026, 10, 12, 120), pt(2026, 10, 19, 125), pt(2026, 10, 26, 130)]
+        XCTAssertEqual(WattsAxis.segments(p, period: .week, calendar: nyCal), [.init(isGap: false, points: p)])
+    }
+
+    func testInteriorMissingWeekBecomesDashedBridgeBetweenMeasuredPoints() {
+        let a = pt(2026, 10, 5, 110), b = pt(2026, 10, 12, 120), c = pt(2026, 10, 26, 130) // Oct 19 missing
+        XCTAssertEqual(WattsAxis.segments([c, a, b], period: .week, calendar: nyCal), [
+            .init(isGap: false, points: [a, b]),
+            .init(isGap: true, points: [b, c]),
+            .init(isGap: false, points: [c]),
+        ])
+    }
+
+    func testWeekSpanningDSTIsStillConsecutive() {
+        let a = pt(2026, 10, 26, 120), b = pt(2026, 11, 2, 125) // 169-hour week between them
+        XCTAssertEqual(WattsAxis.segments([a, b], period: .week, calendar: nyCal), [.init(isGap: false, points: [a, b])])
+    }
+
+    func testMonthlyGapsAndYearBoundary() {
+        let a = pt(2026, 11, 1, 100), b = pt(2026, 12, 1, 105), c = pt(2027, 3, 1, 110)
+        XCTAssertEqual(WattsAxis.segments([a, b, c], period: .month, calendar: nyCal), [
+            .init(isGap: false, points: [a, b]),
+            .init(isGap: true, points: [b, c]),
+            .init(isGap: false, points: [c]),
+        ])
+    }
 }
