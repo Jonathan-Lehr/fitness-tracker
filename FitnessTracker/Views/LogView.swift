@@ -137,7 +137,7 @@ struct LogView: View {
 
     /// One List for both modes: the summary card, empty state and period headers are the same
     /// views with the same list style, so they keep identical size and position when switching.
-    /// Only each period's rows change (ride rows vs. one full-bleed grid row).
+    /// Grid (wide): one multi-column row. Grid (compact): one List row per day/card. List: ride rows.
     private var listBody: some View {
         List {
             // Its own section, so the card uses the list's row background, corner radius
@@ -156,14 +156,37 @@ struct LogView: View {
             if sections.isEmpty { emptyState }
             ForEach(sections, id: \.start) { section in
                 Section {
-                    if layout == .grid {
-                        RideGridSection(workouts: section.workouts, wide: wideGrid,
+                    if layout == .grid && wideGrid {
+                        // Mac / regular width: adaptive day columns in one List row.
+                        RideGridSection(workouts: section.workouts,
                                          onOpen: { path.append($0) },
                                          onDelete: { context.delete($0) })
-                            // Keep the List's default leading/trailing insets so day headers
-                            // and cards line up with period section headers (and list-mode rows).
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
+                    } else if layout == .grid {
+                        // Compact (iPhone): one native List row per day header and per card,
+                        // so insets match section headers and each row has a single destination.
+                        ForEach(DayGroup.group(section.workouts, date: \.date), id: \.day) { day in
+                            DayHeader(day: day.day)
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                            ForEach(day.items) { w in
+                                Button { path.append(w) } label: { RideRowCard(workout: w) }
+                                    .buttonStyle(.plain)
+                                    .listRowBackground(Color.clear)
+                                    .listRowSeparator(.hidden)
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                        Button(role: .destructive) { context.delete(w) } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
+                                    }
+                                    .contextMenu {
+                                        Button(role: .destructive) { context.delete(w) } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
+                                    }
+                            }
+                        }
                     } else {
                         ForEach(section.workouts) { w in
                             NavigationLink(value: w) { WorkoutRow(workout: w) }

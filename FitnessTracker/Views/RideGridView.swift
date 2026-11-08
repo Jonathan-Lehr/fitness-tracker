@@ -139,7 +139,7 @@ struct RideRowCard: View {
     }
 }
 
-private struct DayHeader: View {
+struct DayHeader: View {
     let day: Date
     var body: some View {
         Text(day.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()))
@@ -149,10 +149,9 @@ private struct DayHeader: View {
     }
 }
 
-/// Rides of one period section, as day groups.
+/// Wide (Mac / regular) period section: adaptive day columns. Compact iPhone uses native List rows instead.
 struct RideGridSection: View {
     let workouts: [Workout]
-    let wide: Bool
     /// Opens a single ride detail. Must not use NavigationLink here: several cards share one
     /// List row, and multiple NavigationLinks in that row can push several destinations at once.
     let onOpen: (Workout) -> Void
@@ -161,35 +160,22 @@ struct RideGridSection: View {
     private var days: [DayGroup<Workout>] { DayGroup.group(workouts, date: \.date) }
 
     var body: some View {
-        if wide {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 16, alignment: .top)],
-                      alignment: .leading, spacing: 16) {
-                ForEach(days, id: \.day) { g in
-                    VStack(alignment: .leading, spacing: 8) {
-                        DayHeader(day: g.day)
-                        ForEach(g.items) { w in link(w) { RideTile(workout: w) } }
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 16, alignment: .top)],
+                  alignment: .leading, spacing: 16) {
+            ForEach(days, id: \.day) { g in
+                VStack(alignment: .leading, spacing: 8) {
+                    DayHeader(day: g.day)
+                    ForEach(g.items) { w in
+                        Button { onOpen(w) } label: { RideTile(workout: w) }
+                            .buttonStyle(.plain)
+                            .contextMenu {
+                                Button(role: .destructive) { onDelete(w) } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
                     }
-                }
-            }
-        } else {
-            LazyVStack(alignment: .leading, spacing: 8) {
-                ForEach(days, id: \.day) { g in
-                    HStack {
-                        DayHeader(day: g.day)
-                        VStack { Divider() }
-                    }
-                    .padding(.top, 6)
-                    ForEach(g.items) { w in link(w) { RideRowCard(workout: w) } }
                 }
             }
         }
-    }
-
-    private func link<C: View>(_ w: Workout, @ViewBuilder _ content: () -> C) -> some View {
-        Button { onOpen(w) } label: { content() }
-            .buttonStyle(.plain)
-            .contextMenu {
-                Button(role: .destructive) { onDelete(w) } label: { Label("Delete", systemImage: "trash") }
-            }
     }
 }
