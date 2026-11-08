@@ -43,6 +43,14 @@ struct LogView: View {
     private let wideGrid = true
     #endif
 
+    private var layoutPlacement: ToolbarItemPlacement {
+        #if os(iOS)
+        .topBarLeading
+        #else
+        .navigation
+        #endif
+    }
+
     private var filtered: [Workout] { workouts.filter(filter.matches) }
 
     private var sections: [(start: Date, workouts: [Workout])] {
@@ -58,15 +66,18 @@ struct LogView: View {
             .navigationTitle("Rides")
             .navigationDestination(for: Workout.self) { WorkoutDetailView(workout: $0) }
             .toolbar {
-                ToolbarItem {
-                    Picker("Layout", selection: $layout) {
-                        ForEach(LogLayout.allCases) { l in
-                            Label(l.label, systemImage: l.systemImage).tag(l)
+                // Separate leading group of plain toolbar buttons (not a segmented control,
+                // which renders as a control inside the toolbar's button chrome).
+                ToolbarItemGroup(placement: layoutPlacement) {
+                    ForEach(LogLayout.allCases) { l in
+                        Button { layout = l } label: {
+                            Label(l.label, systemImage: l.systemImage)
+                                .symbolVariant(layout == l ? .fill : .none)
                         }
+                        .foregroundStyle(layout == l ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+                        .help("Show rides as a \(l.label.lowercased())")
+                        .accessibilityAddTraits(layout == l ? .isSelected : [])
                     }
-                    .pickerStyle(.segmented)
-                    .labelStyle(.iconOnly)
-                    .help("Show rides as a list or a grid")
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Button { showAdd = true } label: { Label("Add Ride", systemImage: "plus") }
@@ -195,7 +206,9 @@ struct SectionHeader: View {
             }
         }
         .contentShape(Rectangle())
-        .foregroundStyle(.secondary)
+        // Non-hierarchical secondary: List headers already inherit a secondary style, so the
+        // hierarchical `.secondary` resolved one level dimmer there than outside a List.
+        .foregroundStyle(Color.secondary)
         .textCase(nil)
     }
 }
