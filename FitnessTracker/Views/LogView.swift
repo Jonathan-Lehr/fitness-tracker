@@ -132,7 +132,7 @@ struct LogView: View {
                 summaryCard
                     .padding(.horizontal, GridMetrics.rowInset)
                     .padding(.vertical, 11)
-                    .background(.background.secondary, in: RoundedRectangle(cornerRadius: GridMetrics.cornerRadius))
+                    .background(LogSurface.card, in: RoundedRectangle(cornerRadius: GridMetrics.cornerRadius))
                 if sections.isEmpty { emptyState }
                 ForEach(sections, id: \.start) { section in
                     VStack(alignment: .leading, spacing: 10) {
@@ -145,6 +145,7 @@ struct LogView: View {
             }
             .padding()
         }
+        .background(LogSurface.page)
     }
 
     private var listBody: some View {

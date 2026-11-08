@@ -1,6 +1,18 @@
 import SwiftUI
 import SwiftData
 
+/// Backgrounds matching the Log List's style, so switching modes doesn't change the look:
+/// iOS default List style is inset grouped (white rows on grouped gray); macOS uses an inset list.
+enum LogSurface {
+    #if os(macOS)
+    static let page = Color(nsColor: .controlBackgroundColor)
+    static let card = Color(nsColor: NSColor.alternatingContentBackgroundColors.last ?? .controlBackgroundColor)
+    #else
+    static let page = Color(uiColor: .systemGroupedBackground)
+    static let card = Color(uiColor: .secondarySystemGroupedBackground)
+    #endif
+}
+
 extension WorkoutType {
     /// Tag colors shared by grid cards and placeholders. Always paired with the text label.
     var color: Color {
@@ -100,7 +112,7 @@ struct RideTile: View {
             }
             .padding(10)
         }
-        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 12))
+        .background(LogSurface.card, in: RoundedRectangle(cornerRadius: 12))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.separator))
     }
@@ -124,7 +136,7 @@ struct RideRowCard: View {
             .padding(.vertical, 8)
             Spacer(minLength: 0)
         }
-        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 12))
+        .background(LogSurface.card, in: RoundedRectangle(cornerRadius: 12))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.separator))
     }
