@@ -35,6 +35,13 @@ struct LogView: View {
     @State private var showDebug = false
     @State private var showBackup = false
     @State private var pastPeriod: PastPeriodSelection?
+    @AppStorage("logLayout") private var layout: LogLayout = .list
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    private var wideGrid: Bool { sizeClass == .regular }
+    #else
+    private let wideGrid = true
+    #endif
 
     private var filtered: [Workout] { workouts.filter(filter.matches) }
 
@@ -45,7 +52,97 @@ struct LogView: View {
 
     var body: some View {
         NavigationStack {
-            List {
+            Group {
+                if layout == .grid { gridBody } else { listBody }
+            }
+            .navigationTitle("Rides")
+            .navigationDestination(for: Workout.self) { WorkoutDetailView(workout: $0) }
+            .toolbar {
+                ToolbarItem {
+                    Picker("Layout", selection: $layout) {
+                        ForEach(LogLayout.allCases) { l in
+                            Label(l.label, systemImage: l.systemImage).tag(l)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelStyle(.iconOnly)
+                    .help("Show rides as a list or a grid")
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Button { showAdd = true } label: { Label("Add Ride", systemImage: "plus") }
+                }
+                ToolbarItem {
+                    Button { showFilters = true } label: {
+                        Label("Filters", systemImage: filter.isActive
+                              ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                    }
+                }
+                ToolbarItem {
+                    Menu {
+                        Button { showBackup = true } label: { Label("Backup & Restore…", systemImage: "externaldrive") }
+                        #if DEBUG
+                        Button { showDebug = true } label: { Label("Debug…", systemImage: "ladybug") }
+                        #endif
+                    } label: {
+                        Label("More", systemImage: "ellipsis.circle")
+                    }
+                }
+            }
+            .sheet(isPresented: $showAdd) { AddRideView() }
+            .sheet(isPresented: $showBackup) { BackupView() }
+            .sheet(item: $pastPeriod) { sel in
+                PastPeriodSummaryView(selection: sel, workouts: filtered, filtered: filter.isActive)
+            }
+            .sheet(isPresented: $showFilters) { FilterView(filter: $filter.animation(.default)) }
+            #if DEBUG
+            .sheet(isPresented: $showDebug) { DebugMenuView() }
+            #endif
+        }
+    }
+
+    private var summaryCard: some View {
+        PeriodSummaryCard(period: $period,
+                          summary: PeriodSummary.compute(filtered, period: period),
+                          filtered: filter.isActive)
+    }
+
+    private func header(for start: Date, workouts: [Workout]) -> some View {
+        // Tapping a section header opens that calendar period's summary card.
+        Button {
+            pastPeriod = PastPeriodSelection(period: period, start: start)
+        } label: {
+            SectionHeader(title: period.label(for: start), totals: Totals(workouts),
+                          showsDisclosure: true)
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Shows the summary for this \(period.rawValue.lowercased())")
+    }
+
+    private var emptyState: some View {
+        ContentUnavailableView("No Rides", systemImage: "bicycle",
+                               description: Text(filter.isActive ? "No rides match the filters." : "Add a ride to get started."))
+    }
+
+    private var gridBody: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 20) {
+                summaryCard
+                    .padding(12)
+                    .background(.background.secondary, in: RoundedRectangle(cornerRadius: 12))
+                if sections.isEmpty { emptyState }
+                ForEach(sections, id: \.start) { section in
+                    VStack(alignment: .leading, spacing: 10) {
+                        header(for: section.start, workouts: section.workouts)
+                        RideGridSection(workouts: section.workouts, wide: wideGrid) { context.delete($0) }
+                    }
+                }
+            }
+            .padding()
+        }
+    }
+
+    private var listBody: some View {
+        List {
                 // Its own section, so the card uses the list's row background, corner radius
                 // and insets on iOS (inset grouped) and macOS, lining up with the rows below.
                 Section {
@@ -89,39 +186,6 @@ struct LogView: View {
             #if os(macOS)
             .listStyle(.inset(alternatesRowBackgrounds: true))
             #endif
-            .navigationTitle("Rides")
-            .navigationDestination(for: Workout.self) { WorkoutDetailView(workout: $0) }
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button { showAdd = true } label: { Label("Add Ride", systemImage: "plus") }
-                }
-                ToolbarItem {
-                    Button { showFilters = true } label: {
-                        Label("Filters", systemImage: filter.isActive
-                              ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
-                    }
-                }
-                ToolbarItem {
-                    Menu {
-                        Button { showBackup = true } label: { Label("Backup & Restore…", systemImage: "externaldrive") }
-                        #if DEBUG
-                        Button { showDebug = true } label: { Label("Debug…", systemImage: "ladybug") }
-                        #endif
-                    } label: {
-                        Label("More", systemImage: "ellipsis.circle")
-                    }
-                }
-            }
-            .sheet(isPresented: $showAdd) { AddRideView() }
-            .sheet(isPresented: $showBackup) { BackupView() }
-            .sheet(item: $pastPeriod) { sel in
-                PastPeriodSummaryView(selection: sel, workouts: filtered, filtered: filter.isActive)
-            }
-            .sheet(isPresented: $showFilters) { FilterView(filter: $filter.animation(.default)) }
-            #if DEBUG
-            .sheet(isPresented: $showDebug) { DebugMenuView() }
-            #endif
-        }
     }
 }
 
