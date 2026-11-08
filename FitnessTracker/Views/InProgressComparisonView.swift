@@ -82,11 +82,12 @@ private extension View {
             .frame(maxWidth: .infinity, alignment: .trailing)
     }
 
-    /// The short Change column (e.g. "+12%") keeps a compact fixed minimum width instead of an equal share,
-    /// so the So far and Last columns get the extra space and Last sits further right.
+    /// The short Change column (e.g. "+12%") gets a moderate minimum width (72 pt) instead of an equal share,
+    /// so the gaps between So far, Last and Change values look about even (equal shares left Last looking
+    /// too far left; 56 pt pushed it too far right).
     func changeColumn() -> some View {
         lineLimit(1)
             .minimumScaleFactor(0.75)
-            .frame(minWidth: 56, alignment: .trailing)
+            .frame(minWidth: 72, alignment: .trailing)
     }
 }
