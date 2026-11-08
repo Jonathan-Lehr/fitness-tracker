@@ -12,9 +12,11 @@ struct TrendsView: View {
         var id: Date { start }
     }
 
+    /// Completed periods only; the in-progress period is shown separately in the comparison section.
     private var buckets: [Bucket] {
         let grouped = Dictionary(grouping: workouts) { period.start(of: $0.date) }
-        return grouped.keys.sorted().map { Bucket(start: $0, totals: Totals(grouped[$0] ?? [])) }
+        return TrendsData.completedStarts(grouped.keys.sorted(), period: period, now: Date())
+            .map { Bucket(start: $0, totals: Totals(grouped[$0] ?? [])) }
     }
 
     private struct WattsPoint: Identifiable {
@@ -34,6 +36,13 @@ struct TrendsView: View {
                         Text("Monthly").tag(GroupingPeriod.month)
                     }
                     .pickerStyle(.segmented)
+
+                    InProgressComparisonView(comparison: PartialPeriodComparison(workouts: workouts, period: period, now: Date()))
+
+                    if let last = buckets.last {
+                        Text("Charts show completed \(period == .week ? "weeks" : "months") through \(period.label(for: last.start)).")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
 
                     chart("Ride Time (min)") { b in BarMark(x: .value("Period", b.start, unit: unit), y: .value("Minutes", b.totals.minutes)) }
                     chart("Distance (mi)") { b in BarMark(x: .value("Period", b.start, unit: unit), y: .value("Miles", b.totals.miles)) }
