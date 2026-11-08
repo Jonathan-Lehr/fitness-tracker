@@ -158,7 +158,8 @@ struct LogView: View {
                 Section {
                     if layout == .grid {
                         RideGridSection(workouts: section.workouts, wide: wideGrid) { context.delete($0) }
-                            .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
+                            // Keep the List's default leading/trailing insets so day headers
+                            // and cards line up with period section headers (and list-mode rows).
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
                     } else {
