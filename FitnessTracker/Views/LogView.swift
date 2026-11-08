@@ -66,19 +66,20 @@ struct LogView: View {
             .navigationTitle("Rides")
             .navigationDestination(for: Workout.self) { WorkoutDetailView(workout: $0) }
             .toolbar {
-                // Separate leading group of plain toolbar buttons (not a segmented control,
-                // which renders as a control inside the toolbar's button chrome).
-                ToolbarItemGroup(placement: layoutPlacement) {
-                    ForEach(LogLayout.allCases) { l in
-                        Button { layout = l } label: {
-                            Label(l.label, systemImage: l.systemImage)
-                                .symbolVariant(layout == l ? .fill : .none)
+                // Leading placement puts the control in its own group, away from Add/Filters/More.
+                // On iOS 26+ the shared glass background is hidden so the segmented control isn't
+                // wrapped in the toolbar's button chrome (the earlier "button within a button").
+                ToolbarItem(placement: layoutPlacement) {
+                    Picker("Layout", selection: $layout) {
+                        ForEach(LogLayout.allCases) { l in
+                            Label(l.label, systemImage: l.systemImage).tag(l)
                         }
-                        .foregroundStyle(layout == l ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
-                        .help("Show rides as a \(l.label.lowercased())")
-                        .accessibilityAddTraits(layout == l ? .isSelected : [])
                     }
+                    .pickerStyle(.segmented)
+                    .labelStyle(.iconOnly)
+                    .help("Show rides as a list or a grid")
                 }
+                .hideSharedToolbarBackgroundIfAvailable()
                 ToolbarItem(placement: .primaryAction) {
                     Button { showAdd = true } label: { Label("Add Ride", systemImage: "plus") }
                 }
@@ -236,6 +237,20 @@ struct WorkoutRow: View {
                 Text("\(workout.calories) cal")
             }
             .font(.caption).foregroundStyle(.secondary)
+        }
+    }
+}
+
+private extension ToolbarContent {
+    /// Hides the Liquid Glass shared background when the SDK has it (iOS/macOS 26+), so a
+    /// segmented Picker in the toolbar isn't wrapped in the toolbar's button chrome. No-op
+    /// on the app's iOS 17 / macOS 14 deployment targets.
+    @ToolbarContentBuilder
+    func hideSharedToolbarBackgroundIfAvailable() -> some ToolbarContent {
+        if #available(iOS 26.0, macOS 26.0, *) {
+            self.sharedBackgroundVisibility(.hidden)
+        } else {
+            self
         }
     }
 }
