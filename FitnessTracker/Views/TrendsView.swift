@@ -67,20 +67,22 @@ struct TrendsView: View {
             Chart {
                 ForEach(Array(segments.enumerated()), id: \.offset) { i, seg in
                     ForEach(seg.points, id: \.start) { p in
-                        LineMark(x: .value("Period", p.start, unit: unit), y: .value("Watts", p.watts),
+                        LineMark(x: .value("Period", p.start), y: .value("Watts", p.watts),
                                  series: .value("Segment", i))
                             .lineStyle(seg.isGap ? StrokeStyle(lineWidth: 1.5, dash: [4, 4]) : StrokeStyle(lineWidth: 2))
                             .foregroundStyle(seg.isGap ? Color.accentColor.opacity(0.6) : Color.accentColor)
                     }
                 }
                 ForEach(points) { p in
-                    PointMark(x: .value("Period", p.start, unit: unit), y: .value("Watts", p.watts))
+                    PointMark(x: .value("Period", p.start), y: .value("Watts", p.watts))
                         .symbolSize(20)
                         .foregroundStyle(Color.accentColor)
                 }
             }
             .chartYScale(domain: domain ?? 0...100)
-            .chartXScale(domain: xDomain ?? Date.now...Date.now.addingTimeInterval(7 * 86_400))
+            // Points sit at period starts on the domain ends; inset only enough pixels to keep dots unclipped.
+            .chartXScale(domain: xDomain ?? Date.now...Date.now.addingTimeInterval(7 * 86_400),
+                         range: .plotDimension(padding: 6))
             .chartYAxis { AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) }
             .overlay {
                 if points.isEmpty {

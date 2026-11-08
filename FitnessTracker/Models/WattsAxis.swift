@@ -20,17 +20,18 @@ enum WattsAxis {
         return lower...upper
     }
 
-    /// X (date) range for the chart: from the start of the first plotted period (one with watts) to the
-    /// end of the last plotted period, using the local calendar (real month lengths, DST-aware weeks).
+    /// X (date) range for the chart: exactly the first to the last plotted period start (periods with watts).
     ///
-    /// Marks use `unit:` binning, so each point sits mid-period. That leaves only half a period of edge
-    /// padding at each end (so points are not clipped), and no empty leading or trailing periods.
-    /// Periods without watts between plotted points keep their calendar position as a gap; no values
-    /// are invented.
+    /// Marks are plotted at each period's start date (no `unit:` binning), so the first and last points sit
+    /// on the domain ends. The view adds only a small pixel inset (`.plotDimension(padding:)`) so the dots
+    /// aren't clipped, with no temporal margin. A single point is centered in a one-period-wide range.
+    /// Returns nil when there are no points.
     static func dateDomain(periodStarts: [Date], period: GroupingPeriod, calendar: Calendar = .app) -> ClosedRange<Date>? {
         guard let first = periodStarts.min(), let last = periodStarts.max() else { return nil }
-        let end = calendar.date(byAdding: period.component, value: 1, to: last) ?? last
-        return first...max(end, first)
+        if first < last { return first...last }
+        let next = calendar.date(byAdding: period.component, value: 1, to: first) ?? first.addingTimeInterval(7 * 86_400)
+        let half = next.timeIntervalSince(first) / 2
+        return first.addingTimeInterval(-half)...first.addingTimeInterval(half)
     }
 
     struct Point: Equatable {
