@@ -19,12 +19,12 @@ struct InProgressComparisonView: View {
             Text("\(Self.range(comparison.current)) vs same point last \(noun) (\(Self.range(comparison.previous)))")
                 .font(.caption).foregroundStyle(.secondary)
 
-            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 4) {
+            Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 6) {
                 GridRow {
                     Text("")
-                    Text("So far").font(.caption).foregroundStyle(.secondary)
-                    Text("Last \(noun)").font(.caption).foregroundStyle(.secondary)
-                    Text("Change").font(.caption).foregroundStyle(.secondary)
+                    Text("So far").font(.caption).foregroundStyle(.secondary).dataColumn()
+                    Text("Last \(noun)").font(.caption).foregroundStyle(.secondary).dataColumn()
+                    Text("Change").font(.caption).foregroundStyle(.secondary).dataColumn()
                 }
                 row("Ride time", cur.minutes, prev.minutes) { $0.minutesText }
                 row("Distance", cur.miles, prev.miles) { $0.milesText }
@@ -42,20 +42,20 @@ struct InProgressComparisonView: View {
 
     private func row(_ title: String, _ a: Double, _ b: Double, format: (Double) -> String) -> some View {
         GridRow {
-            Text(title)
-            Text(format(a))
-            Text(format(b)).foregroundStyle(.secondary)
-            Text(Self.change(a, b)).foregroundStyle(.secondary)
+            Text(title).lineLimit(1).fixedSize()
+            Text(format(a)).dataColumn()
+            Text(format(b)).foregroundStyle(.secondary).dataColumn()
+            Text(Self.change(a, b)).foregroundStyle(.secondary).dataColumn()
         }
     }
 
     private var wattsRow: some View {
         GridRow {
-            Text("Avg Watts")
-            Text(cur.averageWatts.map { "\(Int($0.rounded())) W" } ?? "— W")
-            Text(prev.averageWatts.map { "\(Int($0.rounded())) W" } ?? "— W").foregroundStyle(.secondary)
+            Text("Avg Watts").lineLimit(1).fixedSize()
+            Text(cur.averageWatts.map { "\(Int($0.rounded())) W" } ?? "— W").dataColumn()
+            Text(prev.averageWatts.map { "\(Int($0.rounded())) W" } ?? "— W").foregroundStyle(.secondary).dataColumn()
             Text(cur.averageWatts.flatMap { a in prev.averageWatts.map { Self.change(a, $0) } } ?? "—")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.secondary).dataColumn()
         }
     }
 
@@ -70,5 +70,15 @@ struct InProgressComparisonView: View {
         let start = i.start.formatted(.dateTime.month(.abbreviated).day())
         let end = i.end.formatted(.dateTime.month(.abbreviated).day().hour().minute())
         return "\(start) – \(end)"
+    }
+}
+
+private extension View {
+    /// Data columns share the card width left after the label column, right-aligned so digits line up.
+    /// Text may shrink slightly rather than truncate on narrow iPhones or large Dynamic Type sizes.
+    func dataColumn() -> some View {
+        lineLimit(1)
+            .minimumScaleFactor(0.75)
+            .frame(maxWidth: .infinity, alignment: .trailing)
     }
 }
