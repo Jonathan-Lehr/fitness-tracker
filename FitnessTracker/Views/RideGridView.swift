@@ -135,7 +135,7 @@ struct RideRowCard: View {
         }
         .background(LogSurface.card, in: RoundedRectangle(cornerRadius: 12))
         .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.separator))
+        // No stroke: sits on the grouped listRowBackground; Mac RideTile keeps its border.
     }
 }
 

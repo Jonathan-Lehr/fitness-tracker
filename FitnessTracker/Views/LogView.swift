@@ -177,11 +177,13 @@ struct LogView: View {
                         // that day (outside the Button). Keep ~20pt horizontal insets (widths
                         // already correct); restore default grouped row backgrounds so the
                         // section reads as aligned with the summary.
-                        ForEach(DayGroup.group(section.workouts, date: \.date), id: \.day) { day in
+                        let days = DayGroup.group(section.workouts, date: \.date)
+                        ForEach(days, id: \.day) { day in
                             ForEach(Array(day.items.enumerated()), id: \.element.persistentModelID) { index, w in
                                 CompactPhotoRideRow(
                                     day: day.day,
                                     showDayHeader: index == 0,
+                                    isLastInSection: day.day == days.last?.day && index == day.items.count - 1,
                                     workout: w,
                                     onOpen: { path.append(w) },
                                     onDelete: { context.delete(w) }
@@ -222,6 +224,8 @@ struct LogView: View {
 private struct CompactPhotoRideRow: View {
     let day: Date
     let showDayHeader: Bool
+    /// Extra 6pt inside the section fill on the period's last ride row only.
+    let isLastInSection: Bool
     let workout: Workout
     let onOpen: () -> Void
     let onDelete: () -> Void
@@ -232,7 +236,8 @@ private struct CompactPhotoRideRow: View {
             Button(action: onOpen) { RideRowCard(workout: workout) }
                 .buttonStyle(.plain)
         }
-        .listRowInsets(EdgeInsets(top: showDayHeader ? 8 : 4, leading: 20, bottom: 4, trailing: 20))
+        .listRowInsets(EdgeInsets(top: showDayHeader ? 8 : 4, leading: 20,
+                                   bottom: isLastInSection ? 10 : 4, trailing: 20))
         // Native grouped row fill (LogSurface.card == secondarySystemGroupedBackground on iOS).
         .listRowBackground(LogSurface.card)
         .listRowSeparator(.hidden)
