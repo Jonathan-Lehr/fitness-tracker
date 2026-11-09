@@ -221,6 +221,14 @@ struct LogView: View {
     }
 }
 
+/// Vertical insets for compact photo-mode rows. Leading/trailing match inset-grouped
+/// content (~20) so edges stay aligned with period section headers; vertical is tighter
+/// than the List default so day labels and cards aren't separated by empty row chrome.
+private enum CompactPhotoInsets {
+    static let day = EdgeInsets(top: 8, leading: 20, bottom: 2, trailing: 20)
+    static let card = EdgeInsets(top: 3, leading: 20, bottom: 3, trailing: 20)
+}
+
 struct SectionHeader: View {
     let title: String
     let totals: Totals
