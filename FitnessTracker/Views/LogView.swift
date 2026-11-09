@@ -174,9 +174,9 @@ struct LogView: View {
                 Section {
                     if layout == .grid && !wideGrid {
                         // One period Section; one List row per ride. Date above first ride of
-                        // that day (outside the Button). Leading/trailing 0 so the card's outer
-                        // edges match the summary row's outer background (clear bg + own card
-                        // chrome — not a nested inset inside a padded row).
+                        // that day (outside the Button). Keep ~20pt horizontal insets (widths
+                        // already correct); restore default grouped row backgrounds so the
+                        // section reads as aligned with the summary.
                         ForEach(DayGroup.group(section.workouts, date: \.date), id: \.day) { day in
                             ForEach(Array(day.items.enumerated()), id: \.element.persistentModelID) { index, w in
                                 CompactPhotoRideRow(
@@ -217,8 +217,8 @@ struct LogView: View {
 
 
 /// One compact photo-mode List row: optional day label + tappable card.
-/// Extracted so `listBody` type-checks; leading/trailing insets are 0 so the card
-/// outer edge matches the summary card's list-row background edge.
+/// Extracted so `listBody` type-checks. Default grouped `listRowBackground` (same family as
+/// the summary row) so the period section reads as aligned; horizontal insets stay ~20.
 private struct CompactPhotoRideRow: View {
     let day: Date
     let showDayHeader: Bool
@@ -228,15 +228,13 @@ private struct CompactPhotoRideRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            if showDayHeader {
-                DayHeader(day: day)
-                    .padding(.horizontal, 4)
-            }
+            if showDayHeader { DayHeader(day: day) }
             Button(action: onOpen) { RideRowCard(workout: workout) }
                 .buttonStyle(.plain)
         }
-        .listRowInsets(EdgeInsets(top: showDayHeader ? 8 : 4, leading: 0, bottom: 4, trailing: 0))
-        .listRowBackground(Color.clear)
+        .listRowInsets(EdgeInsets(top: showDayHeader ? 8 : 4, leading: 20, bottom: 4, trailing: 20))
+        // Native grouped row fill (LogSurface.card == secondarySystemGroupedBackground on iOS).
+        .listRowBackground(LogSurface.card)
         .listRowSeparator(.hidden)
         .selectionDisabled(true)
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
