@@ -240,7 +240,6 @@ private struct CompactPhotoRideRow: View {
                                    bottom: isLastInSection ? 10 : 4, trailing: 20))
         // Native grouped row fill (LogSurface.card == secondarySystemGroupedBackground on iOS).
         .listRowBackground(LogSurface.card)
-        .listRowSeparator(.hidden)
         .selectionDisabled(true)
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive, action: onDelete) {
