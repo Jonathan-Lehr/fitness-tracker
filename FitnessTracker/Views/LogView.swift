@@ -45,6 +45,13 @@ struct LogView: View {
     private let wideGrid = true
     #endif
 
+    /// Per-segment width for the layout toggle (HIG minimum hit target on iOS; Mac controls are smaller).
+    #if os(iOS)
+    @ScaledMetric(relativeTo: .body) private var layoutSegmentWidth: CGFloat = 44
+    #else
+    @ScaledMetric(relativeTo: .body) private var layoutSegmentWidth: CGFloat = 36
+    #endif
+
     private var layoutPlacement: ToolbarItemPlacement {
         #if os(iOS)
         .topBarLeading
@@ -79,9 +86,12 @@ struct LogView: View {
                         }
                     }
                     .pickerStyle(.segmented)
-                    // Keep intrinsic width so the two segments aren't crushed by Add/Filters/More.
-                    .fixedSize(horizontal: true, vertical: false)
-                    .frame(minWidth: 72)
+                    // A segmented control's fitted ("sizeToFit") width for icon-only segments is
+                    // just the glyphs plus a few points, which reads as cramped. fixedSize() kept
+                    // that fitted width, and the outer minWidth frame only padded around it without
+                    // widening the control. Sizing the Picker itself gives each segment a full hit
+                    // target; @ScaledMetric keeps it proportional with Dynamic Type.
+                    .frame(width: layoutSegmentWidth * CGFloat(LogLayout.allCases.count))
                     .help("Show rides as a list or a grid")
                     .accessibilityLabel("Layout")
                 }
