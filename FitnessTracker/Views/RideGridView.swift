@@ -130,7 +130,7 @@ struct RideRowCard: View {
                 }
                 Text(workout.metricsText).font(.caption).foregroundStyle(.secondary).monospacedDigit()
             }
-            .padding(.vertical, 8)
+            .padding(.vertical, 4)
             Spacer(minLength: 0)
         }
         .background(LogSurface.card, in: RoundedRectangle(cornerRadius: 12))

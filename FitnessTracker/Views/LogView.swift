@@ -171,12 +171,16 @@ struct LogView: View {
                         // so insets match section headers and each row has a single destination.
                         ForEach(DayGroup.group(section.workouts, date: \.date), id: \.day) { day in
                             DayHeader(day: day.day)
+                                // Default List row height + vertical insets made day labels look sparse.
+                                .environment(\.defaultMinListRowHeight, 0)
+                                .listRowInsets(CompactPhotoInsets.day)
                                 .listRowBackground(Color.clear)
                                 .listRowSeparator(.hidden)
                                 .selectionDisabled(true)
                             ForEach(day.items) { w in
                                 Button { path.append(w) } label: { RideRowCard(workout: w) }
                                     .buttonStyle(.plain)
+                                    .listRowInsets(CompactPhotoInsets.card)
                                     .listRowBackground(Color.clear)
                                     .listRowSeparator(.hidden)
                                     .selectionDisabled(true)
