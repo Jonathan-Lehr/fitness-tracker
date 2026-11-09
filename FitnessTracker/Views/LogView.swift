@@ -173,32 +173,19 @@ struct LogView: View {
             ForEach(sections, id: \.start) { section in
                 Section {
                     if layout == .grid && !wideGrid {
-                        // One period Section; one List row per ride. Date sits above the first
-                        // ride of that day in the same row (outside the Button), so we avoid
-                        // per-day Section chrome (~50pt gaps) and standalone day-label rows.
+                        // One period Section; one List row per ride. Date above first ride of
+                        // that day (outside the Button). Leading/trailing 0 so the card's outer
+                        // edges match the summary row's outer background (clear bg + own card
+                        // chrome — not a nested inset inside a padded row).
                         ForEach(DayGroup.group(section.workouts, date: \.date), id: \.day) { day in
-                            ForEach(Array(day.items.enumerated()), id: \.element.id) { index, w in
-                                VStack(alignment: .leading, spacing: 6) {
-                                    if index == 0 { DayHeader(day: day.day) }
-                                    Button { path.append(w) } label: { RideRowCard(workout: w) }
-                                        .buttonStyle(.plain)
-                                }
-                                // Vertical only: keep List default horizontal (~20) for edge align.
-                                .listRowInsets(EdgeInsets(top: index == 0 ? 8 : 4,
-                                                           leading: 20, bottom: 4, trailing: 20))
-                                .listRowBackground(Color.clear)
-                                .listRowSeparator(.hidden)
-                                .selectionDisabled(true)
-                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button(role: .destructive) { context.delete(w) } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
-                                .contextMenu {
-                                    Button(role: .destructive) { context.delete(w) } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
+                            ForEach(Array(day.items.enumerated()), id: \.element.persistentModelID) { index, w in
+                                CompactPhotoRideRow(
+                                    day: day.day,
+                                    showDayHeader: index == 0,
+                                    workout: w,
+                                    onOpen: { path.append(w) },
+                                    onDelete: { context.delete(w) }
+                                )
                             }
                         }
                     } else if layout == .grid {
@@ -225,6 +212,43 @@ struct LogView: View {
         #if os(macOS)
         .listStyle(.inset(alternatesRowBackgrounds: true))
         #endif
+    }
+}
+
+
+/// One compact photo-mode List row: optional day label + tappable card.
+/// Extracted so `listBody` type-checks; leading/trailing insets are 0 so the card
+/// outer edge matches the summary card's list-row background edge.
+private struct CompactPhotoRideRow: View {
+    let day: Date
+    let showDayHeader: Bool
+    let workout: Workout
+    let onOpen: () -> Void
+    let onDelete: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if showDayHeader {
+                DayHeader(day: day)
+                    .padding(.horizontal, 4)
+            }
+            Button(action: onOpen) { RideRowCard(workout: workout) }
+                .buttonStyle(.plain)
+        }
+        .listRowInsets(EdgeInsets(top: showDayHeader ? 8 : 4, leading: 0, bottom: 4, trailing: 0))
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+        .selectionDisabled(true)
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button(role: .destructive, action: onDelete) {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+        .contextMenu {
+            Button(role: .destructive, action: onDelete) {
+                Label("Delete", systemImage: "trash")
+            }
+        }
     }
 }
 
