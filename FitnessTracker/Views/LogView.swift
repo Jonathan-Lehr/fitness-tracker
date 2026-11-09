@@ -171,32 +171,17 @@ struct LogView: View {
 
             if sections.isEmpty { emptyState }
             ForEach(sections, id: \.start) { section in
-                Section {
-                    if layout == .grid && wideGrid {
-                        // Mac / regular width: adaptive day columns in one List row.
-                        RideGridSection(workouts: section.workouts,
-                                         onOpen: { path.append($0) },
-                                         onDelete: { context.delete($0) })
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                            // Mac List otherwise selects this whole multi-card row on click
-                            // and leaves it highlighted after Back from detail.
-                            .selectionDisabled(true)
-                    } else if layout == .grid {
-                        // Compact (iPhone): one native List row per day header and per card,
-                        // so insets match section headers and each row has a single destination.
-                        ForEach(DayGroup.group(section.workouts, date: \.date), id: \.day) { day in
-                            DayHeader(day: day.day)
-                                // Default List row height + vertical insets made day labels look sparse.
-                                .environment(\.defaultMinListRowHeight, 0)
-                                .listRowInsets(CompactPhotoInsets.day)
-                                .listRowBackground(Color.clear)
-                                .listRowSeparator(.hidden)
-                                .selectionDisabled(true)
+                if layout == .grid && !wideGrid {
+                    // Compact photo mode: day labels are real Section headers (not List rows),
+                    // so they use header insets/spacing instead of the ~44pt min row height.
+                    // Cards are ordinary rows with the List's default insets — same content edge
+                    // as the period header (no hardcoded leading/trailing).
+                    let days = DayGroup.group(section.workouts, date: \.date)
+                    ForEach(Array(days.enumerated()), id: \.element.day) { index, day in
+                        Section {
                             ForEach(day.items) { w in
                                 Button { path.append(w) } label: { RideRowCard(workout: w) }
                                     .buttonStyle(.plain)
-                                    .listRowInsets(CompactPhotoInsets.card)
                                     .listRowBackground(Color.clear)
                                     .listRowSeparator(.hidden)
                                     .selectionDisabled(true)
@@ -211,17 +196,37 @@ struct LogView: View {
                                         }
                                     }
                             }
-                        }
-                    } else {
-                        ForEach(section.workouts) { w in
-                            NavigationLink(value: w) { WorkoutRow(workout: w) }
-                        }
-                        .onDelete { offsets in
-                            for i in offsets { context.delete(section.workouts[i]) }
+                        } header: {
+                            VStack(alignment: .leading, spacing: 6) {
+                                if index == 0 {
+                                    header(for: section.start, workouts: section.workouts)
+                                }
+                                DayHeader(day: day.day)
+                            }
+                            .textCase(nil)
                         }
                     }
-                } header: {
-                    header(for: section.start, workouts: section.workouts)
+                } else {
+                    Section {
+                        if layout == .grid {
+                            // Mac / regular width: adaptive day columns in one List row.
+                            RideGridSection(workouts: section.workouts,
+                                             onOpen: { path.append($0) },
+                                             onDelete: { context.delete($0) })
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .selectionDisabled(true)
+                        } else {
+                            ForEach(section.workouts) { w in
+                                NavigationLink(value: w) { WorkoutRow(workout: w) }
+                            }
+                            .onDelete { offsets in
+                                for i in offsets { context.delete(section.workouts[i]) }
+                            }
+                        }
+                    } header: {
+                        header(for: section.start, workouts: section.workouts)
+                    }
                 }
             }
         }
@@ -229,14 +234,6 @@ struct LogView: View {
         .listStyle(.inset(alternatesRowBackgrounds: true))
         #endif
     }
-}
-
-/// Vertical insets for compact photo-mode rows. Leading/trailing match inset-grouped
-/// content (~20) so edges stay aligned with period section headers; vertical is tighter
-/// than the List default so day labels and cards aren't separated by empty row chrome.
-private enum CompactPhotoInsets {
-    static let day = EdgeInsets(top: 8, leading: 20, bottom: 2, trailing: 20)
-    static let card = EdgeInsets(top: 3, leading: 20, bottom: 3, trailing: 20)
 }
 
 struct SectionHeader: View {
