@@ -72,12 +72,18 @@ struct LogView: View {
                 ToolbarItem(placement: layoutPlacement) {
                     Picker("Layout", selection: $layout) {
                         ForEach(LogLayout.allCases) { l in
-                            Label(l.label, systemImage: l.systemImage).tag(l)
+                            // Image-only labels: Label+iconOnly can collapse to near-zero width
+                            // in a toolbar segmented control under trailing-item pressure.
+                            Image(systemName: l.systemImage).tag(l)
+                                .accessibilityLabel(l.label)
                         }
                     }
                     .pickerStyle(.segmented)
-                    .labelStyle(.iconOnly)
+                    // Keep intrinsic width so the two segments aren't crushed by Add/Filters/More.
+                    .fixedSize(horizontal: true, vertical: false)
+                    .frame(minWidth: 72)
                     .help("Show rides as a list or a grid")
+                    .accessibilityLabel("Layout")
                 }
                 .hideSharedToolbarBackgroundIfAvailable()
                 ToolbarItem(placement: .primaryAction) {
