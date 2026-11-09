@@ -163,6 +163,9 @@ struct LogView: View {
                                          onDelete: { context.delete($0) })
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
+                            // Mac List otherwise selects this whole multi-card row on click
+                            // and leaves it highlighted after Back from detail.
+                            .listRowSelectionDisabled(true)
                     } else if layout == .grid {
                         // Compact (iPhone): one native List row per day header and per card,
                         // so insets match section headers and each row has a single destination.
@@ -170,11 +173,13 @@ struct LogView: View {
                             DayHeader(day: day.day)
                                 .listRowBackground(Color.clear)
                                 .listRowSeparator(.hidden)
+                                .listRowSelectionDisabled(true)
                             ForEach(day.items) { w in
                                 Button { path.append(w) } label: { RideRowCard(workout: w) }
                                     .buttonStyle(.plain)
                                     .listRowBackground(Color.clear)
                                     .listRowSeparator(.hidden)
+                                    .listRowSelectionDisabled(true)
                                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                         Button(role: .destructive) { context.delete(w) } label: {
                                             Label("Delete", systemImage: "trash")

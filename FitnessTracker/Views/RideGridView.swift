@@ -167,7 +167,13 @@ struct RideGridSection: View {
                     DayHeader(day: g.day)
                     ForEach(g.items) { w in
                         Button { onOpen(w) } label: { RideTile(workout: w) }
+                            // borderless on Mac: List + .plain can still treat the enclosing
+                            // row as the hit target and activate oddly with several buttons.
+                            #if os(macOS)
+                            .buttonStyle(.borderless)
+                            #else
                             .buttonStyle(.plain)
+                            #endif
                             .contextMenu {
                                 Button(role: .destructive) { onDelete(w) } label: {
                                     Label("Delete", systemImage: "trash")
