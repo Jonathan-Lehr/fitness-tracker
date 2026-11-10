@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 
 struct WorkoutDetailView: View {
     let workout: Workout
@@ -11,17 +10,7 @@ struct WorkoutDetailView: View {
                 WorkoutSummaryCard(workout: workout)
                     .padding(.horizontal)
 
-                if let notes = workout.notes, !notes.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Notes")
-                            .font(.headline)
-                            .foregroundStyle(.secondary)
-                            .padding(.leading, 20)
-                        Text(notes)
-                            .padding(.horizontal, 20)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
+                notesSection
             }
             .padding(.vertical, 20)
         }
@@ -35,112 +24,125 @@ struct WorkoutDetailView: View {
             WorkoutFormView(workout: workout)
         }
     }
+
+    @ViewBuilder private var notesSection: some View {
+        if let notes = workout.notes, !notes.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Notes")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 20)
+                Text(notes)
+                    .padding(.horizontal, 20)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
 }
 
-/// Single-workout summary card. TypeTag now sits alongside the date (in its original location below the photo, no overlay). 
-/// Prominent Miles/Watts, full-width leading-aligned tiles, consistent edges, no border. Matches all feedback.
+/// Summary card for a single workout: photo, title, date and type, then distance and average
+/// Watts featured above the secondary stats. Stats use the shared `StatTile` so they match the
+/// period summary cards; no deltas until baseline comparison lands (#28).
 struct WorkoutSummaryCard: View {
     let workout: Workout
 
+    /// Tiles wrap onto more rows when the card is narrow (iPhone portrait).
+    private let statColumns = [GridItem(.adaptive(minimum: 84), spacing: 12, alignment: .leading)]
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Hero image (no overlay). TypeTag moved to HStack with date in its original location.
-            RideImage(workout: workout, aspect: 16.0 / 9.0)
-                .frame(maxHeight: 220)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(workout.title)
-                    .font(.title2.bold())
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.8)
-
-                HStack {
-                    Text(workout.date.formatted(date: .abbreviated, time: .shortened))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
-                    Spacer()
-                    TypeTag(type: workout.type)
-                }
-                .padding(.vertical, 8)
-            }
-            .padding(.horizontal, 4)
-
-            // Prominent distance + watts (title for "12.5 Miles", title2 for "105 Watts")
-            VStack(alignment: .leading, spacing: 2) {
-                Text(workout.distanceMiles.milesString)
-                    .font(.title.bold())
-                    .monospacedDigit()
-                    .minimumScaleFactor(0.75)
-                    .lineLimit(1)
-
-                Text(workout.avgWatts > 0 ? "\(workout.avgWatts) Watts" : "— Watts")
-                    .font(.title2.bold())
-                    .monospacedDigit()
-                    .foregroundStyle(.orange)
-                    .minimumScaleFactor(0.8)
-                    .lineLimit(1)
-            }
-            .padding(.horizontal, 4)
-
-            // Secondary stats (equal flexible columns to fill container width, leading-aligned)
-            HStack(alignment: .top, spacing: 0) {
-                StatTile(
-                    value: workout.durationMinutes.minutesText,
-                    label: "Duration",
-                    numericValue: workout.durationMinutes
-                )
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                StatTile(
-                    value: "\(workout.calories)",
-                    label: "Calories",
-                    numericValue: Double(workout.calories)
-                )
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                StatTile(
-                    value: "\(workout.elevationFeet) ft",
-                    label: "Elevation",
-                    numericValue: Double(workout.elevationFeet)
-                )
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                StatTile(
-                    value: workout.avgRPM > 0 ? "\(workout.avgRPM)" : "—",
-                    label: "RPM",
-                    numericValue: Double(workout.avgRPM)
-                )
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .padding(.horizontal, 4)
-
-            // Additional stats (incline, resistance) — leading edge aligned with content above
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Additional Stats")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .padding(.leading, 4)
-
-                HStack(spacing: 24) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(String(format: "%.1f%% / %.1f%%", workout.inclineAvg, workout.inclineMax))
-                            .font(.headline.weight(.semibold))
-                        Text("Incline avg / max")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("\(workout.resistanceAvg) / \(workout.resistanceMax)")
-                            .font(.headline.weight(.semibold))
-                        Text("Resistance avg / max")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
+            photo
+            heading
                 .padding(.horizontal, 4)
-            }
+            featuredStats
+                .padding(.horizontal, 4)
+            statGrid(secondaryStats)
+                .padding(.horizontal, 4)
+            additionalStats
+                .padding(.horizontal, 4)
         }
         .padding(20)
         .background(LogSurface.card, in: RoundedRectangle(cornerRadius: 20))
+    }
+
+    private var photo: some View {
+        RideImage(workout: workout, aspect: 16.0 / 9.0)
+            .frame(maxHeight: 220)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    private var heading: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(workout.title)
+                .font(.title2.bold())
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+            HStack {
+                Text(workout.date.formatted(date: .abbreviated, time: .shortened))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+                Spacer()
+                TypeTag(type: workout.type)
+            }
+            .padding(.vertical, 8)
+        }
+    }
+
+    private var featuredStats: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(workout.distanceMiles.milesString)
+                    .font(.title.bold())
+                    .monospacedDigit()
+                Text("Miles")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+
+            Text(workout.avgWatts > 0 ? "\(workout.avgWatts) Watts" : "— Watts")
+                .font(.title2.bold())
+                .monospacedDigit()
+                .foregroundStyle(.orange)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+    }
+
+    private var secondaryStats: [StatTile] {
+        [
+            StatTile(value: workout.durationMinutes.minutesText, label: "Duration",
+                     numericValue: workout.durationMinutes),
+            StatTile(value: "\(workout.calories)", label: "Calories",
+                     numericValue: Double(workout.calories)),
+            StatTile(value: "\(workout.elevationFeet) ft", label: "Elevation",
+                     numericValue: Double(workout.elevationFeet)),
+            StatTile(value: workout.avgRPM > 0 ? "\(workout.avgRPM)" : "—", label: "RPM",
+                     numericValue: Double(workout.avgRPM)),
+        ]
+    }
+
+    private var additionalStats: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Additional Stats")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            statGrid([
+                StatTile(value: String(format: "%.1f%% / %.1f%%", workout.inclineAvg, workout.inclineMax),
+                         label: "Incline avg / max"),
+                StatTile(value: "\(workout.resistanceAvg) / \(workout.resistanceMax)",
+                         label: "Resistance avg / max"),
+            ])
+        }
+    }
+
+    private func statGrid(_ tiles: [StatTile]) -> some View {
+        LazyVGrid(columns: statColumns, alignment: .leading, spacing: 12) {
+            ForEach(tiles.indices, id: \.self) { index in
+                tiles[index]
+            }
+        }
     }
 }

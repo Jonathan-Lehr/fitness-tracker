@@ -1,43 +1,65 @@
 import SwiftUI
 import Charts
 
-/// Reusable tile for a single metric: large value, label, and optional delta (used by both
-/// period summary cards and the single-workout detail card). Delta is hidden when nil.
+/// A change shown under a stat, colored by direction (green up, red down, secondary unchanged).
+struct StatDelta {
+    let text: String
+    /// Signed change; drives the color and the rolling-digit animation.
+    let value: Double
+
+    var color: Color {
+        value > 0 ? .green : (value < 0 ? .red : .secondary)
+    }
+}
+
+/// One metric: value, label, and an optional delta. Shared by the period summary cards and the
+/// workout detail card so their stat styling stays identical. The delta row appears only when
+/// comparison data is available.
 struct StatTile: View {
     let value: String
     let label: String
-    var delta: String? = nil
+    var delta: StatDelta? = nil
     var numericValue: Double = 0
+    /// Reports the value text's width (the period card uses it to size its landscape chart).
+    var onValueWidthChange: ((CGFloat) -> Void)? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private func numeric(_ value: Double) -> ContentTransition {
-        reduceMotion ? .opacity : .numericText(value: value)
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
-            Text(value)
-                .font(.headline.weight(.semibold))
-                .monospacedDigit()
-                .contentTransition(numeric(numericValue))
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-
+            valueText
             Text(label)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-
             if let delta {
-                Text(delta)
-                    .font(.caption2.weight(.medium))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                deltaText(delta)
             }
         }
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
         .accessibilityElement(children: .combine)
+    }
+
+    private var valueText: some View {
+        Text(value)
+            .font(.headline.weight(.semibold))
+            .monospacedDigit()
+            .contentTransition(transition(for: numericValue))
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width in
+                onValueWidthChange?(width)
+            }
+    }
+
+    private func deltaText(_ delta: StatDelta) -> some View {
+        Text(delta.text)
+            .contentTransition(transition(for: delta.value))
+            .font(.caption2.weight(.medium))
+            .monospacedDigit()
+            .foregroundStyle(delta.color)
+    }
+
+    private func transition(for value: Double) -> ContentTransition {
+        reduceMotion ? .opacity : .numericText(value: value)
     }
 }
 
@@ -188,15 +210,17 @@ struct PeriodSummaryCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func stat(_ m: PeriodSummary.Metric) -> some View {
-        let (v, label) = summary.valueText(m)
-        let d = summary.deltaText(m)
-        let tile = StatTile(value: v, label: label, delta: d, numericValue: summary.numericValue(m))
-        // The last stat's value width sets where the landscape chart ends.
-        return tile
-            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { w in
-                if m == PeriodSummary.Metric.allCases.last { lastStatWidth = w }
-            }
+    private func stat(_ metric: PeriodSummary.Metric) -> some View {
+        let (value, label) = summary.valueText(metric)
+        let isLast = metric == PeriodSummary.Metric.allCases.last
+        return StatTile(
+            value: value,
+            label: label,
+            delta: StatDelta(text: summary.deltaText(metric), value: summary.delta(metric)),
+            numericValue: summary.numericValue(metric),
+            // The last stat's value width sets where the landscape chart ends.
+            onValueWidthChange: isLast ? { lastStatWidth = $0 } : nil
+        )
     }
 
     // The chart uses a categorical x axis (one band per bucket, keyed by index) so bars,
