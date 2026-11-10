@@ -76,7 +76,7 @@ Keep `project.yml` in sync with any structural project change. A Swift file adde
 Code quality, especially readability, maintainability, and reuse, is an important consideration.
 
 - Reuse existing views, helpers, formatters, and models before adding new ones. Extract shared logic instead of duplicating it.
-- Keep SwiftUI views small and focused. Move calculations and data shaping out of `body` into testable helpers or view models.
+- Keep SwiftUI views small and focused. Make liberal use of computed properties, methods, and small subview structs so `body` reads as a clear outline of the layout. Move calculations and data shaping out of `body` into testable helpers or view models.
 - Use clear, descriptive names, and follow the surrounding code's patterns and file organization.
 - Comment the *why* for non-obvious decisions, not the *what*.
 - Prefer small, coherent changes. Remove dead code and unused helpers you replace.
