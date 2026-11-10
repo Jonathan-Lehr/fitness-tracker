@@ -15,11 +15,11 @@ extension WorkoutType {
     var color: Color {
         switch self {
         case .endurance: Color(red: 0.20, green: 0.47, blue: 0.80)
-        case .climb: Color(red: 0.27, green: 0.59, blue: 0.35)
+        case .climb: Color(red: 0.82, green: 0.29, blue: 0.62)
         case .interval: Color(red: 0.89, green: 0.38, blue: 0.27)
         case .recovery: Color(red: 0.49, green: 0.39, blue: 0.76)
         case .tempo: Color(red: 0.84, green: 0.60, blue: 0.15)
-        case .other: Color.gray
+        case .other: Color(red: 0.27, green: 0.59, blue: 0.35)
         }
     }
 }
@@ -27,9 +27,13 @@ extension WorkoutType {
 struct TypeTag: View {
     let type: WorkoutType
     var body: some View {
-        HStack(spacing: 4) {
-            Circle().fill(type.color).frame(width: 7, height: 7)
-            Text(type.label)
+        ZStack {
+            // Hidden copies of every type reserve the longest one's width, so tags line up and
+            // track Dynamic Type; the visible content is centered within that width.
+            ForEach(WorkoutType.allCases) { candidate in
+                content(for: candidate).hidden()
+            }
+            content(for: type)
         }
         .font(.caption.weight(.semibold))
         .foregroundStyle(.primary)
@@ -37,6 +41,13 @@ struct TypeTag: View {
         .background(type.color.opacity(0.22), in: Capsule())
         .overlay(Capsule().strokeBorder(type.color.opacity(0.55), lineWidth: 1))
         .accessibilityLabel("Type: \(type.label)")
+    }
+
+    private func content(for type: WorkoutType) -> some View {
+        HStack(spacing: 4) {
+            Circle().fill(type.color).frame(width: 7, height: 7)
+            Text(type.label)
+        }
     }
 }
 

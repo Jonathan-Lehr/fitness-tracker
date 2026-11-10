@@ -1,6 +1,112 @@
 import SwiftUI
 import Charts
 
+/// A change shown under a stat, colored by direction: green up, yellow for a small dip,
+/// red for a big drop, secondary when unchanged.
+struct StatDelta {
+    /// How a change compares with the previous value.
+    enum Trend: Equatable {
+        case up, unchanged, smallDip, bigDrop
+    }
+
+    /// A decline is a small dip while the new value is still at least this fraction of the previous one.
+    static let smallDipThreshold = 0.7
+
+    let text: String
+    /// Signed change; drives the color and the rolling-digit animation.
+    let value: Double
+    /// The value being compared against. When it's unknown, every decline counts as a big drop.
+    var previousValue: Double? = nil
+
+    var trend: Trend {
+        if value > 0 { return .up }
+        if value == 0 { return .unchanged }
+        guard let previousValue, previousValue > 0 else { return .bigDrop }
+        let currentValue = previousValue + value
+        return currentValue / previousValue >= Self.smallDipThreshold ? .smallDip : .bigDrop
+    }
+
+    var color: Color {
+        switch trend {
+        case .up: .green
+        case .unchanged: .secondary
+        case .smallDip: .smallDipYellow
+        case .bigDrop: .red
+        }
+    }
+}
+
+extension Color {
+    /// System yellow in dark mode; a darker amber in light mode, where system yellow washes out.
+    static let smallDipYellow: Color = {
+        let amber = (red: 0.78, green: 0.53, blue: 0.0)
+        #if os(macOS)
+        return Color(nsColor: NSColor(name: nil) { appearance in
+            appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                ? .systemYellow
+                : NSColor(srgbRed: amber.red, green: amber.green, blue: amber.blue, alpha: 1)
+        })
+        #else
+        return Color(uiColor: UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? .systemYellow
+                : UIColor(red: amber.red, green: amber.green, blue: amber.blue, alpha: 1)
+        })
+        #endif
+    }()
+}
+
+/// One metric: value, label, and an optional delta. Shared by the period summary cards and the
+/// workout detail card so their stat styling stays identical. The delta row appears only when
+/// comparison data is available.
+struct StatTile: View {
+    let value: String
+    let label: String
+    var delta: StatDelta? = nil
+    var numericValue: Double = 0
+    /// Reports the value text's width (the period card uses it to size its landscape chart).
+    var onValueWidthChange: ((CGFloat) -> Void)? = nil
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            valueText
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            if let delta {
+                deltaText(delta)
+            }
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var valueText: some View {
+        Text(value)
+            .font(.headline.weight(.semibold))
+            .monospacedDigit()
+            .contentTransition(transition(for: numericValue))
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width in
+                onValueWidthChange?(width)
+            }
+    }
+
+    private func deltaText(_ delta: StatDelta) -> some View {
+        Text(delta.text)
+            .contentTransition(transition(for: delta.value))
+            .font(.caption2.weight(.medium))
+            .monospacedDigit()
+            .foregroundStyle(delta.color)
+    }
+
+    private func transition(for value: Double) -> ContentTransition {
+        reduceMotion ? .opacity : .numericText(value: value)
+    }
+}
+
 struct PeriodSummaryCard: View {
     @Binding var period: GroupingPeriod
     let summary: PeriodSummary
@@ -131,8 +237,12 @@ struct PeriodSummaryCard: View {
                 .font(.caption.weight(.medium))
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
-                .foregroundStyle(summary.milesDelta > 0 ? Color.green : (summary.milesDelta < 0 ? Color.red : Color.secondary))
+                .foregroundStyle(heroDelta.color)
         }
+    }
+
+    private var heroDelta: StatDelta {
+        StatDelta(text: summary.deltaText, value: summary.milesDelta, previousValue: summary.previous.miles)
     }
 
     /// Stats in equal flexible columns spanning the full card width, each leading-aligned.
@@ -148,25 +258,18 @@ struct PeriodSummaryCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func stat(_ m: PeriodSummary.Metric) -> some View {
-        let (v, label) = summary.valueText(m)
-        let d = summary.delta(m)
-        return VStack(alignment: .leading, spacing: 1) {
-            Text(v).font(.headline.weight(.semibold)).monospacedDigit()
-                .contentTransition(numeric(summary.numericValue(m)))
-                // The last stat's value width sets where the landscape chart ends.
-                .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { w in
-                    if m == PeriodSummary.Metric.allCases.last { lastStatWidth = w }
-                }
-            Text(label).font(.caption).foregroundStyle(.secondary)
-            Text(summary.deltaText(m))
-                .contentTransition(numeric(d))
-                .font(.caption2.weight(.medium)).monospacedDigit()
-                .foregroundStyle(d > 0 ? Color.green : (d < 0 ? Color.red : Color.secondary))
-        }
-        .lineLimit(1)
-        .minimumScaleFactor(0.7)
-        .accessibilityElement(children: .combine)
+    private func stat(_ metric: PeriodSummary.Metric) -> some View {
+        let (value, label) = summary.valueText(metric)
+        let isLast = metric == PeriodSummary.Metric.allCases.last
+        return StatTile(
+            value: value,
+            label: label,
+            delta: StatDelta(text: summary.deltaText(metric), value: summary.delta(metric),
+                             previousValue: summary.previousValue(metric)),
+            numericValue: summary.numericValue(metric),
+            // The last stat's value width sets where the landscape chart ends.
+            onValueWidthChange: isLast ? { lastStatWidth = $0 } : nil
+        )
     }
 
     // The chart uses a categorical x axis (one band per bucket, keyed by index) so bars,

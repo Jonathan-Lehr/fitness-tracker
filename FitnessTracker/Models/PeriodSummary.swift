@@ -117,6 +117,20 @@ struct PeriodSummary {
         }
     }
 
+    /// The previous period's value for a metric, used to judge how big a decline is.
+    /// Nil for an average with no data in the previous window.
+    func previousValue(_ m: Metric) -> Double? {
+        let t = previous
+        switch m {
+        case .rides: return Double(t.count)
+        case .time: return t.minutes
+        case .calories: return Double(t.calories)
+        case .elevation: return Double(t.feet)
+        case .watts: return t.averageWatts
+        case .rpm: return t.averageRPM
+        }
+    }
+
     /// Length of the rolling window in calendar days.
     static func days(for period: GroupingPeriod) -> Int {
         switch period {
