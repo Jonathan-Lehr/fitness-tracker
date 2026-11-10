@@ -1,14 +1,38 @@
 import SwiftUI
 import Charts
 
-/// A change shown under a stat, colored by direction (green up, red down, secondary unchanged).
+/// A change shown under a stat, colored by direction: green up, yellow for a small dip,
+/// red for a big drop, secondary when unchanged.
 struct StatDelta {
+    /// How a change compares with the previous value.
+    enum Trend: Equatable {
+        case up, unchanged, smallDip, bigDrop
+    }
+
+    /// A decline is a small dip while the new value is still at least this fraction of the previous one.
+    static let smallDipThreshold = 0.7
+
     let text: String
     /// Signed change; drives the color and the rolling-digit animation.
     let value: Double
+    /// The value being compared against. When it's unknown, every decline counts as a big drop.
+    var previousValue: Double? = nil
+
+    var trend: Trend {
+        if value > 0 { return .up }
+        if value == 0 { return .unchanged }
+        guard let previousValue, previousValue > 0 else { return .bigDrop }
+        let currentValue = previousValue + value
+        return currentValue / previousValue >= Self.smallDipThreshold ? .smallDip : .bigDrop
+    }
 
     var color: Color {
-        value > 0 ? .green : (value < 0 ? .red : .secondary)
+        switch trend {
+        case .up: .green
+        case .unchanged: .secondary
+        case .smallDip: .yellow
+        case .bigDrop: .red
+        }
     }
 }
 
@@ -193,8 +217,12 @@ struct PeriodSummaryCard: View {
                 .font(.caption.weight(.medium))
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
-                .foregroundStyle(summary.milesDelta > 0 ? Color.green : (summary.milesDelta < 0 ? Color.red : Color.secondary))
+                .foregroundStyle(heroDelta.color)
         }
+    }
+
+    private var heroDelta: StatDelta {
+        StatDelta(text: summary.deltaText, value: summary.milesDelta, previousValue: summary.previous.miles)
     }
 
     /// Stats in equal flexible columns spanning the full card width, each leading-aligned.
@@ -216,7 +244,8 @@ struct PeriodSummaryCard: View {
         return StatTile(
             value: value,
             label: label,
-            delta: StatDelta(text: summary.deltaText(metric), value: summary.delta(metric)),
+            delta: StatDelta(text: summary.deltaText(metric), value: summary.delta(metric),
+                             previousValue: summary.previousValue(metric)),
             numericValue: summary.numericValue(metric),
             // The last stat's value width sets where the landscape chart ends.
             onValueWidthChange: isLast ? { lastStatWidth = $0 } : nil

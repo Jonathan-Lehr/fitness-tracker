@@ -298,4 +298,14 @@ final class WattsRPMTests: XCTestCase {
     func testMetricOrder() {
         XCTAssertEqual(PeriodSummary.Metric.allCases, [.rides, .time, .watts, .rpm, .elevation, .calories])
     }
+
+    func testStatDeltaTrend() {
+        XCTAssertEqual(StatDelta(text: "", value: 5, previousValue: 10).trend, .up)
+        XCTAssertEqual(StatDelta(text: "", value: 0, previousValue: 10).trend, .unchanged)
+        // 7 of 10 is still 70% of the previous value: a small dip.
+        XCTAssertEqual(StatDelta(text: "", value: -3, previousValue: 10).trend, .smallDip)
+        XCTAssertEqual(StatDelta(text: "", value: -3.5, previousValue: 10).trend, .bigDrop)
+        // Without a previous value, any decline is a big drop.
+        XCTAssertEqual(StatDelta(text: "", value: -1).trend, .bigDrop)
+    }
 }
