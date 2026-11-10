@@ -80,6 +80,7 @@ Code quality, especially readability, maintainability, and reuse, is an importan
 - Use clear, descriptive names, and follow the surrounding code's patterns and file organization.
 - Comment the *why* for non-obvious decisions, not the *what*.
 - Prefer small, coherent changes. Remove dead code and unused helpers you replace.
+- Refactor where appropriate, for example code you touch that is duplicated, tangled, or hard to follow. Keep small refactors in the current PR. A refactoring that touches many files or lines of code gets its own issue and PR, separate from feature or bug work.
 
 ## UI conventions
 
