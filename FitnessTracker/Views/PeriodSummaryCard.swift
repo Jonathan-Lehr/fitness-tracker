@@ -1,6 +1,46 @@
 import SwiftUI
 import Charts
 
+/// Reusable tile for a single metric: large value, label, and optional delta (used by both
+/// period summary cards and the single-workout detail card). Delta is hidden when nil.
+struct StatTile: View {
+    let value: String
+    let label: String
+    var delta: String? = nil
+    var numericValue: Double = 0
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private func numeric(_ value: Double) -> ContentTransition {
+        reduceMotion ? .opacity : .numericText(value: value)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(value)
+                .font(.headline.weight(.semibold))
+                .monospacedDigit()
+                .contentTransition(numeric(numericValue))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            if let delta {
+                Text(delta)
+                    .font(.caption2.weight(.medium))
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
 struct PeriodSummaryCard: View {
     @Binding var period: GroupingPeriod
     let summary: PeriodSummary
@@ -150,23 +190,13 @@ struct PeriodSummaryCard: View {
 
     private func stat(_ m: PeriodSummary.Metric) -> some View {
         let (v, label) = summary.valueText(m)
-        let d = summary.delta(m)
-        return VStack(alignment: .leading, spacing: 1) {
-            Text(v).font(.headline.weight(.semibold)).monospacedDigit()
-                .contentTransition(numeric(summary.numericValue(m)))
-                // The last stat's value width sets where the landscape chart ends.
-                .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { w in
-                    if m == PeriodSummary.Metric.allCases.last { lastStatWidth = w }
-                }
-            Text(label).font(.caption).foregroundStyle(.secondary)
-            Text(summary.deltaText(m))
-                .contentTransition(numeric(d))
-                .font(.caption2.weight(.medium)).monospacedDigit()
-                .foregroundStyle(d > 0 ? Color.green : (d < 0 ? Color.red : Color.secondary))
-        }
-        .lineLimit(1)
-        .minimumScaleFactor(0.7)
-        .accessibilityElement(children: .combine)
+        let d = summary.deltaText(m)
+        let tile = StatTile(value: v, label: label, delta: d, numericValue: summary.numericValue(m))
+        // The last stat's value width sets where the landscape chart ends.
+        return tile
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { w in
+                if m == PeriodSummary.Metric.allCases.last { lastStatWidth = w }
+            }
     }
 
     // The chart uses a categorical x axis (one band per bucket, keyed by index) so bars,
