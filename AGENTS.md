@@ -66,6 +66,7 @@ Keep `project.yml` in sync with any structural project change. A Swift file adde
 ## Workflow
 
 - Track every enhancement or bug as a GitHub Issue on the [FitnessTracker project](https://github.com/users/Jonathan-Lehr/projects/2) (Backlog → Ready → In progress → Done). Reuse a related open issue when one exists. Keep the board status aligned with real progress.
+- Label issues by kind (`enhancement`, `bug`, `refactor`, `documentation`) and, when known, by priority (`priority: high`, `priority: medium`, `priority: low`).
 - Recording an idea as an issue does not authorize implementing it. Implement only the issue you were asked to work on.
 - One branch and one PR per issue. The PR body starts with `Closes #N`. Never push to `main`. Jonathan merges PRs himself.
 - After pushing: pure layout changes can be handed off for review immediately. Logic changes wait for green CI.
@@ -78,6 +79,7 @@ Code quality, especially readability, maintainability, and reuse, is an importan
 - Reuse existing views, helpers, formatters, and models before adding new ones. Extract shared logic instead of duplicating it.
 - Keep SwiftUI views small and focused. Make liberal use of computed properties, methods, and small subview structs so `body` reads as a clear outline of the layout. Move calculations and data shaping out of `body` into testable helpers or view models.
 - Use clear, descriptive names, and follow the surrounding code's patterns and file organization.
+- Avoid abbreviations in API and parameter names, types, and global or static properties and constants (for example, `averageWatts`, not `avgW`). Well-established abbreviations such as `mph`, `rpm`, `id`, and `url` are fine. Short names are acceptable for local variables and closure parameters with very small scope (for example, `i` in a loop or `$0`), but prefer full words elsewhere. Apply this to new code and code you're already changing. Existing abbreviations are renamed separately (#30).
 - Comment the *why* for non-obvious decisions, not the *what*.
 - Prefer small, coherent changes. Remove dead code and unused helpers you replace.
 - Refactor where appropriate, for example code you touch that is duplicated, tangled, or hard to follow. Keep small refactors in the current PR. A refactoring that touches many files or lines of code gets its own issue and PR, separate from feature or bug work.
