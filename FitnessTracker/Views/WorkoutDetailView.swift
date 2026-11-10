@@ -8,8 +8,6 @@ struct WorkoutDetailView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                // Summary card with photo, type tag, prominent distance and watts, and stats.
-                // Matches the design settled in issue #11: one adaptive card for iPhone and Mac.
                 WorkoutSummaryCard(workout: workout)
                     .padding(.horizontal)
 
@@ -39,9 +37,9 @@ struct WorkoutDetailView: View {
     }
 }
 
-/// Single-workout summary card. Reuses StatTile (extracted from PeriodSummaryCard), RideImage,
-/// TypeTag, and LogSurface from RideGridView. Prominent metrics: distance (hero) and avg Watts.
-/// Secondary: duration, calories, elevation, RPM. Incline and resistance in "Additional Stats".
+/// Single-workout summary card. Uses `.title` for miles and `.title2` for watts (no unit text).
+/// Secondary `StatTile`s fill width (no fixed spacing on `HStack`). All content shares the same
+/// leading edge (including Additional Stats). No border. Matches latest feedback.
 struct WorkoutSummaryCard: View {
     let workout: Workout
 
@@ -60,6 +58,8 @@ struct WorkoutSummaryCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(workout.title)
                     .font(.title2.bold())
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
 
                 Text(workout.date.formatted(date: .abbreviated, time: .shortened))
                     .font(.subheadline)
@@ -67,48 +67,53 @@ struct WorkoutSummaryCard: View {
             }
             .padding(.horizontal, 4)
 
-            // Prominent metrics row
-            HStack(spacing: 20) {
-                StatTile(
-                    value: workout.distanceMiles.milesText,
-                    label: "Distance",
-                    numericValue: workout.distanceMiles
-                )
+            // Prominent distance + watts (title for "12.5 Miles", title2 for "105 Watts")
+            VStack(alignment: .leading, spacing: 2) {
+                Text(workout.distanceMiles.milesText.replacingOccurrences(of: " mi", with: " Miles"))
+                    .font(.title.bold())
+                    .monospacedDigit()
+                    .minimumScaleFactor(0.75)
+                    .lineLimit(1)
 
-                StatTile(
-                    value: workout.avgWatts > 0 ? "\(workout.avgWatts) W" : "—",
-                    label: "Avg Watts",
-                    numericValue: Double(workout.avgWatts)
-                )
+                Text(workout.avgWatts > 0 ? "\(workout.avgWatts) Watts" : "— Watts")
+                    .font(.title2.bold())
+                    .monospacedDigit()
+                    .foregroundStyle(.orange)
+                    .minimumScaleFactor(0.8)
+                    .lineLimit(1)
             }
             .padding(.horizontal, 4)
 
-            // Secondary stats
-            HStack(spacing: 16) {
+            // Secondary stats (equal flexible columns to fill container width, leading-aligned)
+            HStack(alignment: .top, spacing: 0) {
                 StatTile(
                     value: workout.durationMinutes.minutesText,
                     label: "Duration",
                     numericValue: workout.durationMinutes
                 )
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 StatTile(
                     value: "\(workout.calories)",
                     label: "Calories",
                     numericValue: Double(workout.calories)
                 )
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 StatTile(
                     value: "\(workout.elevationFeet) ft",
                     label: "Elevation",
                     numericValue: Double(workout.elevationFeet)
                 )
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 StatTile(
                     value: workout.avgRPM > 0 ? "\(workout.avgRPM)" : "—",
                     label: "RPM",
                     numericValue: Double(workout.avgRPM)
                 )
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(.horizontal, 4)
 
-            // Additional stats (incline, resistance) — matches settled design
+            // Additional stats (incline, resistance) — leading edge aligned with content above
             VStack(alignment: .leading, spacing: 8) {
                 Text("Additional Stats")
                     .font(.caption.weight(.semibold))
@@ -137,9 +142,5 @@ struct WorkoutSummaryCard: View {
         }
         .padding(20)
         .background(LogSurface.card, in: RoundedRectangle(cornerRadius: 20))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .strokeBorder(.separator, lineWidth: 1)
-        )
     }
 }
