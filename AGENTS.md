@@ -71,6 +71,16 @@ Keep `project.yml` in sync with any structural project change. A Swift file adde
 - After pushing: pure layout changes can be handed off for review immediately. Logic changes wait for green CI.
 - When a design is settled, add a **Design decisions** comment on the issue (see [#18](https://github.com/Jonathan-Lehr/fitness-tracker/issues/18#issuecomment-6750071723)). That comment is the lasting record.
 
+## Code quality
+
+Code quality, especially readability, maintainability, and reuse, is an important consideration.
+
+- Reuse existing views, helpers, formatters, and models before adding new ones. Extract shared logic instead of duplicating it.
+- Keep SwiftUI views small and focused. Move calculations and data shaping out of `body` into testable helpers or view models.
+- Use clear, descriptive names, and follow the surrounding code's patterns and file organization.
+- Comment the *why* for non-obvious decisions, not the *what*.
+- Prefer small, coherent changes. Remove dead code and unused helpers you replace.
+
 ## UI conventions
 
 Settled during implementation (especially #14, #18, #20). Follow these unless the current issue explicitly changes them.
