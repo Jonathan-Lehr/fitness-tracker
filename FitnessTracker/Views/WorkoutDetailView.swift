@@ -46,8 +46,10 @@ struct WorkoutDetailView: View {
 struct WorkoutSummaryCard: View {
     let workout: Workout
 
-    /// Tiles wrap onto more rows when the card is narrow (iPhone portrait).
-    private let statColumns = [GridItem(.adaptive(minimum: 84), spacing: 12, alignment: .leading)]
+    /// Secondary stats share one row in equal flexible columns; tile text scales down to fit.
+    private let secondaryColumns = Array(repeating: GridItem(.flexible(), spacing: 12, alignment: .leading), count: 4)
+    /// Additional stats use two equal columns.
+    private let additionalColumns = Array(repeating: GridItem(.flexible(), spacing: 12, alignment: .leading), count: 2)
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -56,7 +58,7 @@ struct WorkoutSummaryCard: View {
                 .padding(.horizontal, 4)
             featuredStats
                 .padding(.horizontal, 4)
-            statGrid(secondaryStats)
+            statGrid(secondaryStats, columns: secondaryColumns)
                 .padding(.horizontal, 4)
             additionalStats
                 .padding(.horizontal, 4)
@@ -129,17 +131,21 @@ struct WorkoutSummaryCard: View {
             Text("Additional Stats")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
-            statGrid([
-                StatTile(value: String(format: "%.1f%% / %.1f%%", workout.inclineAvg, workout.inclineMax),
-                         label: "Incline avg / max"),
-                StatTile(value: "\(workout.resistanceAvg) / \(workout.resistanceMax)",
-                         label: "Resistance avg / max"),
-            ])
+            statGrid(additionalStatTiles, columns: additionalColumns)
         }
     }
 
-    private func statGrid(_ tiles: [StatTile]) -> some View {
-        LazyVGrid(columns: statColumns, alignment: .leading, spacing: 12) {
+    private var additionalStatTiles: [StatTile] {
+        [
+            StatTile(value: String(format: "%.1f%% / %.1f%%", workout.inclineAvg, workout.inclineMax),
+                     label: "Incline avg / max"),
+            StatTile(value: "\(workout.resistanceAvg) / \(workout.resistanceMax)",
+                     label: "Resistance avg / max"),
+        ]
+    }
+
+    private func statGrid(_ tiles: [StatTile], columns: [GridItem]) -> some View {
+        LazyVGrid(columns: columns, alignment: .leading, spacing: 12) {
             ForEach(tiles.indices, id: \.self) { index in
                 tiles[index]
             }
