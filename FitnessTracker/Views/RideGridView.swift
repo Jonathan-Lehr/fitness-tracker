@@ -27,9 +27,13 @@ extension WorkoutType {
 struct TypeTag: View {
     let type: WorkoutType
     var body: some View {
-        HStack(spacing: 4) {
-            Circle().fill(type.color).frame(width: 7, height: 7)
-            label
+        ZStack {
+            // Hidden copies of every type reserve the longest one's width, so tags line up and
+            // track Dynamic Type; the visible content is centered within that width.
+            ForEach(WorkoutType.allCases) { candidate in
+                content(for: candidate).hidden()
+            }
+            content(for: type)
         }
         .font(.caption.weight(.semibold))
         .foregroundStyle(.primary)
@@ -39,13 +43,9 @@ struct TypeTag: View {
         .accessibilityLabel("Type: \(type.label)")
     }
 
-    /// Every tag is as wide as the longest type name, so tags line up. The hidden labels reserve
-    /// that width and track Dynamic Type automatically.
-    private var label: some View {
-        ZStack(alignment: .leading) {
-            ForEach(WorkoutType.allCases) { candidate in
-                Text(candidate.label).hidden()
-            }
+    private func content(for type: WorkoutType) -> some View {
+        HStack(spacing: 4) {
+            Circle().fill(type.color).frame(width: 7, height: 7)
             Text(type.label)
         }
     }
