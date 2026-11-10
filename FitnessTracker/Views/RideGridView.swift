@@ -15,11 +15,11 @@ extension WorkoutType {
     var color: Color {
         switch self {
         case .endurance: Color(red: 0.20, green: 0.47, blue: 0.80)
-        case .climb: Color(red: 0.27, green: 0.59, blue: 0.35)
+        case .climb: Color(red: 0.82, green: 0.29, blue: 0.62)
         case .interval: Color(red: 0.89, green: 0.38, blue: 0.27)
         case .recovery: Color(red: 0.49, green: 0.39, blue: 0.76)
         case .tempo: Color(red: 0.84, green: 0.60, blue: 0.15)
-        case .other: Color(red: 0.82, green: 0.29, blue: 0.62)
+        case .other: Color(red: 0.27, green: 0.59, blue: 0.35)
         }
     }
 }
