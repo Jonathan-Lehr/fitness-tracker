@@ -6,4 +6,5 @@ extension Double {
         return m >= 60 ? "\(m / 60)h \(m % 60)m" : "\(m)m"
     }
     var milesText: String { String(format: "%.2f mi", self) }
+    var milesString: String { String(format: "%.2f", self) }
 }

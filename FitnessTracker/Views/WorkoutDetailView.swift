@@ -37,23 +37,17 @@ struct WorkoutDetailView: View {
     }
 }
 
-/// Single-workout summary card. Uses `.title` for miles and `.title2` for watts (no unit text).
-/// Secondary `StatTile`s fill width (no fixed spacing on `HStack`). All content shares the same
-/// leading edge (including Additional Stats). No border. Matches latest feedback.
+/// Single-workout summary card. TypeTag now sits alongside the date (in its original location below the photo, no overlay). 
+/// Prominent Miles/Watts, full-width leading-aligned tiles, consistent edges, no border. Matches all feedback.
 struct WorkoutSummaryCard: View {
     let workout: Workout
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Hero image with type tag (reused from grid)
-            ZStack(alignment: .topLeading) {
-                RideImage(workout: workout, aspect: 16.0 / 9.0)
-                    .frame(maxHeight: 220)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-
-                TypeTag(type: workout.type)
-                    .padding(12)
-            }
+            // Hero image (no overlay). TypeTag moved to HStack with date in its original location.
+            RideImage(workout: workout, aspect: 16.0 / 9.0)
+                .frame(maxHeight: 220)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(workout.title)
@@ -61,15 +55,21 @@ struct WorkoutSummaryCard: View {
                     .lineLimit(2)
                     .minimumScaleFactor(0.8)
 
-                Text(workout.date.formatted(date: .abbreviated, time: .shortened))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                HStack {
+                    Text(workout.date.formatted(date: .abbreviated, time: .shortened))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                    Spacer()
+                    TypeTag(type: workout.type)
+                }
+                .padding(.vertical, 8)
             }
             .padding(.horizontal, 4)
 
             // Prominent distance + watts (title for "12.5 Miles", title2 for "105 Watts")
             VStack(alignment: .leading, spacing: 2) {
-                Text(workout.distanceMiles.milesText.replacingOccurrences(of: " mi", with: " Miles"))
+                Text(workout.distanceMiles.milesString)
                     .font(.title.bold())
                     .monospacedDigit()
                     .minimumScaleFactor(0.75)
