@@ -19,7 +19,7 @@ extension WorkoutType {
         case .interval: Color(red: 0.89, green: 0.38, blue: 0.27)
         case .recovery: Color(red: 0.49, green: 0.39, blue: 0.76)
         case .tempo: Color(red: 0.84, green: 0.60, blue: 0.15)
-        case .other: Color.gray
+        case .other: Color(red: 0.82, green: 0.29, blue: 0.62)
         }
     }
 }
