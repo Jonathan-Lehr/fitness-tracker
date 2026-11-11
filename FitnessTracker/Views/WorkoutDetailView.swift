@@ -14,7 +14,10 @@ struct WorkoutDetailView: View {
             }
             .padding(.vertical, 20)
         }
-        .navigationTitle(workout.title)
+        .navigationTitle(workout.date.shortTimestamp())
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button("Edit") { showEdit = true }
@@ -28,6 +31,9 @@ struct WorkoutDetailView: View {
     @ViewBuilder private var notesSection: some View {
         if let notes = workout.notes, !notes.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
+                Divider()
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 8)
                 Text("Notes")
                     .font(.headline)
                     .foregroundStyle(.secondary)
