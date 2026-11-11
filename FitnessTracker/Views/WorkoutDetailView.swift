@@ -20,6 +20,7 @@ struct WorkoutDetailView: View {
             .padding(.top, 8)
             .padding(.bottom, 20)
         }
+        .background(LogSurface.page)
         .navigationTitle(workout.title)
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
