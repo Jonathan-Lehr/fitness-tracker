@@ -89,8 +89,8 @@ enum IFitSummaryParser {
 
         // Incline "2.6 % avg · 10.0 % max"
         let dec = #"(\d{1,2}(?:[.,]\d)?)"#
-        if let m = firstMatch(dec + #"\s*%\s*avg"#, in: text) { s.inclineAvg = number(m[1]) }
-        if let m = firstMatch(dec + #"\s*%\s*max"#, in: text) { s.inclineMax = number(m[1]) }
+        if let m = firstMatch(dec + #"\s*%\s*avg"#, in: text) { s.inclineAvg = inclinePercent(m[1]) }
+        if let m = firstMatch(dec + #"\s*%\s*max"#, in: text) { s.inclineMax = inclinePercent(m[1]) }
 
         // Resistance "10 avg · 16 max" (no % sign; prefer text after the word Resistance)
         let resText: String
@@ -262,6 +262,17 @@ enum IFitSummaryParser {
     }
 
     static func number(_ s: String) -> Double? { Double(s.replacingOccurrences(of: ",", with: ".")) }
+
+    /// Highest incline the bike supports, in percent.
+    static let maximumInclinePercent = 20.0
+
+    /// Incline percent, restoring a dropped decimal point: iFit shows incline with one decimal,
+    /// so "28" above the bike's maximum incline was read from "2.8" (or similar).
+    static func inclinePercent(_ s: String) -> Double? {
+        guard let value = number(s) else { return nil }
+        let hasDecimal = s.contains(".") || s.contains(",")
+        return !hasDecimal && value > maximumInclinePercent ? value / 10 : value
+    }
 
     /// Returns capture groups (index 0 = whole match; missing groups are "").
     static func firstMatch(_ pattern: String, in text: String) -> [String]? {
