@@ -14,7 +14,7 @@ struct WorkoutDetailView: View {
             }
             .padding(.vertical, 20)
         }
-        .navigationTitle(workout.date.shortTimestamp())
+        .navigationTitle(workout.title)
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
