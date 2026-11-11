@@ -54,8 +54,9 @@ final class ScreenStraightenerTests: XCTestCase {
     func testPrefersStraightenedReadingUnlessItFoundFewerFields() {
         let original = reading(fields: 10)
         XCTAssertEqual(OCRReading.preferred(original: original, straightened: reading(fields: 12)).recognizedFieldCount, 12)
-        XCTAssertEqual(OCRReading.preferred(original: original, straightened: reading(fields: 10)).summary,
-                       reading(fields: 10).summary)
+        var tie = reading(fields: 10)
+        tie.summary.title = "Straightened"
+        XCTAssertEqual(OCRReading.preferred(original: original, straightened: tie).summary.title, "Straightened")
         XCTAssertEqual(OCRReading.preferred(original: original, straightened: reading(fields: 9)).recognizedFieldCount, 10)
         XCTAssertEqual(OCRReading.preferred(original: original, straightened: nil).recognizedFieldCount, 10)
     }
