@@ -11,9 +11,6 @@ enum PhotoEnhancer {
     /// Bump it when the enhancement changes.
     static let cacheKeyComponent = "enhanced-1"
 
-    /// Shared because creating a context is expensive; CIContext is safe to use from multiple threads.
-    private static let context = CIContext(options: [.cacheIntermediates: false])
-
     /// The auto-adjusted image at the same size, or the original when Core Image suggests no
     /// adjustments or rendering fails.
     static func enhanced(_ image: CGImage) -> CGImage {
@@ -24,6 +21,6 @@ enum PhotoEnhancer {
             filter.setValue(partial, forKey: kCIInputImageKey)
             return filter.outputImage ?? partial
         }
-        return context.createCGImage(output, from: input.extent) ?? image
+        return ImageTools.coreImageContext.createCGImage(output, from: input.extent) ?? image
     }
 }

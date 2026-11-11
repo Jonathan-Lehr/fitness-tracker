@@ -2,6 +2,7 @@ import Foundation
 import CoreGraphics
 import ImageIO
 import UniformTypeIdentifiers
+import CoreImage
 import Vision
 
 enum PhotoImportError: LocalizedError {
@@ -11,6 +12,9 @@ enum PhotoImportError: LocalizedError {
 
 /// Image helpers built on ImageIO so they work the same on iOS and macOS.
 enum ImageTools {
+    /// Shared because creating a context is expensive; CIContext is safe to use from multiple threads.
+    static let coreImageContext = CIContext(options: [.cacheIntermediates: false])
+
     /// Decodes image data into an upright CGImage no larger than `maxPixel` on its long side.
     static func cgImage(from data: Data, maxPixel: Int = 2400) -> CGImage? {
         guard let src = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
@@ -54,6 +58,32 @@ enum TextRecognizer {
     }
 }
 
+/// One OCR pass over a photo: the recognized text and what the parser made of it.
+struct OCRReading {
+    var items: [RecognizedText]
+    var summary: IFitSummary
+
+    var recognizedFieldCount: Int { IFitSummary.Field.allCases.count - summary.missingFields.count }
+
+    static func read(_ image: CGImage) throws -> OCRReading {
+        let items = try TextRecognizer.recognize(image)
+        return OCRReading(items: items, summary: IFitSummaryParser.parse(items: items))
+    }
+
+    /// Reads the photo as taken and, when the screen is visibly angled, a straightened copy too.
+    static func bestReading(of image: CGImage) throws -> OCRReading {
+        let original = try read(image)
+        let straightened = ScreenStraightener.straightened(image).flatMap { try? read($0) }
+        return preferred(original: original, straightened: straightened)
+    }
+
+    /// The straightened reading unless it found fewer fields than the original.
+    static func preferred(original: OCRReading, straightened: OCRReading?) -> OCRReading {
+        guard let straightened, straightened.recognizedFieldCount >= original.recognizedFieldCount else { return original }
+        return straightened
+    }
+}
+
 /// Result of importing a photo: parsed values plus the JPEG to attach.
 struct PhotoImportResult {
     var summary: IFitSummary
@@ -66,10 +96,10 @@ struct PhotoImportResult {
     static func process(imageData: Data) async throws -> PhotoImportResult {
         try await Task.detached(priority: .userInitiated) {
             guard let image = ImageTools.cgImage(from: imageData) else { throw PhotoImportError.unreadableImage }
-            let items = try TextRecognizer.recognize(image)
-            return PhotoImportResult(summary: IFitSummaryParser.parse(items: items),
+            let reading = try OCRReading.bestReading(of: image)
+            return PhotoImportResult(summary: reading.summary,
                                      photoJPEG: ImageTools.storageJPEG(from: imageData),
-                                     recognizedLines: IFitSummaryParser.groupIntoLines(items),
+                                     recognizedLines: IFitSummaryParser.groupIntoLines(reading.items),
                                      thumbnailAnalysis: try? ThumbnailFocusFinder.analyze(image))
         }.value
     }
