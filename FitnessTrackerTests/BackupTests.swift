@@ -126,7 +126,8 @@ final class BackupTests: XCTestCase {
         SeedData.insertRealRides(context)
         let w = try context.fetch(FetchDescriptor<Workout>()).first!
         w.replacePhoto(with: Data([0xFF, 0xD8, 0xFF, 0x01]), analysis: ThumbnailFocusAnalysis(focus: focus))
-        return BackupService.makeBackup(context)
+        // Whole seconds, since the file stores milliseconds.
+        return BackupService.makeBackup(context, now: Date(timeIntervalSince1970: 1_761_000_000))
     }
 
     func testThumbnailFocusRoundTripsAndRestores() throws {

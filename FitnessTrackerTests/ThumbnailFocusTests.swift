@@ -17,7 +17,8 @@ final class ThumbnailCropMathTests: XCTestCase {
         for aspect in [2.0, 4.0 / 3.0, 5.0] {
             for focus in focuses {
                 let rect = try crop(aspect: aspect, focus: focus)
-                XCTAssertEqual(rect.width / rect.height, aspect, accuracy: 0.02, "aspect \(aspect), focus \(focus)")
+                // Rounding to whole pixels can add a pixel to the height, so allow 1% of the aspect.
+                XCTAssertEqual(rect.width / rect.height, aspect, accuracy: aspect * 0.01, "aspect \(aspect), focus \(focus)")
                 XCTAssertTrue(bandPixels.insetBy(dx: -1, dy: -1).contains(rect), "aspect \(aspect), focus \(focus): \(rect)")
             }
         }
