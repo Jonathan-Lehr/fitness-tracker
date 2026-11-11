@@ -26,7 +26,8 @@ struct AddRideView: View {
     var body: some View {
         switch stage {
         case .review(let result):
-            WorkoutFormView(workout: nil, draft: result.summary, draftPhoto: result.photoJPEG)
+            WorkoutFormView(workout: nil, draft: result.summary, draftPhoto: result.photoJPEG,
+                            draftThumbnailAnalysis: result.thumbnailAnalysis)
         case .manual:
             WorkoutFormView(workout: nil)
         case .choose, .processing:

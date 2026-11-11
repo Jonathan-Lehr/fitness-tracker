@@ -59,6 +59,9 @@ struct PhotoImportResult {
     var summary: IFitSummary
     var photoJPEG: Data?
     var recognizedLines: [String]
+    /// Thumbnail framing for `photoJPEG`, or nil if Vision failed (the backfill retries later).
+    /// Fractions carry over because the stored JPEG is a uniform downscale of the same upright image.
+    var thumbnailAnalysis: ThumbnailFocusAnalysis?
 
     static func process(imageData: Data) async throws -> PhotoImportResult {
         try await Task.detached(priority: .userInitiated) {
@@ -66,7 +69,8 @@ struct PhotoImportResult {
             let items = try TextRecognizer.recognize(image)
             return PhotoImportResult(summary: IFitSummaryParser.parse(items: items),
                                      photoJPEG: ImageTools.storageJPEG(from: imageData),
-                                     recognizedLines: IFitSummaryParser.groupIntoLines(items))
+                                     recognizedLines: IFitSummaryParser.groupIntoLines(items),
+                                     thumbnailAnalysis: try? ThumbnailFocusFinder.analyze(image))
         }.value
     }
 }

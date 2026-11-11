@@ -96,11 +96,24 @@ struct RideImage: View {
         }
         .aspectRatio(aspect, contentMode: .fit)
         .clipped()
-        .task(id: workout.persistentModelID) {
+        .task(id: taskID) {
             guard let data = workout.photoData else { image = nil; return }
             let id = String(describing: workout.persistentModelID)
-            image = await ThumbnailStore.shared.thumbnail(id: id, data: data, aspect: aspect)
+            image = await ThumbnailStore.shared.thumbnail(id: id, data: data, aspect: aspect,
+                                                          focus: workout.thumbnailFocus)
         }
+    }
+
+    /// Restarts the thumbnail task when the focus changes, e.g. once the backfill analyzes the photo.
+    private var taskID: ThumbnailTaskID {
+        ThumbnailTaskID(model: workout.persistentModelID, focus: workout.thumbnailFocus,
+                        analysisVersion: workout.thumbnailFocusAnalysisVersion)
+    }
+
+    private struct ThumbnailTaskID: Equatable {
+        let model: PersistentIdentifier
+        let focus: CGRect?
+        let analysisVersion: Int
     }
 }
 

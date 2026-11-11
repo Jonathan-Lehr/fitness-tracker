@@ -6,6 +6,8 @@ struct WorkoutFormView: View {
     /// Values parsed from a photo; fields the parser missed are flagged.
     var draft: IFitSummary? = nil
     var draftPhoto: Data? = nil
+    /// Thumbnail framing computed for `draftPhoto` during import.
+    var draftThumbnailAnalysis: ThumbnailFocusAnalysis? = nil
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \Program.title) private var programs: [Program]
@@ -157,7 +159,7 @@ struct WorkoutFormView: View {
         w.calories = calories; w.elevationFeet = feet; w.avgRPM = rpm; w.avgWatts = watts
         w.inclineAvg = incAvg; w.inclineMax = incMax; w.resistanceAvg = resAvg; w.resistanceMax = resMax
         w.notes = notes.isEmpty ? nil : notes
-        w.photoData = photoData
+        w.replacePhoto(with: photoData, analysis: photoData == draftPhoto ? draftThumbnailAnalysis : nil)
         try? context.save()
     }
 }

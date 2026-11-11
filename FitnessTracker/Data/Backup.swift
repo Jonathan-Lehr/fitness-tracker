@@ -42,6 +42,27 @@ struct WorkoutDTO: Codable, Equatable {
     /// Base64 JPEG in JSON (Data's default Codable representation).
     var photoData: Data?
     var isSimulated: Bool
+    /// Thumbnail framing for `photoData`. Optional so backups made before #51 still decode; rides
+    /// restored without it are analyzed by `ThumbnailFocusBackfill`.
+    var thumbnailFocus: ThumbnailFocusDTO?
+    var thumbnailFocusAnalysisVersion: Int?
+}
+
+/// Normalized region of the photo (fractions, top-left origin).
+struct ThumbnailFocusDTO: Codable, Equatable {
+    var x: Double
+    var y: Double
+    var width: Double
+    var height: Double
+
+    init(_ rect: CGRect) {
+        x = Double(rect.minX)
+        y = Double(rect.minY)
+        width = Double(rect.width)
+        height = Double(rect.height)
+    }
+
+    var rect: CGRect { CGRect(x: x, y: y, width: width, height: height) }
 }
 
 enum BackupError: LocalizedError, Equatable {
@@ -99,7 +120,9 @@ enum BackupService {
                            calories: w.calories, elevationFeet: w.elevationFeet, avgRPM: w.avgRPM,
                            avgWatts: w.avgWatts, inclineAvg: w.inclineAvg, inclineMax: w.inclineMax,
                            resistanceAvg: w.resistanceAvg, resistanceMax: w.resistanceMax,
-                           notes: w.notes, photoData: w.photoData, isSimulated: w.isSimulated)
+                           notes: w.notes, photoData: w.photoData, isSimulated: w.isSimulated,
+                           thumbnailFocus: w.thumbnailFocus.map { ThumbnailFocusDTO($0) },
+                           thumbnailFocusAnalysisVersion: w.photoData == nil ? nil : w.thumbnailFocusAnalysisVersion)
             })
     }
 
@@ -178,6 +201,7 @@ enum BackupService {
                             resistanceAvg: dto.resistanceAvg, resistanceMax: dto.resistanceMax,
                             notes: dto.notes, isSimulated: dto.isSimulated)
             w.photoData = dto.photoData
+            restoreThumbnailFocus(from: dto, to: w)
             context.insert(w)
             existingKeys.insert(key)
             summary.workoutsAdded += 1
@@ -185,6 +209,12 @@ enum BackupService {
         try? context.save()
         DataDeduper.run(context)
         return summary
+    }
+
+    private static func restoreThumbnailFocus(from dto: WorkoutDTO, to workout: Workout) {
+        guard dto.photoData != nil, let version = dto.thumbnailFocusAnalysisVersion else { return }
+        workout.thumbnailFocus = dto.thumbnailFocus?.rect
+        workout.thumbnailFocusAnalysisVersion = version
     }
 
     static func defaultFilename(now: Date = .now) -> String {

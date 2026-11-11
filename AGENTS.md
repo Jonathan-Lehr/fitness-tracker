@@ -20,7 +20,7 @@ Tabs in `ContentView`: **Log**, **Programs**, **Trends**. Weeks are Monday-first
 | `Design/` | App icon source and renderer |
 | `project.yml` | XcodeGen spec that mirrors the committed `FitnessTracker.xcodeproj` |
 
-`Program` has a title and a `WorkoutType` (endurance, interval, recovery, climb, tempo, other; inferred from the title). `Workout` holds date, duration, distance, calories, elevation, avg RPM/watts, incline, resistance, notes, optional downscaled JPEG (`photoData`, external storage), and `isSimulated`. Models are CloudKit-compatible: no unique constraints, attributes defaulted or optional, optional relationships with inverses.
+`Program` has a title and a `WorkoutType` (endurance, interval, recovery, climb, tempo, other; inferred from the title). `Workout` holds date, duration, distance, calories, elevation, avg RPM/watts, incline, resistance, notes, optional downscaled JPEG (`photoData`, external storage), its Vision thumbnail focus (`thumbnailFocus*`, see `Import/ThumbnailFocus.swift`; computed at import and backfilled at launch by `ThumbnailFocusBackfill`), and `isSimulated`. Models are CloudKit-compatible: no unique constraints, attributes defaulted or optional, optional relationships with inverses.
 
 ## Data sources
 
