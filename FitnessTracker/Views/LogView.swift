@@ -35,7 +35,7 @@ struct LogView: View {
     @State private var showDebug = false
     @State private var showBackup = false
     @State private var pastPeriod: PastPeriodSelection?
-    @AppStorage("logLayout") private var layout: LogLayout = .list
+    @AppStorage("logLayout") private var layout: LogLayout = .grid
     /// Explicit path so grid cards (several per List row) append exactly one destination.
     @State private var path = NavigationPath()
     #if os(iOS)

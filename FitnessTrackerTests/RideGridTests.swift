@@ -28,6 +28,10 @@ final class RideGridTests: XCTestCase {
         XCTAssertEqual(LogLayout(rawValue: "grid"), .grid)
     }
 
+    func testGridIsTheFirstLayoutSegment() {
+        XCTAssertEqual(LogLayout.allCases, [.grid, .list])
+    }
+
     func testCropRectIsTopAnchoredTallAndRightOfCenter() throws {
         for aspect in [2.0, 4.0 / 3.0] {
             let r = try XCTUnwrap(ThumbnailCropper.cropRect(width: 1600, height: 1200, aspect: aspect))
