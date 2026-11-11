@@ -1,8 +1,9 @@
 import Foundation
 import CoreGraphics
 
-/// Builds card thumbnails from a ride's saved (already downscaled) photo.
-/// The saved photo is never modified; thumbnails are derived and cached in memory only.
+/// Builds card thumbnails (also used for the detail view's photo) from a ride's saved, already
+/// downscaled photo. The saved photo is never modified; thumbnails are derived, auto-enhanced,
+/// and cached in memory only.
 enum ThumbnailCropper {
     /// Source band (fractions of image size). iFit summary screens put the scenery/rider header
     /// above the title and stats panel, with "Nice job!" text on the left, so the rider usually
@@ -81,13 +82,15 @@ enum ThumbnailCropper {
     }
 
     /// Decodes the saved photo once at reduced size, crops the scenic band (around `focus` when
-    /// one is stored) and returns it, or nil if the photo is unreadable or the crop looks unusable.
+    /// one is stored) and returns it auto-enhanced, or nil if the photo is unreadable or the crop
+    /// looks unusable. Enhancing the crop rather than the whole photo tunes exposure to what the
+    /// card shows, not the dark stats panel.
     static func thumbnail(from data: Data, aspect: Double, focus: CGRect? = nil, maxPixel: Int = 900) -> CGImage? {
         guard let image = ImageTools.cgImage(from: data, maxPixel: maxPixel),
               let rect = cropRect(width: image.width, height: image.height, aspect: aspect, focus: focus),
               let cropped = image.cropping(to: rect),
               isUsable(cropped) else { return nil }
-        return cropped
+        return PhotoEnhancer.enhanced(cropped)
     }
 }
 
@@ -105,7 +108,7 @@ actor ThumbnailStore {
 
     /// Includes the focus so a ride re-crops once the backfill (or a new photo) changes it.
     static func key(id: String, data: Data, aspect: Double, focus: CGRect? = nil) -> String {
-        "\(id)|\(data.count)|\(data.hashValue)|\(Int(aspect * 100))|\(focusKey(focus))"
+        "\(id)|\(data.count)|\(data.hashValue)|\(Int(aspect * 100))|\(focusKey(focus))|\(PhotoEnhancer.cacheKeyComponent)"
     }
 
     /// Focus rounded to 0.1% of the image, or "band" for the fixed framing.
