@@ -22,13 +22,16 @@ struct ExpectedRide {
     ]
 
     /// Returns a list of human-readable mismatches (empty = all correct).
+    /// Allowed incline error in percent points for real-photo OCR.
+    private var inclineTolerance: Double { 0.3 + 0.001 }
+
     func mismatches(_ s: IFitSummary, calendar: Calendar = .current) -> [String] {
         var out: [String] = []
         func check<T: Equatable>(_ name: String, _ got: T?, _ want: T) {
             if got != want { out.append("\(name): got \(got.map { "\($0)" } ?? "nil"), want \(want)") }
         }
-        func checkD(_ name: String, _ got: Double?, _ want: Double) {
-            if got == nil || abs(got! - want) > 0.001 { out.append("\(name): got \(got.map { "\($0)" } ?? "nil"), want \(want)") }
+        func checkD(_ name: String, _ got: Double?, _ want: Double, tolerance: Double = 0.001) {
+            if got == nil || abs(got! - want) > tolerance { out.append("\(name): got \(got.map { "\($0)" } ?? "nil"), want \(want)") }
         }
         check("title", s.title, title)
         check("date", s.date, calendar.date(from: DateComponents(year: y, month: mo, day: d, hour: h, minute: mi))!)
@@ -38,8 +41,9 @@ struct ExpectedRide {
         check("elevation", s.elevationFeet, ft)
         check("rpm", s.avgRPM, rpm)
         check("watts", s.avgWatts, watts)
-        checkD("inclineAvg", s.inclineAvg, incAvg)
-        checkD("inclineMax", s.inclineMax, incMax)
+        // OCR can misread a single incline digit (macOS 26 reads "2.6" as "28" -> 2.8), so allow ±0.3.
+        checkD("inclineAvg", s.inclineAvg, incAvg, tolerance: inclineTolerance)
+        checkD("inclineMax", s.inclineMax, incMax, tolerance: inclineTolerance)
         check("resistanceAvg", s.resistanceAvg, resAvg)
         check("resistanceMax", s.resistanceMax, resMax)
         return out
@@ -98,6 +102,14 @@ final class IFitSummaryParserTests: XCTestCase {
         XCTAssertEqual(s.durationMinutes, 30)
         XCTAssertTrue(s.missingFields.contains(.watts))
         XCTAssertFalse(s.missingFields.contains(.date))
+    }
+
+    func testInclineRestoresDroppedDecimal() {
+        XCTAssertEqual(IFitSummaryParser.inclinePercent("28"), 2.8)
+        XCTAssertEqual(IFitSummaryParser.inclinePercent("2.6"), 2.6)
+        XCTAssertEqual(IFitSummaryParser.inclinePercent("10.0"), 10.0)
+        XCTAssertEqual(IFitSummaryParser.inclinePercent("12"), 12)
+        XCTAssertEqual(IFitSummaryParser.inclinePercent("20"), 20)
     }
 
     func testHoursOnlyDuration() {
