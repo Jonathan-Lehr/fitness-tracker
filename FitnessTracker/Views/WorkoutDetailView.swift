@@ -85,7 +85,7 @@ struct WorkoutSummaryCard: View {
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
                 Spacer()
-                TypeTag(type: workout.type)
+                TypeTag(type: workout.type, contentAlignment: .center)
             }
             .padding(.vertical, 8)
         }

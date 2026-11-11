@@ -26,10 +26,14 @@ extension WorkoutType {
 
 struct TypeTag: View {
     let type: WorkoutType
+    /// Where the dot and label sit within the shared tag width: leading in lists so tags
+    /// read in a column, centered in the detail view where the tag stands alone.
+    var contentAlignment: HorizontalAlignment = .leading
+
     var body: some View {
-        ZStack {
+        ZStack(alignment: Alignment(horizontal: contentAlignment, vertical: .center)) {
             // Hidden copies of every type reserve the longest one's width, so tags line up and
-            // track Dynamic Type; the visible content is centered within that width.
+            // track Dynamic Type; the visible content is aligned within that width.
             ForEach(WorkoutType.allCases) { candidate in
                 content(for: candidate).hidden()
             }
