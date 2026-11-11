@@ -4,15 +4,21 @@ struct WorkoutDetailView: View {
     let workout: Workout
     @State private var showEdit = false
 
+    /// Margin between the screen edge and the summary card.
+    private let screenMargin: CGFloat = 12
+    /// Notes text lines up with the text inside the summary card.
+    private var notesInset: CGFloat { screenMargin + WorkoutSummaryCard.contentInset }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
                 WorkoutSummaryCard(workout: workout)
-                    .padding(.horizontal)
+                    .padding(.horizontal, screenMargin)
 
                 notesSection
             }
-            .padding(.vertical, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 20)
         }
         .navigationTitle(workout.title)
         #if os(iOS)
@@ -32,14 +38,14 @@ struct WorkoutDetailView: View {
         if let notes = workout.notes, !notes.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 Divider()
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, notesInset)
                     .padding(.bottom, 8)
                 Text("Notes")
                     .font(.headline)
                     .foregroundStyle(.secondary)
-                    .padding(.leading, 20)
+                    .padding(.leading, notesInset)
                 Text(notes)
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, notesInset)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -52,6 +58,13 @@ struct WorkoutDetailView: View {
 struct WorkoutSummaryCard: View {
     let workout: Workout
 
+    /// Padding between the card's edge and its photo.
+    static let cardPadding: CGFloat = 14
+    /// Extra inset for text so it lines up optically with the photo's rounded corners.
+    static let textInset: CGFloat = 4
+    /// Total inset from the card's edge to its text.
+    static var contentInset: CGFloat { cardPadding + textInset }
+
     /// Secondary stats share one row in equal flexible columns; tile text scales down to fit.
     private let secondaryColumns = Array(repeating: GridItem(.flexible(), spacing: 12, alignment: .leading), count: 4)
     /// Additional stats use two equal columns.
@@ -61,15 +74,15 @@ struct WorkoutSummaryCard: View {
         VStack(alignment: .leading, spacing: 16) {
             photo
             heading
-                .padding(.horizontal, 4)
+                .padding(.horizontal, Self.textInset)
             featuredStats
-                .padding(.horizontal, 4)
+                .padding(.horizontal, Self.textInset)
             statGrid(secondaryStats, columns: secondaryColumns)
-                .padding(.horizontal, 4)
+                .padding(.horizontal, Self.textInset)
             additionalStats
-                .padding(.horizontal, 4)
+                .padding(.horizontal, Self.textInset)
         }
-        .padding(20)
+        .padding(Self.cardPadding)
         .background(LogSurface.card, in: RoundedRectangle(cornerRadius: 20))
     }
 
