@@ -112,24 +112,15 @@ struct WorkoutSummaryCard: View {
 
     private var featuredStats: some View {
         VStack(alignment: .leading, spacing: 2) {
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(workout.distanceMiles.milesString)
-                    .font(.title.bold())
-                    .monospacedDigit()
-                Text("Miles")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
-            .lineLimit(1)
-            .minimumScaleFactor(0.75)
-
-            Text(workout.avgWatts > 0 ? "\(workout.avgWatts) Watts" : "— Watts")
-                .font(.title2.bold())
-                .monospacedDigit()
-                .foregroundStyle(.orange)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+            FeaturedStat(value: workout.distanceMiles.milesString, unit: "Miles",
+                         valueFont: .title.bold(), unitFont: .title3.weight(.semibold))
+            FeaturedStat(value: wattsValue, unit: "Watts",
+                         valueFont: .title2.bold(), unitFont: .headline, color: .orange)
         }
+    }
+
+    private var wattsValue: String {
+        workout.avgWatts > 0 ? "\(workout.avgWatts)" : "—"
     }
 
     private var secondaryStats: [StatTile] {
@@ -169,5 +160,28 @@ struct WorkoutSummaryCard: View {
                 tiles[index]
             }
         }
+    }
+}
+
+/// A featured value followed by its unit in a smaller font, both in the same color
+/// (as in Apple Fitness), e.g. a bold "19.14" with a smaller "Miles".
+private struct FeaturedStat: View {
+    let value: String
+    let unit: String
+    let valueFont: Font
+    let unitFont: Font
+    var color: Color = .primary
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            Text(value)
+                .font(valueFont)
+                .monospacedDigit()
+            Text(unit)
+                .font(unitFont)
+        }
+        .foregroundStyle(color)
+        .lineLimit(1)
+        .minimumScaleFactor(0.75)
     }
 }
