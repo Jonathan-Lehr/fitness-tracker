@@ -4,17 +4,26 @@ struct WorkoutDetailView: View {
     let workout: Workout
     @State private var showEdit = false
 
+    /// Margin between the screen edge and the summary card.
+    private let screenMargin: CGFloat = 12
+    /// Notes text lines up with the text inside the summary card.
+    private var notesInset: CGFloat { screenMargin + WorkoutSummaryCard.contentInset }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
                 WorkoutSummaryCard(workout: workout)
-                    .padding(.horizontal)
+                    .padding(.horizontal, screenMargin)
 
                 notesSection
             }
-            .padding(.vertical, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 20)
         }
         .navigationTitle(workout.title)
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button("Edit") { showEdit = true }
@@ -28,12 +37,15 @@ struct WorkoutDetailView: View {
     @ViewBuilder private var notesSection: some View {
         if let notes = workout.notes, !notes.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
+                Divider()
+                    .padding(.horizontal, notesInset)
+                    .padding(.bottom, 8)
                 Text("Notes")
                     .font(.headline)
                     .foregroundStyle(.secondary)
-                    .padding(.leading, 20)
+                    .padding(.leading, notesInset)
                 Text(notes)
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, notesInset)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -46,6 +58,13 @@ struct WorkoutDetailView: View {
 struct WorkoutSummaryCard: View {
     let workout: Workout
 
+    /// Padding between the card's edge and its photo.
+    static let cardPadding: CGFloat = 14
+    /// Extra inset for text so it lines up optically with the photo's rounded corners.
+    static let textInset: CGFloat = 4
+    /// Total inset from the card's edge to its text.
+    static var contentInset: CGFloat { cardPadding + textInset }
+
     /// Secondary stats share one row in equal flexible columns; tile text scales down to fit.
     private let secondaryColumns = Array(repeating: GridItem(.flexible(), spacing: 12, alignment: .leading), count: 4)
     /// Additional stats use two equal columns.
@@ -55,15 +74,15 @@ struct WorkoutSummaryCard: View {
         VStack(alignment: .leading, spacing: 16) {
             photo
             heading
-                .padding(.horizontal, 4)
+                .padding(.horizontal, Self.textInset)
             featuredStats
-                .padding(.horizontal, 4)
+                .padding(.horizontal, Self.textInset)
             statGrid(secondaryStats, columns: secondaryColumns)
-                .padding(.horizontal, 4)
+                .padding(.horizontal, Self.textInset)
             additionalStats
-                .padding(.horizontal, 4)
+                .padding(.horizontal, Self.textInset)
         }
-        .padding(20)
+        .padding(Self.cardPadding)
         .background(LogSurface.card, in: RoundedRectangle(cornerRadius: 20))
     }
 
@@ -93,24 +112,15 @@ struct WorkoutSummaryCard: View {
 
     private var featuredStats: some View {
         VStack(alignment: .leading, spacing: 2) {
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(workout.distanceMiles.milesString)
-                    .font(.title.bold())
-                    .monospacedDigit()
-                Text("Miles")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
-            .lineLimit(1)
-            .minimumScaleFactor(0.75)
-
-            Text(workout.avgWatts > 0 ? "\(workout.avgWatts) Watts" : "— Watts")
-                .font(.title2.bold())
-                .monospacedDigit()
-                .foregroundStyle(.orange)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+            FeaturedStat(value: workout.distanceMiles.milesString, unit: "Miles",
+                         valueFont: .title.bold(), unitFont: .title3.weight(.semibold))
+            FeaturedStat(value: wattsValue, unit: "Watts",
+                         valueFont: .title2.bold(), unitFont: .headline, color: .orange)
         }
+    }
+
+    private var wattsValue: String {
+        workout.avgWatts > 0 ? "\(workout.avgWatts)" : "—"
     }
 
     private var secondaryStats: [StatTile] {
@@ -150,5 +160,28 @@ struct WorkoutSummaryCard: View {
                 tiles[index]
             }
         }
+    }
+}
+
+/// A featured value followed by its unit in a smaller font, both in the same color
+/// (as in Apple Fitness), e.g. a bold "19.14" with a smaller "Miles".
+private struct FeaturedStat: View {
+    let value: String
+    let unit: String
+    let valueFont: Font
+    let unitFont: Font
+    var color: Color = .primary
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            Text(value)
+                .font(valueFont)
+                .monospacedDigit()
+            Text(unit)
+                .font(unitFont)
+        }
+        .foregroundStyle(color)
+        .lineLimit(1)
+        .minimumScaleFactor(0.75)
     }
 }
