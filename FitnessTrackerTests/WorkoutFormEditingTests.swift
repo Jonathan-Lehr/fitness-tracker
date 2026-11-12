@@ -111,11 +111,11 @@ final class WorkoutFormEditingTests: XCTestCase {
         XCTAssertEqual(workout.durationMinutes, 42)
         XCTAssertEqual(workout.notes, "Felt good")
         XCTAssertEqual(workout.title, "Green River Recovery Ride")
-        let fresh = ModelContext(container)
-        let refetched = try XCTUnwrap(try fresh.fetch(FetchDescriptor<Workout>()).first)
-        XCTAssertEqual(refetched.durationMinutes, 42)
-        XCTAssertEqual(refetched.notes, "Felt good")
-        XCTAssertEqual(refetched.title, "Green River Recovery Ride")
+        let freshContext = ModelContext(container)
+        let refetchedWorkout = try XCTUnwrap(try freshContext.fetch(FetchDescriptor<Workout>()).first)
+        XCTAssertEqual(refetchedWorkout.durationMinutes, 42)
+        XCTAssertEqual(refetchedWorkout.notes, "Felt good")
+        XCTAssertEqual(refetchedWorkout.title, "Green River Recovery Ride")
     }
 
     func testEditSavePersistsChanges() throws {
@@ -130,12 +130,12 @@ final class WorkoutFormEditingTests: XCTestCase {
         try editing.save(into: context)
 
         // A new context on the same container should see the saved values.
-        let fresh = ModelContext(container)
-        let refetched = try XCTUnwrap(try fresh.fetch(FetchDescriptor<Workout>()).first)
-        XCTAssertEqual(refetched.durationMinutes, 50)
-        XCTAssertEqual(refetched.notes, "Updated")
-        XCTAssertEqual(refetched.title, "Green River Recovery Ride")
-        XCTAssertEqual(try workoutCount(fresh), 1)
+        let freshContext = ModelContext(container)
+        let refetchedWorkout = try XCTUnwrap(try freshContext.fetch(FetchDescriptor<Workout>()).first)
+        XCTAssertEqual(refetchedWorkout.durationMinutes, 50)
+        XCTAssertEqual(refetchedWorkout.notes, "Updated")
+        XCTAssertEqual(refetchedWorkout.title, "Green River Recovery Ride")
+        XCTAssertEqual(try workoutCount(freshContext), 1)
     }
 
     func testParserPrefillPopulatesUninsertedWorkout() throws {

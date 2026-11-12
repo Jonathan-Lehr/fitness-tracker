@@ -44,17 +44,17 @@ final class WorkoutFormEditing {
     }
 
     static func editing(_ workout: Workout, container: ModelContainer) throws -> WorkoutFormEditing {
-        let scratch = ModelContext(container)
-        scratch.autosaveEnabled = false
+        let scratchContext = ModelContext(container)
+        scratchContext.autosaveEnabled = false
         let identifier = workout.persistentModelID
         // Fetch in the scratch context rather than passing the caller's instance across contexts.
         // `model(for:)` can return an empty stub if the identifier is unknown, so match on ID.
-        let copy = try scratch.fetch(FetchDescriptor<Workout>()).first { $0.persistentModelID == identifier }
-        guard let copy else { throw WorkoutFormEditingError.workoutNotFound }
+        let scratchWorkout = try scratchContext.fetch(FetchDescriptor<Workout>()).first { $0.persistentModelID == identifier }
+        guard let scratchWorkout else { throw WorkoutFormEditingError.workoutNotFound }
         return WorkoutFormEditing(
-            workout: copy,
-            title: copy.title,
-            scratchContext: scratch
+            workout: scratchWorkout,
+            title: scratchWorkout.title,
+            scratchContext: scratchContext
         )
     }
 
