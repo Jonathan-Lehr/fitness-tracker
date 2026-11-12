@@ -10,17 +10,23 @@ Tabs in `ContentView`: **Log**, **Programs**, **Trends**. Weeks are Monday-first
 
 | Path | Role |
 | --- | --- |
-| `FitnessTracker/FitnessTrackerApp.swift` | App entry, SwiftData `ModelContainer`, CloudKit vs in-memory store, seed + dedupe |
-| `FitnessTracker/PreviewSupport.swift` | DEBUG-only in-memory fixtures for `#Preview`s |
-| `FitnessTracker/Models/` | `Program`, `Workout`, `LogFilter`, period summaries, grid grouping, Watts axis math |
-| `FitnessTracker/Views/` | Screens and shared UI (`LogView`, `RideGridView`, `TrendsView`, forms, cards) |
-| `FitnessTracker/Extensions/` | General-purpose extensions and formatting helpers |
+| `FitnessTracker/App/` | App entry (`FitnessTrackerApp`), root `ContentView`, window sizing, orientation lock, preview fixtures |
+| `FitnessTracker/Log/` | Log tab: list/grid, filters, ride rows |
+| `FitnessTracker/Workouts/` | Ride detail, add/edit form, and the scratch-context editing session |
+| `FitnessTracker/Summary/` | Period summary model and cards (current and past) |
+| `FitnessTracker/Trends/` | Trends tab, chart data, Watts axis math, in-progress comparison |
+| `FitnessTracker/Programs/` | Programs tab, program detail, side-by-side compare |
 | `FitnessTracker/Import/` | Photo decode/OCR (`PhotoImport`) and the unit-testable `IFitSummaryParser` |
-| `FitnessTracker/Data/` | Seed rides, simulated debug data, CloudKit `DataDeduper`, JSON backup |
-| `FitnessTrackerTests/` | Unit tests (parser, OCR fixtures, summaries, axis, grid/thumbnails, backup, dedupe, form editing); shared helpers in `TestSupport.swift` |
+| `FitnessTracker/Data/` | Seed rides, simulated debug data, CloudKit `DataDeduper`, JSON backup, Backup & Restore and debug menus |
+| `FitnessTracker/Models/` | SwiftData types (`Program`, `Workout`) and logic shared across features (`AppCalendar`, `GroupingPeriod`, `Totals`) |
+| `FitnessTracker/SharedViews/` | Subviews used by several features (`AppColor`, `StatTile`, `TypeTag`, `RideImage`) |
+| `FitnessTracker/Extensions/` | General-purpose extensions and formatting helpers |
+| `FitnessTrackerTests/` | Unit tests (parser, OCR fixtures, summaries, axis, grid/thumbnails, backup, dedupe, form editing); shared helpers in `TestSupport.swift`. Tests stay in one flat folder. |
 | `Config/` | Shared/local xcconfig, entitlements, iOS Info.plist |
 | `Design/` | App icon source and renderer |
 | `project.yml` | XcodeGen spec that mirrors the committed `FitnessTracker.xcodeproj` |
+
+Feature groups hold their views plus logic used only by that feature. `Models/` holds SwiftData types and logic shared across features, `SharedViews/` holds subviews used by several features, and `Extensions/` holds general extensions and formatting helpers. Tests stay in a flat `FitnessTrackerTests/` folder. Group new files by functional area, not by kind (no Enums or Utilities groups).
 
 `Program` has a title and a `WorkoutType` (endurance, interval, recovery, climb, tempo, other; inferred from the title). `Workout` holds date, duration, distance, calories, elevation, avg RPM/watts, incline, resistance, notes, optional downscaled JPEG (`photoData`, external storage), its Vision thumbnail focus (`thumbnailFocus*`, see `Import/ThumbnailFocus.swift`; computed at import and backfilled at launch by `ThumbnailFocusBackfill`), and `isSimulated`. Models are CloudKit-compatible: no unique constraints, attributes defaulted or optional, optional relationships with inverses.
 

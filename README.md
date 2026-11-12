@@ -48,7 +48,7 @@ xcodegen        # reads project.yml, writes FitnessTracker.xcodeproj
 
 ## Data model
 
-Shared models live in `FitnessTracker/Models/`; general helpers (formatting, date intervals, bindings) live in `FitnessTracker/Extensions/`.
+Source files are grouped by feature under `FitnessTracker/`. Each feature group holds that feature's views plus any logic used only there. `Models/` holds the SwiftData types and logic shared across features; `SharedViews/` holds subviews used by several features; `Extensions/` holds general extensions and formatting helpers. Tests stay in one flat `FitnessTrackerTests/` folder.
 
 - `Program`: `title`, `type` (endurance / interval / recovery / climb / tempo / other, inferred from the title), `workouts`.
 - `Workout`: date, duration, distance, calories, elevation, avg RPM, avg watts, incline avg/max, resistance avg/max, notes, photo (`photoData`, external storage), Vision thumbnail focus (`thumbnailFocus*` and `thumbnailFocusAnalysisVersion`), `isSimulated`, `program`.
