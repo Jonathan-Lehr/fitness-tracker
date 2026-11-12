@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 struct WorkoutRow: View {
     let workout: Workout
@@ -25,4 +26,13 @@ struct WorkoutRow: View {
             .font(.caption).foregroundStyle(.secondary)
         }
     }
+}
+
+#Preview("Workout row") {
+    let container = PreviewSupport.container()
+    let workout = PreviewSupport.sampleWorkout(in: container)
+    List {
+        WorkoutRow(workout: workout)
+    }
+    .modelContainer(container)
 }

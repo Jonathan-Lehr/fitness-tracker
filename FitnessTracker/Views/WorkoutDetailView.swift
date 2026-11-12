@@ -190,3 +190,24 @@ private struct FeaturedStat: View {
         .minimumScaleFactor(0.75)
     }
 }
+
+#Preview("Workout detail") {
+    let container = PreviewSupport.container()
+    let workout = PreviewSupport.sampleWorkout(in: container)
+    NavigationStack {
+        WorkoutDetailView(workout: workout)
+    }
+    .modelContainer(container)
+    .environment(\.calendar, .app)
+}
+
+#Preview("Workout detail, dark") {
+    let container = PreviewSupport.container()
+    let workout = PreviewSupport.sampleWorkout(in: container)
+    NavigationStack {
+        WorkoutDetailView(workout: workout)
+    }
+    .modelContainer(container)
+    .environment(\.calendar, .app)
+    .preferredColorScheme(.dark)
+}

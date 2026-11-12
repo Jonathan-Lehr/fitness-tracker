@@ -1,6 +1,6 @@
 # fitness-tracker
 
-**FitnessTracker** is a personal SwiftUI + SwiftData app for logging NordicTrack s22i / iFit rides and comparing repeat efforts on the same workout. It's one multiplatform target for iOS 17+ and macOS 14+.
+**FitnessTracker** is a personal SwiftUI + SwiftData app for logging NordicTrack S22i / iFit rides and comparing repeat efforts on the same workout. It's one multiplatform target for iOS 17+ and macOS 14+.
 
 ## Setup
 
@@ -25,13 +25,14 @@ xcodegen        # reads project.yml, writes FitnessTracker.xcodeproj
 
 ## Features
 
-- **Log**: rides grouped by Week / Month / Year with totals per section (rides, time, miles, calories, climbing). Filters for date range, program, workout type, and minimum average watts. Swipe to delete.
+- **Log**: rides grouped by Week / Month / Year, with a List/Grid layout toggle. Section headers show ride count, time, average watts, and elevation, with total miles on the trailing edge. Tapping a header opens that calendar period's summary. The top card compares the current rolling period with the previous one. Filters for date range, program, workout type, and minimum average watts. Swipe to delete.
 - **Programs**: every iFit program you've ridden. Program detail has a Swift Charts chart of watts, duration, or calories over time, marks your best effort (highest avg watts) with a star, and lets you pick two efforts for a side-by-side compare with deltas.
-- **Trends**: weekly or monthly charts of ride time, distance, calories, and average watts.
-- **Add Ride is photo-first**: **Take Photo** (iPhone camera) or **Choose Photo** (Photos picker, iOS + macOS). On the Mac you can also drag an image onto the drop area or use **Open Image File…**. The photo is read with Vision text recognition and parsed into a draft ride. The form then opens prefilled for review, with the photo attached (downscaled JPEG) and any field the parser couldn't find flagged in orange. **Enter manually** opens an empty form. Existing programs are matched by title (case-insensitive), or a new one is created.
-- **Edit ride**: change any field, notes, or remove the photo.
+- **Trends**: weekly or monthly charts of ride time, distance, calories, and average watts. The in-progress period is compared with the same elapsed portion of the previous period.
+- **Add Ride is photo-first**: **Take Photo** (iPhone camera) or **Choose Photo** (Photos picker, iOS + macOS). On the Mac you can also drag an image onto the drop area or use **Open Image File…**. The photo is read with Vision text recognition and parsed into a new ride. The form then opens prefilled for review, with the photo attached (downscaled JPEG) and any field the parser couldn't find flagged in orange. **Enter manually** opens a form with hand-entry defaults. Nothing is saved until you tap Save; dismissing the form discards the unsaved ride. Existing programs are matched by title (case-insensitive), or a new one is created.
+- **Edit ride**: change any field, notes, or the photo. Save persists the changes; cancel discards them.
+- **Backup & Restore**: export or import a JSON backup (merge or replace) from the Log toolbar's **More** menu.
 - **Seed data**: the 4 real rides from Oct 2026 are inserted on first launch.
-- **Debug menu** (ladybug toolbar button, DEBUG builds only): generate ~18 months of simulated rides (3–5/week, 20 Utah-themed programs, 4 favorites ridden many times with watts slowly improving), remove simulated rides, re-insert real rides, or clear everything.
+- **Debug menu** (DEBUG builds only): **More** (ellipsis) → **Debug…** in the Log toolbar. Generate ~18 months of simulated rides (3–5/week, 20 Utah-themed programs, 4 favorites ridden many times with watts slowly improving), remove simulated rides, re-insert real rides, or clear everything. Destructive actions offer a JSON backup first.
 
 ## Photo parsing
 
@@ -40,14 +41,17 @@ xcodegen        # reads project.yml, writes FitnessTracker.xcodeproj
 
 ## Tests and CI
 
-- `FitnessTrackerTests/IFitSummaryParserTests.swift`: parser unit tests with OCR-like fixtures for the 4 real rides, plus missing-field and title-proximity cases. `PhotoOCRIntegrationTests` runs real Vision OCR on the sample photos in `FitnessTrackerTests/Resources/` and reports every mismatched field together with the OCR text (currently 48/48 fields correct).
-- Run locally: ⌘U in Xcode, or `xcodebuild -scheme FitnessTracker -destination 'platform=macOS' test`.
-- GitHub Actions (`.github/workflows/build.yml`) runs on every push and PR. It builds for the iOS Simulator and macOS, runs the tests on macOS, and regenerates the project from `project.yml` with XcodeGen to check that the spec still matches the committed project.
+- Unit tests cover the parser (OCR-like fixtures for the 4 real rides, plus `PhotoOCRIntegrationTests` on the sample photos in `FitnessTrackerTests/Resources/`), period summaries, formatting, backup, dedupe, the ride form, and other helpers. Shared test fixtures live in `FitnessTrackerTests/TestSupport.swift`.
+- A few screens have Xcode `#Preview`s (`WorkoutDetailView`, `PeriodSummaryCard`, `WorkoutRow`, type tags, and section headers) that use an in-memory store seeded with the real rides.
+- Run locally: ⌘U in Xcode, or `xcodebuild -project FitnessTracker.xcodeproj -scheme FitnessTracker -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO test`.
+- GitHub Actions (`.github/workflows/build.yml`) runs on every push and PR as a single **Build and test** job. It runs on a self-hosted Mac when the repo variable `MACOS_RUNNER` is set, and falls back to GitHub-hosted `macos-26` otherwise (pull requests from forks always use the hosted runner). The job checks the XcodeGen spec, runs the macOS tests, and compiles for the iOS Simulator.
 
 ## Data model
 
+Shared models live in `FitnessTracker/Models/`; general helpers (formatting, date intervals, bindings) live in `FitnessTracker/Extensions/`.
+
 - `Program`: `title`, `type` (endurance / interval / recovery / climb / tempo / other, inferred from the title), `workouts`.
-- `Workout`: date, duration, distance, calories, elevation, avg RPM, avg watts, incline avg/max, resistance avg/max, notes, photo (external storage), `program`.
+- `Workout`: date, duration, distance, calories, elevation, avg RPM, avg watts, incline avg/max, resistance avg/max, notes, photo (`photoData`, external storage), Vision thumbnail focus (`thumbnailFocus*` and `thumbnailFocusAnalysisVersion`), `isSimulated`, `program`.
 
 The models are CloudKit-compatible: no unique constraints, every attribute defaulted or optional, and optional relationships with inverses.
 

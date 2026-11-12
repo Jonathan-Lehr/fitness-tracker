@@ -11,12 +11,13 @@ Tabs in `ContentView`: **Log**, **Programs**, **Trends**. Weeks are Monday-first
 | Path | Role |
 | --- | --- |
 | `FitnessTracker/FitnessTrackerApp.swift` | App entry, SwiftData `ModelContainer`, CloudKit vs in-memory store, seed + dedupe |
-| `FitnessTracker/Models/` | `Program`, `Workout`, period summaries, grid grouping, Watts axis math |
+| `FitnessTracker/PreviewSupport.swift` | DEBUG-only in-memory fixtures for `#Preview`s |
+| `FitnessTracker/Models/` | `Program`, `Workout`, `LogFilter`, period summaries, grid grouping, Watts axis math |
 | `FitnessTracker/Views/` | Screens and shared UI (`LogView`, `RideGridView`, `TrendsView`, forms, cards) |
 | `FitnessTracker/Extensions/` | General-purpose extensions and formatting helpers |
 | `FitnessTracker/Import/` | Photo decode/OCR (`PhotoImport`) and the unit-testable `IFitSummaryParser` |
 | `FitnessTracker/Data/` | Seed rides, simulated debug data, CloudKit `DataDeduper`, JSON backup |
-| `FitnessTrackerTests/` | Unit tests (parser, OCR fixtures, summaries, axis, grid/thumbnails, backup, dedupe) |
+| `FitnessTrackerTests/` | Unit tests (parser, OCR fixtures, summaries, axis, grid/thumbnails, backup, dedupe, form editing); shared helpers in `TestSupport.swift` |
 | `Config/` | Shared/local xcconfig, entitlements, iOS Info.plist |
 | `Design/` | App icon source and renderer |
 | `project.yml` | XcodeGen spec that mirrors the committed `FitnessTracker.xcodeproj` |
@@ -26,8 +27,9 @@ Tabs in `ContentView`: **Log**, **Programs**, **Trends**. Weeks are Monday-first
 ## Data sources
 
 - **iFit screenshot OCR (the current import path).** Add Ride is photo-first: camera, Photos picker, or (Mac) drag-and-drop / file open. `PhotoImport` decodes and downscales with ImageIO, runs `VNRecognizeTextRequest`, and writes a reduced JPEG. `IFitSummaryParser` is pure Swift (no Vision/UI) and parses title, date/time, duration, miles, calories, elevation, RPM, watts, incline, and resistance. The form opens prefilled for review; unmatched fields are flagged. Existing programs are matched by title (case-insensitive).
-- **SwiftData + CloudKit.** Private database container `iCloud.com.jonathanlehr.FitnessTracker`. Tests and SwiftUI previews use an in-memory store with `cloudKitDatabase: .none` so unsigned CI builds work. `DataDeduper` merges Programs with the same title and Workouts with the same title and start minute (on launch and after CloudKit imports). Four real Oct 2026 rides are seeded once per device.
-- **JSON backup.** Versioned export/import in `Data/Backup.swift` (merge or replace, with dedupe). UI lives in Backup & Restore and the debug menu.
+- **Ride form editing.** New and existing rides are edited in a scratch `ModelContext` on the same container, with autosave off. The presenting view (`AddRideView` or `WorkoutDetailView`) creates a `WorkoutFormEditing` session and passes it into `WorkoutFormView`, because `@Environment(\.modelContext)` isn't available in `View.init`. Save `findOrCreate`s the program in the scratch context and persists; cancel drops the unsaved context, which discards the edits.
+- **SwiftData + CloudKit.** Private database container `iCloud.com.jonathanlehr.FitnessTracker`. Tests and SwiftUI `#Preview`s use an in-memory store with `cloudKitDatabase: .none` so unsigned CI builds work. `#Preview`s for a few views (`WorkoutDetailView`, `PeriodSummaryCard`, `WorkoutRow`, type tags, and section headers) are built through `PreviewSupport`, which seeds the four real rides. Broader preview coverage is #45. `DataDeduper` merges Programs with the same title and Workouts with the same title and start minute (on launch and after CloudKit imports). Four real Oct 2026 rides are seeded once per device.
+- **JSON backup.** Versioned export/import in `Data/Backup.swift` (merge or replace, with dedupe). UI lives in Backup & Restore, from the Log toolbar's More menu, and in the debug menu.
 - **HealthKit is not implemented.** Heart-rate from Apple Fitness is backlog issue #19. Do not add HealthKit code unless that issue (or a later one) is the work being done.
 
 ## Build and test

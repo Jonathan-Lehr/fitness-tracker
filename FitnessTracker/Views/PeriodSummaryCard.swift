@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import Charts
 
 struct PeriodSummaryCard: View {
@@ -220,5 +221,23 @@ private struct PeriodSummaryMileageChart: View {
             }
         }
         .frame(height: 70)
+    }
+}
+
+#Preview("Period summary") {
+    PreviewPeriodSummaryCard()
+}
+
+private struct PreviewPeriodSummaryCard: View {
+    @State private var period = GroupingPeriod.week
+    private let container = PreviewSupport.container()
+
+    var body: some View {
+        PeriodSummaryCard(
+            period: $period,
+            summary: PeriodSummary.compute(PreviewSupport.workouts(in: container), period: period)
+        )
+        .modelContainer(container)
+        .padding()
     }
 }
