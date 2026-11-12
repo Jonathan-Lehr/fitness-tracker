@@ -62,7 +62,7 @@ struct WorkoutDetailView: View {
                 Text(notes)
                     .padding(.horizontal, notesInset)
             } else {
-                Button("Add Note") {
+                Button("Add Notes") {
                     noteEditing = try? NoteEditing.editing(workout, container: context.container)
                 }
                 .padding(.horizontal, notesInset)

@@ -70,7 +70,7 @@ struct NoteEditView: View {
                 }
             }
             .formStyle(.grouped)
-            .navigationTitle("Add Note")
+            .navigationTitle("Add Notes")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
