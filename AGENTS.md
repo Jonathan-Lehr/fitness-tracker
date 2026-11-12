@@ -13,6 +13,7 @@ Tabs in `ContentView`: **Log**, **Programs**, **Trends**. Weeks are Monday-first
 | `FitnessTracker/FitnessTrackerApp.swift` | App entry, SwiftData `ModelContainer`, CloudKit vs in-memory store, seed + dedupe |
 | `FitnessTracker/Models/` | `Program`, `Workout`, period summaries, grid grouping, Watts axis math |
 | `FitnessTracker/Views/` | Screens and shared UI (`LogView`, `RideGridView`, `TrendsView`, forms, cards) |
+| `FitnessTracker/Extensions/` | General-purpose extensions and formatting helpers |
 | `FitnessTracker/Import/` | Photo decode/OCR (`PhotoImport`) and the unit-testable `IFitSummaryParser` |
 | `FitnessTracker/Data/` | Seed rides, simulated debug data, CloudKit `DataDeduper`, JSON backup |
 | `FitnessTrackerTests/` | Unit tests (parser, OCR fixtures, summaries, axis, grid/thumbnails, backup, dedupe) |
