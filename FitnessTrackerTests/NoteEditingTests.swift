@@ -66,16 +66,61 @@ final class NoteEditingTests: XCTestCase {
         XCTAssertNil(refetchedWorkout.notes)
     }
 
-    func testCanSaveRequiresNonEmptyNote() throws {
+    func testAddingRequiresNonEmptyNote() throws {
         let container = try makeContainer()
         let context = makeContext(container)
         let workout = try insertRide(into: context)
         let editing = try NoteEditing.editing(workout, container: container)
 
+        XCTAssertFalse(editing.isEditingExistingNote)
+        XCTAssertEqual(editing.notesText, "")
+        XCTAssertEqual(editing.navigationTitle, "Add Notes")
         XCTAssertFalse(editing.canSave)
         editing.notesText = "   "
         XCTAssertFalse(editing.canSave)
         editing.notesText = "Good ride"
         XCTAssertTrue(editing.canSave)
+    }
+
+    func testEditPrefillsExistingNote() throws {
+        let container = try makeContainer()
+        let context = makeContext(container)
+        let workout = try insertRide(into: context, notes: "Felt good")
+        let editing = try NoteEditing.editing(workout, container: container)
+
+        XCTAssertTrue(editing.isEditingExistingNote)
+        XCTAssertEqual(editing.notesText, "Felt good")
+        XCTAssertEqual(editing.navigationTitle, "Edit Notes")
+        XCTAssertTrue(editing.canSave)
+    }
+
+    func testClearingExistingNoteStoresNil() throws {
+        let container = try makeContainer()
+        let context = makeContext(container)
+        let workout = try insertRide(into: context, notes: "Felt good")
+        let editing = try NoteEditing.editing(workout, container: container)
+        editing.notesText = "   "
+        XCTAssertTrue(editing.canSave, "editing allows Save so a note can be cleared")
+        try editing.save()
+
+        let freshContext = ModelContext(container)
+        let refetchedWorkout = try XCTUnwrap(try freshContext.fetch(FetchDescriptor<Workout>()).first)
+        XCTAssertNil(refetchedWorkout.notes)
+    }
+
+    func testCancelDoesNotChangeExistingNote() throws {
+        let container = try makeContainer()
+        let context = makeContext(container)
+        let workout = try insertRide(into: context, notes: "Felt good")
+        do {
+            let editing = try NoteEditing.editing(workout, container: container)
+            editing.notesText = "Changed"
+            XCTAssertEqual(workout.notes, "Felt good", "edits in the scratch context must not leak")
+        }
+
+        XCTAssertEqual(workout.notes, "Felt good")
+        let freshContext = ModelContext(container)
+        let refetchedWorkout = try XCTUnwrap(try freshContext.fetch(FetchDescriptor<Workout>()).first)
+        XCTAssertEqual(refetchedWorkout.notes, "Felt good")
     }
 }

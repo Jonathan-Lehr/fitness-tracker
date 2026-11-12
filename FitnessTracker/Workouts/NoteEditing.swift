@@ -3,7 +3,7 @@ import Observation
 import SwiftData
 import SwiftUI
 
-/// Add-note session for `NoteEditView`. Edits a copy of the workout in a scratch
+/// Add/edit-notes session for `NoteEditView`. Edits a copy of the workout in a scratch
 /// `ModelContext` on the same container with autosave disabled, matching
 /// `WorkoutFormEditing`: Save persists, Cancel just dismisses.
 ///
@@ -12,6 +12,8 @@ import SwiftUI
 final class NoteEditing {
     /// Text shown in the sheet. Written to the workout only on Save, after trimming.
     var notesText: String
+    /// True when the session opened on a workout that already had a note.
+    let isEditingExistingNote: Bool
     private let workout: Workout
     private let context: ModelContext
 
@@ -30,14 +32,21 @@ final class NoteEditing {
         self.workout = workout
         self.context = context
         self.notesText = workout.notes ?? ""
+        let existingNote = workout.notes?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        self.isEditingExistingNote = !existingNote.isEmpty
     }
 
-    /// True when the trimmed text is non-empty, so Save has a note to persist.
+    var navigationTitle: String {
+        isEditingExistingNote ? "Edit Notes" : "Add Notes"
+    }
+
+    /// Adding requires a non-empty note. Editing always allows Save, including clearing the note.
     var canSave: Bool {
-        !trimmedNote.isEmpty
+        isEditingExistingNote || !trimmedNote.isEmpty
     }
 
-    /// Persists the trimmed note in the scratch context. Nothing is written to the store until this is called.
+    /// Persists the trimmed note in the scratch context. An empty value is stored as `nil`.
+    /// Nothing is written to the store until this is called.
     func save() throws {
         workout.notes = trimmedNote.isEmpty ? nil : trimmedNote
         try context.save()
@@ -57,20 +66,27 @@ enum NoteEditingError: Error {
     case workoutNotFound
 }
 
-/// Small sheet for adding a note to an existing workout.
+/// Small sheet for adding or editing a workout's notes.
 struct NoteEditView: View {
     @Bindable var editing: NoteEditing
     @Environment(\.dismiss) private var dismiss
+    @FocusState private var notesFocused: Bool
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
                     TextField("Notes", text: $editing.notesText, axis: .vertical)
+                        .focused($notesFocused)
                 }
             }
             .formStyle(.grouped)
-            .navigationTitle("Add Notes")
+            #if os(macOS)
+            .defaultFocus($notesFocused, true)
+            #else
+            .onAppear { notesFocused = true }
+            #endif
+            .navigationTitle(editing.navigationTitle)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif

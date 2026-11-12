@@ -54,21 +54,41 @@ struct WorkoutDetailView: View {
             Divider()
                 .padding(.horizontal, notesInset)
                 .padding(.bottom, 8)
-            Text("Notes")
-                .font(.headline)
-                .foregroundStyle(.secondary)
-                .padding(.leading, notesInset)
+            notesHeading
             if hasNote, let notes = workout.notes {
                 Text(notes)
                     .padding(.horizontal, notesInset)
             } else {
-                Button("Add Notes") {
-                    noteEditing = try? NoteEditing.editing(workout, container: context.container)
-                }
-                .padding(.horizontal, notesInset)
+                addNotesButton
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var notesHeading: some View {
+        HStack {
+            Text("Notes")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+            if hasNote {
+                Spacer()
+                Button("Edit", action: openNoteEditor)
+            }
+        }
+        .padding(.horizontal, notesInset)
+    }
+
+    private var addNotesButton: some View {
+        Button(action: openNoteEditor) {
+            Label("Add Notes", systemImage: "note.text.badge.plus")
+        }
+        .buttonStyle(.borderedProminent)
+        .padding(.vertical, 16)
+        .frame(maxWidth: .infinity)
+    }
+
+    private func openNoteEditor() {
+        noteEditing = try? NoteEditing.editing(workout, container: context.container)
     }
 }
 
@@ -231,6 +251,17 @@ private struct FeaturedStat: View {
     let container = PreviewSupport.container()
     let workout = PreviewSupport.sampleWorkout(in: container)
     workout.notes = nil
+    return NavigationStack {
+        WorkoutDetailView(workout: workout)
+    }
+    .modelContainer(container)
+    .environment(\.calendar, .app)
+}
+
+#Preview("Workout detail, with notes") {
+    let container = PreviewSupport.container()
+    let workout = PreviewSupport.sampleWorkout(in: container)
+    workout.notes = "Felt strong on the climb"
     return NavigationStack {
         WorkoutDetailView(workout: workout)
     }
