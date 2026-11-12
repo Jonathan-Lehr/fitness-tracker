@@ -90,7 +90,13 @@ struct NoteEditView: View {
             #if os(macOS)
             .defaultFocus($notesFocused, true)
             #else
-            .onAppear { notesFocused = true }
+            // The first presentation's onAppear fires before the sheet can take
+            // first responder, so the focus request is dropped. Wait for the
+            // presentation to finish, then set focus.
+            .task {
+                try? await Task.sleep(for: .milliseconds(350))
+                notesFocused = true
+            }
             #endif
             .navigationTitle(editing.navigationTitle)
             #if os(iOS)
