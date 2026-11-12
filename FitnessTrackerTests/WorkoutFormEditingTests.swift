@@ -7,16 +7,11 @@ final class WorkoutFormEditingTests: XCTestCase {
     private let date = Date(timeIntervalSince1970: 1_761_000_000)
 
     private func makeContainer() throws -> ModelContainer {
-        let schema = Schema([Program.self, Workout.self])
-        return try ModelContainer(for: schema, configurations: [
-            ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
-        ])
+        try TestSupport.inMemoryContainer()
     }
 
     private func makeContext(_ container: ModelContainer) -> ModelContext {
-        let context = ModelContext(container)
-        context.autosaveEnabled = false
-        return context
+        TestSupport.context(on: container, autosaveEnabled: false)
     }
 
     private func workoutCount(_ context: ModelContext) throws -> Int {
@@ -25,7 +20,7 @@ final class WorkoutFormEditingTests: XCTestCase {
 
     private func insertSampleRide(into context: ModelContext) throws -> Workout {
         let program = Program.findOrCreate(title: "Green River Recovery Ride", in: context)
-        let workout = Workout(
+        let workout = TestSupport.ride(
             date: date,
             program: program,
             durationMinutes: 42,

@@ -8,7 +8,7 @@ final class RideGridTests: XCTestCase {
     private let calendar = Calendar.app
 
     private func date(_ year: Int, _ month: Int, _ day: Int, _ hour: Int) -> Date {
-        calendar.date(from: DateComponents(year: year, month: month, day: day, hour: hour))!
+        TestSupport.date(year: year, month: month, day: day, hour: hour, calendar: calendar)
     }
 
     func testDayGroupsNewestFirstWithRidesNewestFirst() {

@@ -175,13 +175,20 @@ final class WorkoutThumbnailFocusTests: XCTestCase {
     private var container: ModelContainer!
 
     private func makeWorkout() throws -> Workout {
-        let schema = Schema([Program.self, Workout.self])
-        container = try ModelContainer(for: schema, configurations: [
-            ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
-        ])
-        let workout = Workout(date: .now, program: nil, durationMinutes: 30, distanceMiles: 8, calories: 300,
-                              elevationFeet: 500, avgRPM: 75, avgWatts: 90, inclineAvg: 2, inclineMax: 8,
-                              resistanceAvg: 10, resistanceMax: 14)
+        container = try TestSupport.inMemoryContainer()
+        let workout = TestSupport.ride(
+            date: .now,
+            durationMinutes: 30,
+            distanceMiles: 8,
+            calories: 300,
+            elevationFeet: 500,
+            avgRPM: 75,
+            avgWatts: 90,
+            inclineAvg: 2,
+            inclineMax: 8,
+            resistanceAvg: 10,
+            resistanceMax: 14
+        )
         container.mainContext.insert(workout)
         return workout
     }

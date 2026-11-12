@@ -9,14 +9,18 @@ final class PeriodSummaryTests: XCTestCase {
         return c
     }()
 
-    func date(_ y: Int, _ m: Int, _ d: Int, _ h: Int = 12) -> Date {
-        cal.date(from: DateComponents(year: y, month: m, day: d, hour: h))!
+    func date(_ year: Int, _ month: Int, _ day: Int, _ hour: Int = 12) -> Date {
+        TestSupport.date(year: year, month: month, day: day, hour: hour, calendar: cal)
     }
 
-    func ride(_ d: Date, _ miles: Double, minutes: Double = 30, cal calories: Int = 300, ft: Int = 500) -> Workout {
-        Workout(date: d, program: nil, durationMinutes: minutes, distanceMiles: miles, calories: calories,
-                elevationFeet: ft, avgRPM: 75, avgWatts: 85, inclineAvg: 0, inclineMax: 0,
-                resistanceAvg: 10, resistanceMax: 15)
+    func ride(_ date: Date, _ miles: Double, minutes: Double = 30, cal calories: Int = 300, ft: Int = 500) -> Workout {
+        TestSupport.ride(
+            date: date,
+            durationMinutes: minutes,
+            distanceMiles: miles,
+            calories: calories,
+            elevationFeet: ft
+        )
     }
 
     // Thu Oct 22, 2026 (noon, New York). Rolling windows end at midnight tonight:
@@ -181,8 +185,8 @@ final class MondayWeekTests: XCTestCase {
         return c
     }()
 
-    func d(_ y: Int, _ m: Int, _ day: Int, _ h: Int = 12) -> Date {
-        usCalendar.date(from: DateComponents(year: y, month: m, day: day, hour: h))!
+    func date(_ year: Int, _ month: Int, _ day: Int, _ hour: Int = 12) -> Date {
+        TestSupport.date(year: year, month: month, day: day, hour: hour, calendar: usCalendar)
     }
 
     func testMondayFirstOverridesLocale() {
@@ -197,17 +201,17 @@ final class MondayWeekTests: XCTestCase {
     func testWeekGroupingStartsMonday() {
         let cal = Calendar.mondayFirst(usCalendar)
         // Oct 2026: Mon 19 … Sun 25, Mon 26.
-        XCTAssertEqual(GroupingPeriod.week.start(of: d(2026, 10, 25), calendar: cal), d(2026, 10, 19, 0)) // Sunday → previous Monday
-        XCTAssertEqual(GroupingPeriod.week.start(of: d(2026, 10, 26), calendar: cal), d(2026, 10, 26, 0)) // Monday → itself
-        XCTAssertEqual(GroupingPeriod.week.start(of: d(2026, 10, 21), calendar: cal), d(2026, 10, 19, 0))
+        XCTAssertEqual(GroupingPeriod.week.start(of: date(2026, 10, 25), calendar: cal), date(2026, 10, 19, 0)) // Sunday → previous Monday
+        XCTAssertEqual(GroupingPeriod.week.start(of: date(2026, 10, 26), calendar: cal), date(2026, 10, 26, 0)) // Monday → itself
+        XCTAssertEqual(GroupingPeriod.week.start(of: date(2026, 10, 21), calendar: cal), date(2026, 10, 19, 0))
         // Sunday and the following Monday land in different sections.
-        XCTAssertNotEqual(GroupingPeriod.week.start(of: d(2026, 10, 25, 23), calendar: cal),
-                          GroupingPeriod.week.start(of: d(2026, 10, 26, 0), calendar: cal))
+        XCTAssertNotEqual(GroupingPeriod.week.start(of: date(2026, 10, 25, 23), calendar: cal),
+                          GroupingPeriod.week.start(of: date(2026, 10, 26, 0), calendar: cal))
     }
 
     func testWeekLabelShowsMonday() {
         let cal = Calendar.mondayFirst(usCalendar)
-        let start = GroupingPeriod.week.start(of: d(2026, 10, 25), calendar: cal)
+        let start = GroupingPeriod.week.start(of: date(2026, 10, 25), calendar: cal)
         XCTAssertTrue(GroupingPeriod.week.label(for: start, calendar: cal).hasPrefix("Week of Oct 19"))
     }
 
@@ -216,7 +220,7 @@ final class MondayWeekTests: XCTestCase {
         tokyo.locale = Locale(identifier: "en_US")
         tokyo.timeZone = TimeZone(identifier: "Asia/Tokyo")!
         // 2026-12-31 23:30 in New York is 2027-01-01 13:30 in Tokyo.
-        let date = usCalendar.date(from: DateComponents(year: 2026, month: 12, day: 31, hour: 23, minute: 30))!
+        let date = TestSupport.date(year: 2026, month: 12, day: 31, hour: 23, minute: 30, calendar: usCalendar)
         XCTAssertEqual(GroupingPeriod.month.label(for: date, calendar: usCalendar), "December 2026")
         XCTAssertEqual(GroupingPeriod.month.label(for: date, calendar: tokyo), "January 2027")
         XCTAssertEqual(GroupingPeriod.year.label(for: date, calendar: usCalendar), "2026")
@@ -226,13 +230,13 @@ final class MondayWeekTests: XCTestCase {
     func testISOWeekNumbering() {
         let cal = Calendar.mondayFirst(usCalendar)
         // Jan 1, 2027 is a Friday, so ISO week 1 of 2027 starts Mon Jan 4; Jan 1 is in week 53 of 2026.
-        XCTAssertEqual(cal.component(.weekOfYear, from: d(2027, 1, 1)), 53)
-        XCTAssertEqual(cal.component(.weekOfYear, from: d(2027, 1, 4)), 1)
+        XCTAssertEqual(cal.component(.weekOfYear, from: date(2027, 1, 1)), 53)
+        XCTAssertEqual(cal.component(.weekOfYear, from: date(2027, 1, 4)), 1)
     }
 
     func testDefaultUsesAppCalendar() {
         // Without an explicit calendar, grouping uses Calendar.app (Monday-first) on any device.
-        let sunday = Calendar.app.date(from: DateComponents(year: 2026, month: 10, day: 25, hour: 12))!
+        let sunday = TestSupport.date(year: 2026, month: 10, day: 25, hour: 12, calendar: .app)
         let start = GroupingPeriod.week.start(of: sunday)
         XCTAssertEqual(Calendar.app.component(.weekday, from: start), 2)
     }
@@ -244,13 +248,12 @@ final class WattsRPMTests: XCTestCase {
         c.timeZone = TimeZone(identifier: "America/New_York")!
         return c
     }()
-    func date(_ y: Int, _ m: Int, _ d: Int, _ h: Int = 12) -> Date {
-        cal.date(from: DateComponents(year: y, month: m, day: d, hour: h))!
+    func date(_ year: Int, _ month: Int, _ day: Int, _ hour: Int = 12) -> Date {
+        TestSupport.date(year: year, month: month, day: day, hour: hour, calendar: cal)
     }
-    func ride(_ d: Date, minutes: Double, watts: Int, rpm: Int) -> Workout {
-        Workout(date: d, program: nil, durationMinutes: minutes, distanceMiles: 10, calories: 300,
-                elevationFeet: 500, avgRPM: rpm, avgWatts: watts, inclineAvg: 0, inclineMax: 0,
-                resistanceAvg: 10, resistanceMax: 15)
+
+    func ride(_ date: Date, minutes: Double, watts: Int, rpm: Int) -> Workout {
+        TestSupport.ride(date: date, durationMinutes: minutes, avgRPM: rpm, avgWatts: watts)
     }
     lazy var now = date(2026, 10, 22)
 

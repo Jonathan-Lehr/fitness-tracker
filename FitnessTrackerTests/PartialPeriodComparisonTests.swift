@@ -8,14 +8,20 @@ final class PartialPeriodComparisonTests: XCTestCase {
         return Calendar.mondayFirst(c)
     }()
 
-    func date(_ y: Int, _ m: Int, _ d: Int, _ h: Int = 0, _ min: Int = 0) -> Date {
-        cal.date(from: DateComponents(year: y, month: m, day: d, hour: h, minute: min))!
+    func date(_ year: Int, _ month: Int, _ day: Int, _ hour: Int = 0, _ minute: Int = 0) -> Date {
+        TestSupport.date(year: year, month: month, day: day, hour: hour, minute: minute, calendar: cal)
     }
 
-    func ride(_ d: Date, minutes: Double = 30, miles: Double = 10, cal calories: Int = 300, watts: Int = 100) -> Workout {
-        Workout(date: d, program: nil, durationMinutes: minutes, distanceMiles: miles, calories: calories,
-                elevationFeet: 0, avgRPM: 80, avgWatts: watts, inclineAvg: 0, inclineMax: 0,
-                resistanceAvg: 10, resistanceMax: 15)
+    func ride(_ date: Date, minutes: Double = 30, miles: Double = 10, cal calories: Int = 300, watts: Int = 100) -> Workout {
+        TestSupport.ride(
+            date: date,
+            durationMinutes: minutes,
+            distanceMiles: miles,
+            calories: calories,
+            elevationFeet: 0,
+            avgRPM: 80,
+            avgWatts: watts
+        )
     }
 
     func windows(_ p: GroupingPeriod, _ now: Date) -> (current: DateInterval, previous: DateInterval) {
