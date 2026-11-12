@@ -113,7 +113,7 @@ struct WorkoutSummaryCard: View {
 
     private var featuredStats: some View {
         VStack(alignment: .leading, spacing: 2) {
-            FeaturedStat(value: workout.distanceMiles.milesString, unit: "Miles",
+            FeaturedStat(value: workout.distanceMiles.formattedMiles(), unit: "Miles",
                          valueFont: .title.bold(), unitFont: .title3.weight(.semibold))
             FeaturedStat(value: wattsValue, unit: "Watts",
                          valueFont: .title2.bold(), unitFont: .headline, color: .orange)
@@ -148,7 +148,7 @@ struct WorkoutSummaryCard: View {
 
     private var additionalStatTiles: [StatTile] {
         [
-            StatTile(value: String(format: "%.1f%% / %.1f%%", workout.inclineAvg, workout.inclineMax),
+            StatTile(value: "\(workout.inclineAvg.formattedPercent(fractionLength: 1)) / \(workout.inclineMax.formattedPercent(fractionLength: 1))",
                      label: "Incline avg / max"),
             StatTile(value: "\(workout.resistanceAvg) / \(workout.resistanceMax)",
                      label: "Resistance avg / max"),

@@ -307,7 +307,7 @@ struct WorkoutRow: View {
             HStack(spacing: 12) {
                 Text(dateText)
                 Text(workout.durationMinutes.minutesText)
-                Text(workout.distanceMiles.milesText)
+                Text(workout.distanceMiles.formattedMilesWithUnit())
                 Text("\(workout.calories) cal")
             }
             .font(.caption).foregroundStyle(.secondary)

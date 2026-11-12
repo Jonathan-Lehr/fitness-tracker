@@ -27,7 +27,7 @@ struct InProgressComparisonView: View {
                     Text("Change").font(.caption).foregroundStyle(.secondary).changeColumn()
                 }
                 row("Ride time", cur.minutes, prev.minutes) { $0.minutesText }
-                row("Distance", cur.miles, prev.miles) { $0.milesText }
+                row("Distance", cur.miles, prev.miles) { $0.formattedMilesWithUnit() }
                 row("Calories", Double(cur.calories), Double(prev.calories)) { "\(Int($0.rounded()))" }
                 wattsRow
             }

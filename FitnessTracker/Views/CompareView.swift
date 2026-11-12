@@ -7,21 +7,21 @@ struct CompareView: View {
 
     private struct Row: Identifiable {
         let id = UUID()
-        let name: String, a: Double, b: Double, format: String, higherIsBetter: Bool
+        let name: String, a: Double, b: Double, fractionLength: Int, higherIsBetter: Bool
     }
 
     private var rows: [Row] {
         [
-            Row(name: "Duration (min)", a: a.durationMinutes, b: b.durationMinutes, format: "%.0f", higherIsBetter: true),
-            Row(name: "Distance (mi)", a: a.distanceMiles, b: b.distanceMiles, format: "%.2f", higherIsBetter: true),
-            Row(name: "Calories", a: Double(a.calories), b: Double(b.calories), format: "%.0f", higherIsBetter: true),
-            Row(name: "Elevation (ft)", a: Double(a.elevationFeet), b: Double(b.elevationFeet), format: "%.0f", higherIsBetter: true),
-            Row(name: "Avg RPM", a: Double(a.avgRPM), b: Double(b.avgRPM), format: "%.0f", higherIsBetter: true),
-            Row(name: "Avg Watts", a: Double(a.avgWatts), b: Double(b.avgWatts), format: "%.0f", higherIsBetter: true),
-            Row(name: "Incline Avg %", a: a.inclineAvg, b: b.inclineAvg, format: "%.1f", higherIsBetter: true),
-            Row(name: "Incline Max %", a: a.inclineMax, b: b.inclineMax, format: "%.1f", higherIsBetter: true),
-            Row(name: "Resistance Avg", a: Double(a.resistanceAvg), b: Double(b.resistanceAvg), format: "%.0f", higherIsBetter: true),
-            Row(name: "Resistance Max", a: Double(a.resistanceMax), b: Double(b.resistanceMax), format: "%.0f", higherIsBetter: true),
+            Row(name: "Duration (min)", a: a.durationMinutes, b: b.durationMinutes, fractionLength: 0, higherIsBetter: true),
+            Row(name: "Distance (mi)", a: a.distanceMiles, b: b.distanceMiles, fractionLength: 2, higherIsBetter: true),
+            Row(name: "Calories", a: Double(a.calories), b: Double(b.calories), fractionLength: 0, higherIsBetter: true),
+            Row(name: "Elevation (ft)", a: Double(a.elevationFeet), b: Double(b.elevationFeet), fractionLength: 0, higherIsBetter: true),
+            Row(name: "Avg RPM", a: Double(a.avgRPM), b: Double(b.avgRPM), fractionLength: 0, higherIsBetter: true),
+            Row(name: "Avg Watts", a: Double(a.avgWatts), b: Double(b.avgWatts), fractionLength: 0, higherIsBetter: true),
+            Row(name: "Incline Avg %", a: a.inclineAvg, b: b.inclineAvg, fractionLength: 1, higherIsBetter: true),
+            Row(name: "Incline Max %", a: a.inclineMax, b: b.inclineMax, fractionLength: 1, higherIsBetter: true),
+            Row(name: "Resistance Avg", a: Double(a.resistanceAvg), b: Double(b.resistanceAvg), fractionLength: 0, higherIsBetter: true),
+            Row(name: "Resistance Max", a: Double(a.resistanceMax), b: Double(b.resistanceMax), fractionLength: 0, higherIsBetter: true),
         ]
     }
 
@@ -39,9 +39,9 @@ struct CompareView: View {
                     let delta = r.b - r.a
                     GridRow {
                         Text(r.name).foregroundStyle(.secondary)
-                        Text(String(format: r.format, r.a)).monospacedDigit()
-                        Text(String(format: r.format, r.b)).monospacedDigit()
-                        Text((delta >= 0 ? "+" : "") + String(format: r.format, delta))
+                        Text(r.a.formattedNumber(fractionLength: r.fractionLength)).monospacedDigit()
+                        Text(r.b.formattedNumber(fractionLength: r.fractionLength)).monospacedDigit()
+                        Text(delta.formattedSignedNumber(fractionLength: r.fractionLength))
                             .monospacedDigit()
                             .foregroundStyle(delta == 0 ? Color.secondary : ((delta > 0) == r.higherIsBetter ? Color.green : Color.red))
                     }
