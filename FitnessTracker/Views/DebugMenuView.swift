@@ -11,6 +11,7 @@ struct DebugMenuView: View {
         case generate
         case removeSimulated
         case clearAll
+
         var id: Self { self }
         var title: String {
             switch self {

@@ -8,6 +8,7 @@ enum WorkoutType: String, CaseIterable, Identifiable, Codable {
     case climb
     case tempo
     case other
+
     var id: String { rawValue }
     var label: String { rawValue.capitalized }
 

@@ -105,6 +105,7 @@ enum GroupingPeriod: String, CaseIterable, Identifiable {
     case week = "Week"
     case month = "Month"
     case year = "Year"
+
     var id: String { rawValue }
 
     var component: Calendar.Component {

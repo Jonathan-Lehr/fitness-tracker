@@ -4,6 +4,7 @@ import Foundation
 enum LogLayout: String, CaseIterable, Identifiable {
     case grid
     case list
+
     var id: String { rawValue }
     var label: String { self == .list ? "List" : "Grid" }
     var systemImage: String { self == .list ? "list.bullet" : "square.grid.2x2" }
