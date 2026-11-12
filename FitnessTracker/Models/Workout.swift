@@ -136,7 +136,6 @@ struct Totals {
     var miles = 0.0
     var calories = 0
     var feet = 0
-    var wattSum = 0
 
     // Averages over rides that have the value (> 0), time-weighted by duration.
     private var wattWeighted = 0.0, wattWeight = 0.0, wattSimple = 0, wattRides = 0
@@ -145,7 +144,7 @@ struct Totals {
     init(_ workouts: [Workout]) {
         for w in workouts {
             count += 1; minutes += w.durationMinutes; miles += w.distanceMiles
-            calories += w.calories; feet += w.elevationFeet; wattSum += w.avgWatts
+            calories += w.calories; feet += w.elevationFeet
             let weight = max(w.durationMinutes, 0)
             if w.avgWatts > 0 {
                 wattRides += 1; wattSimple += w.avgWatts
@@ -173,6 +172,4 @@ struct Totals {
         guard rides > 0 else { return nil }
         return weight > 0 ? weighted / weight : Double(simple) / Double(rides)
     }
-
-    var avgWatts: Double { count == 0 ? 0 : Double(wattSum) / Double(count) }
 }

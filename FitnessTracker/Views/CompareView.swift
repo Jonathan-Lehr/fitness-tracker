@@ -6,22 +6,22 @@ struct CompareView: View {
     @Environment(\.dismiss) private var dismiss
 
     private struct Row: Identifiable {
-        let id = UUID()
-        let name: String, a: Double, b: Double, fractionLength: Int, higherIsBetter: Bool
+        var id: String { name }
+        let name: String, a: Double, b: Double, fractionLength: Int
     }
 
     private var rows: [Row] {
         [
-            Row(name: "Duration (min)", a: a.durationMinutes, b: b.durationMinutes, fractionLength: 0, higherIsBetter: true),
-            Row(name: "Distance (mi)", a: a.distanceMiles, b: b.distanceMiles, fractionLength: 2, higherIsBetter: true),
-            Row(name: "Calories", a: Double(a.calories), b: Double(b.calories), fractionLength: 0, higherIsBetter: true),
-            Row(name: "Elevation (ft)", a: Double(a.elevationFeet), b: Double(b.elevationFeet), fractionLength: 0, higherIsBetter: true),
-            Row(name: "Avg RPM", a: Double(a.avgRPM), b: Double(b.avgRPM), fractionLength: 0, higherIsBetter: true),
-            Row(name: "Avg Watts", a: Double(a.avgWatts), b: Double(b.avgWatts), fractionLength: 0, higherIsBetter: true),
-            Row(name: "Incline Avg %", a: a.inclineAvg, b: b.inclineAvg, fractionLength: 1, higherIsBetter: true),
-            Row(name: "Incline Max %", a: a.inclineMax, b: b.inclineMax, fractionLength: 1, higherIsBetter: true),
-            Row(name: "Resistance Avg", a: Double(a.resistanceAvg), b: Double(b.resistanceAvg), fractionLength: 0, higherIsBetter: true),
-            Row(name: "Resistance Max", a: Double(a.resistanceMax), b: Double(b.resistanceMax), fractionLength: 0, higherIsBetter: true),
+            Row(name: "Duration (min)", a: a.durationMinutes, b: b.durationMinutes, fractionLength: 0),
+            Row(name: "Distance (mi)", a: a.distanceMiles, b: b.distanceMiles, fractionLength: 2),
+            Row(name: "Calories", a: Double(a.calories), b: Double(b.calories), fractionLength: 0),
+            Row(name: "Elevation (ft)", a: Double(a.elevationFeet), b: Double(b.elevationFeet), fractionLength: 0),
+            Row(name: "Avg RPM", a: Double(a.avgRPM), b: Double(b.avgRPM), fractionLength: 0),
+            Row(name: "Avg Watts", a: Double(a.avgWatts), b: Double(b.avgWatts), fractionLength: 0),
+            Row(name: "Incline Avg %", a: a.inclineAvg, b: b.inclineAvg, fractionLength: 1),
+            Row(name: "Incline Max %", a: a.inclineMax, b: b.inclineMax, fractionLength: 1),
+            Row(name: "Resistance Avg", a: Double(a.resistanceAvg), b: Double(b.resistanceAvg), fractionLength: 0),
+            Row(name: "Resistance Max", a: Double(a.resistanceMax), b: Double(b.resistanceMax), fractionLength: 0),
         ]
     }
 
@@ -43,7 +43,7 @@ struct CompareView: View {
                         Text(formattedValue(r.b, fractionLength: r.fractionLength)).monospacedDigit()
                         Text(formattedDelta(delta, fractionLength: r.fractionLength))
                             .monospacedDigit()
-                            .foregroundStyle(delta == 0 ? Color.secondary : ((delta > 0) == r.higherIsBetter ? Color.green : Color.red))
+                            .foregroundStyle(delta == 0 ? Color.secondary : (delta > 0 ? Color.green : Color.red))
                     }
                 }
             }

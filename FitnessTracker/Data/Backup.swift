@@ -103,6 +103,16 @@ enum ImportMode: String, CaseIterable, Identifiable {
 // MARK: - Service
 
 enum BackupService {
+    /// Shared because the custom encode/decode strategies run once per date in a backup.
+    private static let iso8601WithFractionalSeconds: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    /// Default options (`.withInternetDateTime`), used as a fallback when reading dates without a fraction.
+    private static let iso8601 = ISO8601DateFormatter()
+
     static func programID(_ title: String) -> String {
         title.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -133,10 +143,8 @@ enum BackupService {
         let enc = JSONEncoder()
         enc.outputFormatting = [.prettyPrinted, .sortedKeys]
         enc.dateEncodingStrategy = .custom { date, encoder in
-            let f = ISO8601DateFormatter()
-            f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
             var c = encoder.singleValueContainer()
-            try c.encode(f.string(from: date))
+            try c.encode(iso8601WithFractionalSeconds.string(from: date))
         }
         return try enc.encode(file)
     }
@@ -154,9 +162,7 @@ enum BackupService {
         let dec = JSONDecoder()
         dec.dateDecodingStrategy = .custom { decoder in
             let s = try decoder.singleValueContainer().decode(String.self)
-            let withFraction = ISO8601DateFormatter()
-            withFraction.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            if let d = withFraction.date(from: s) ?? ISO8601DateFormatter().date(from: s) { return d }
+            if let d = iso8601WithFractionalSeconds.date(from: s) ?? iso8601.date(from: s) { return d }
             throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "Bad date \(s)"))
         }
         do {

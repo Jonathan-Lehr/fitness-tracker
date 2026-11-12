@@ -183,10 +183,13 @@ enum IFitSummaryParser {
 
     // MARK: Title
 
+    /// Matches iFit's "Last completed" label, allowing spaces the OCR may drop or insert.
+    static let lastCompletedPattern = #"last\s*complet"#
+
     static func titleFromLines(_ lines: [String]) -> String? {
-        guard let i = lines.firstIndex(where: { $0.range(of: #"last\s*complet"#, options: [.regularExpression, .caseInsensitive]) != nil }) else { return nil }
+        guard let i = lines.firstIndex(where: { $0.range(of: lastCompletedPattern, options: [.regularExpression, .caseInsensitive]) != nil }) else { return nil }
         // Title on the same line before "Last completed"
-        if let r = lines[i].range(of: #"last\s*complet"#, options: [.regularExpression, .caseInsensitive]) {
+        if let r = lines[i].range(of: lastCompletedPattern, options: [.regularExpression, .caseInsensitive]) {
             let prefix = cleanTitle(String(lines[i][..<r.lowerBound]))
             if let prefix { return prefix }
         }
@@ -211,7 +214,7 @@ enum IFitSummaryParser {
 
     /// The observation directly above "Last completed", left-aligned with it.
     static func titleByProximity(_ items: [RecognizedText]) -> String? {
-        guard let anchor = items.first(where: { $0.text.range(of: #"last\s*complet"#, options: [.regularExpression, .caseInsensitive]) != nil }) else { return nil }
+        guard let anchor = items.first(where: { $0.text.range(of: lastCompletedPattern, options: [.regularExpression, .caseInsensitive]) != nil }) else { return nil }
         let candidates = items.filter { item in
             item.box.midY < anchor.box.midY
                 && anchor.box.minY - item.box.maxY < max(anchor.box.height, item.box.height) * 3

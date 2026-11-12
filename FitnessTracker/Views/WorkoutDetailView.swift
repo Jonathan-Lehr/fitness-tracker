@@ -126,7 +126,7 @@ struct WorkoutSummaryCard: View {
 
     private var secondaryStats: [StatTile] {
         [
-            StatTile(value: workout.durationMinutes.minutesText, label: "Duration",
+            StatTile(value: workout.durationMinutes.formattedMinutes(), label: "Duration",
                      numericValue: workout.durationMinutes),
             StatTile(value: workout.calories.formattedWholeNumber(), label: "Calories",
                      numericValue: Double(workout.calories)),
