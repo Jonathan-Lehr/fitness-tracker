@@ -39,9 +39,9 @@ struct CompareView: View {
                     let delta = r.b - r.a
                     GridRow {
                         Text(r.name).foregroundStyle(.secondary)
-                        Text(r.a.formattedNumber(fractionLength: r.fractionLength)).monospacedDigit()
-                        Text(r.b.formattedNumber(fractionLength: r.fractionLength)).monospacedDigit()
-                        Text(delta.formattedSignedNumber(fractionLength: r.fractionLength))
+                        Text(formattedValue(r.a, fractionLength: r.fractionLength)).monospacedDigit()
+                        Text(formattedValue(r.b, fractionLength: r.fractionLength)).monospacedDigit()
+                        Text(formattedDelta(delta, fractionLength: r.fractionLength))
                             .monospacedDigit()
                             .foregroundStyle(delta == 0 ? Color.secondary : ((delta > 0) == r.higherIsBetter ? Color.green : Color.red))
                     }
@@ -57,5 +57,18 @@ struct CompareView: View {
         #if os(macOS)
         .frame(minWidth: 480, minHeight: 420)
         #endif
+    }
+
+    /// Whole-number stats use locale grouping; fractional stats (miles, incline) stay ungrouped.
+    private func formattedValue(_ value: Double, fractionLength: Int) -> String {
+        fractionLength == 0
+            ? value.formattedWholeNumber()
+            : value.formattedNumber(fractionLength: fractionLength)
+    }
+
+    private func formattedDelta(_ value: Double, fractionLength: Int) -> String {
+        fractionLength == 0
+            ? value.formattedSignedWholeNumber()
+            : value.formattedSignedNumber(fractionLength: fractionLength)
     }
 }

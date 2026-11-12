@@ -86,8 +86,8 @@ extension PeriodSummaryCard {
         case .time: ("888h 88m", "▲ 888h 88m")
         case .watts: ("888 W", "▲ 888 W")
         case .rpm: ("188", "▲ 88 rpm")
-        case .elevation: ("888888 ft", "▲ 88888 ft")
-        case .calories: ("888888", "▲ 88888 cal")
+        case .elevation: ("888,888 ft", "▲ 88,888 ft")
+        case .calories: ("888,888", "▲ 88,888 cal")
         }
     }
 }

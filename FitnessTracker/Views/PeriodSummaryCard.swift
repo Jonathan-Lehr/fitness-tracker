@@ -137,7 +137,7 @@ struct PeriodSummaryCard: View {
     static let heroColumns = 2
     /// Narrow (iPhone portrait, narrow Mac window): 3 columns × 2 rows. On a 402-pt iPhone 16 Pro
     /// each column is ~99 pt, enough for the longest typical value ("123h 45m") and delta
-    /// ("▲ 1234 cal") at full size; minimumScaleFactor covers outliers.
+    /// ("▲ 1,234 cal") at full size; minimumScaleFactor covers outliers.
     static let narrowColumns = 3
 
     private var wideColumnWidth: CGFloat {

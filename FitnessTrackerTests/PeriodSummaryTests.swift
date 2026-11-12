@@ -130,10 +130,16 @@ final class PeriodSummaryTests: XCTestCase {
         XCTAssertEqual(s.minutesDelta, 18)
         XCTAssertEqual(s.caloriesDelta, 76)
         XCTAssertEqual(s.feetDelta, 1042)
-        XCTAssertEqual(s.deltaText(.rides), "– 0")
-        XCTAssertEqual(s.deltaText(.time), "▲ 18m")
-        XCTAssertEqual(s.deltaText(.calories), "▲ 76 cal")
-        XCTAssertEqual(s.deltaText(.elevation), "▲ 1042 ft")
+        let us = Locale(identifier: "en_US")
+        let german = Locale(identifier: "de_DE")
+        XCTAssertEqual(s.deltaText(.rides, locale: us), "– 0")
+        XCTAssertEqual(s.deltaText(.time, locale: us), "▲ 18m")
+        XCTAssertEqual(s.deltaText(.calories, locale: us), "▲ 76 cal")
+        XCTAssertEqual(s.deltaText(.elevation, locale: us), "▲ 1,042 ft")
+        XCTAssertEqual(s.deltaText(.elevation, locale: german), "▲ 1.042 ft")
+        XCTAssertEqual(s.valueText(.elevation, locale: us).value, "2,042 ft")
+        XCTAssertEqual(s.valueText(.elevation, locale: german).value, "2.042 ft")
+        XCTAssertEqual(s.valueText(.calories, locale: us).value, "676")
     }
 
     func testPerMetricDeltasDownAndHours() {

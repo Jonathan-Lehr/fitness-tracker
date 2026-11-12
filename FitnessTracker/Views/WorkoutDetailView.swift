@@ -121,18 +121,18 @@ struct WorkoutSummaryCard: View {
     }
 
     private var wattsValue: String {
-        workout.avgWatts > 0 ? "\(workout.avgWatts)" : "—"
+        workout.avgWatts > 0 ? workout.avgWatts.formattedWholeNumber() : "—"
     }
 
     private var secondaryStats: [StatTile] {
         [
             StatTile(value: workout.durationMinutes.minutesText, label: "Duration",
                      numericValue: workout.durationMinutes),
-            StatTile(value: "\(workout.calories)", label: "Calories",
+            StatTile(value: workout.calories.formattedWholeNumber(), label: "Calories",
                      numericValue: Double(workout.calories)),
-            StatTile(value: "\(workout.elevationFeet) ft", label: "Elevation",
+            StatTile(value: "\(workout.elevationFeet.formattedWholeNumber()) ft", label: "Elevation",
                      numericValue: Double(workout.elevationFeet)),
-            StatTile(value: workout.avgRPM > 0 ? "\(workout.avgRPM)" : "—", label: "RPM",
+            StatTile(value: workout.avgRPM > 0 ? workout.avgRPM.formattedWholeNumber() : "—", label: "RPM",
                      numericValue: Double(workout.avgRPM)),
         ]
     }
@@ -150,7 +150,7 @@ struct WorkoutSummaryCard: View {
         [
             StatTile(value: "\(workout.inclineAvg.formattedPercent(fractionLength: 1)) / \(workout.inclineMax.formattedPercent(fractionLength: 1))",
                      label: "Incline avg / max"),
-            StatTile(value: "\(workout.resistanceAvg) / \(workout.resistanceMax)",
+            StatTile(value: "\(workout.resistanceAvg.formattedWholeNumber()) / \(workout.resistanceMax.formattedWholeNumber())",
                      label: "Resistance avg / max"),
         ]
     }
