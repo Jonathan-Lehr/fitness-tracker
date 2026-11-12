@@ -261,13 +261,13 @@ struct SectionHeader: View {
     var showsDisclosure = false
     /// Duration-weighted average watts (rides without watts skipped); "— W" if none recorded.
     private var wattsText: String {
-        totals.averageWatts.map { "\(Int($0.rounded())) W" } ?? "— W"
+        totals.averageWatts.map { "\(Int($0.rounded()).formattedWholeNumber()) W" } ?? "— W"
     }
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.headline)
-                Text("\(totals.count) rides · \(totals.minutes.minutesText) · \(wattsText) · \(totals.feet) ft")
+                Text("\(totals.count.formattedWholeNumber()) rides · \(totals.minutes.minutesText) · \(wattsText) · \(totals.feet.formattedWholeNumber()) ft")
                     .font(.subheadline)
             }
             Spacer()
@@ -302,13 +302,13 @@ struct WorkoutRow: View {
             HStack {
                 Text(workout.title).font(.body.weight(.semibold))
                 Spacer()
-                Text("\(workout.avgWatts) W").monospacedDigit().foregroundStyle(.orange)
+                Text("\(workout.avgWatts.formattedWholeNumber()) W").monospacedDigit().foregroundStyle(.orange)
             }
             HStack(spacing: 12) {
                 Text(dateText)
                 Text(workout.durationMinutes.minutesText)
                 Text(workout.distanceMiles.formattedMilesWithUnit())
-                Text("\(workout.calories) cal")
+                Text("\(workout.calories.formattedWholeNumber()) cal")
             }
             .font(.caption).foregroundStyle(.secondary)
         }

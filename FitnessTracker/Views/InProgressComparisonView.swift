@@ -28,7 +28,7 @@ struct InProgressComparisonView: View {
                 }
                 row("Ride time", cur.minutes, prev.minutes) { $0.minutesText }
                 row("Distance", cur.miles, prev.miles) { $0.formattedMilesWithUnit() }
-                row("Calories", Double(cur.calories), Double(prev.calories)) { "\(Int($0.rounded()))" }
+                row("Calories", Double(cur.calories), Double(prev.calories)) { $0.formattedWholeNumber() }
                 wattsRow
             }
             .font(.subheadline.monospacedDigit())
@@ -52,8 +52,8 @@ struct InProgressComparisonView: View {
     private var wattsRow: some View {
         GridRow {
             Text("Avg Watts").lineLimit(1).fixedSize()
-            Text(cur.averageWatts.map { "\(Int($0.rounded())) W" } ?? "— W").dataColumn()
-            Text(prev.averageWatts.map { "\(Int($0.rounded())) W" } ?? "— W").foregroundStyle(.secondary).dataColumn()
+            Text(cur.averageWatts.map { "\(Int($0.rounded()).formattedWholeNumber()) W" } ?? "— W").dataColumn()
+            Text(prev.averageWatts.map { "\(Int($0.rounded()).formattedWholeNumber()) W" } ?? "— W").foregroundStyle(.secondary).dataColumn()
             Text(cur.averageWatts.flatMap { a in prev.averageWatts.map { Self.change(a, $0) } } ?? "—")
                 .foregroundStyle(.secondary).changeColumn()
         }

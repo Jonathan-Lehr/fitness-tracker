@@ -74,33 +74,33 @@ struct PeriodSummary {
 
     /// Compact delta text, e.g. "▲ 2", "▼ 15m", "▲ 120 cal", "▲ 340 ft", "▲ 12 W", "▼ 3 rpm",
     /// "– 0"; "—" when an average can't be compared (no data in either window).
-    func deltaText(_ m: Metric) -> String {
+    func deltaText(_ m: Metric, locale: Locale = .current) -> String {
         if (m == .watts && wattsDelta == nil) || (m == .rpm && rpmDelta == nil) { return "—" }
         let d = delta(m)
         let arrow = d > 0 ? "▲" : (d < 0 ? "▼" : "–")
         let mag = abs(d)
         let value: String
         switch m {
-        case .rides: value = "\(Int(mag))"
-        case .time: value = mag.minutesText
-        case .calories: value = "\(Int(mag)) cal"
-        case .elevation: value = "\(Int(mag)) ft"
-        case .watts: value = "\(Int(mag)) W"
-        case .rpm: value = "\(Int(mag)) rpm"
+        case .rides: value = Int(mag).formattedWholeNumber(locale: locale)
+        case .time: value = mag.formattedMinutes(locale: locale)
+        case .calories: value = "\(Int(mag).formattedWholeNumber(locale: locale)) cal"
+        case .elevation: value = "\(Int(mag).formattedWholeNumber(locale: locale)) ft"
+        case .watts: value = "\(Int(mag).formattedWholeNumber(locale: locale)) W"
+        case .rpm: value = "\(Int(mag).formattedWholeNumber(locale: locale)) rpm"
         }
         return "\(arrow) \(value)"
     }
 
     /// Display value and label for a metric ("—" for averages with no data).
-    func valueText(_ m: Metric) -> (value: String, label: String) {
+    func valueText(_ m: Metric, locale: Locale = .current) -> (value: String, label: String) {
         let t = current
         switch m {
-        case .rides: return ("\(t.count)", m.label)
-        case .time: return (t.minutes.minutesText, m.label)
-        case .calories: return ("\(t.calories)", m.label)
-        case .elevation: return ("\(t.feet) ft", m.label)
-        case .watts: return (t.averageWatts.map { "\(Int($0.rounded())) W" } ?? "—", m.label)
-        case .rpm: return (t.averageRPM.map { "\(Int($0.rounded()))" } ?? "—", m.label)
+        case .rides: return (t.count.formattedWholeNumber(locale: locale), m.label)
+        case .time: return (t.minutes.formattedMinutes(locale: locale), m.label)
+        case .calories: return (t.calories.formattedWholeNumber(locale: locale), m.label)
+        case .elevation: return ("\(t.feet.formattedWholeNumber(locale: locale)) ft", m.label)
+        case .watts: return (t.averageWatts.map { "\(Int($0.rounded()).formattedWholeNumber(locale: locale)) W" } ?? "—", m.label)
+        case .rpm: return (t.averageRPM.map { Int($0.rounded()).formattedWholeNumber(locale: locale) } ?? "—", m.label)
         }
     }
 

@@ -63,6 +63,35 @@ final class NumberFormattingTests: XCTestCase {
         XCTAssertEqual((0).formattedSignedNumber(fractionLength: 2, locale: german), "+0,00")
     }
 
+    func testWholeNumbersUseLocaleGrouping() {
+        XCTAssertEqual((1234).formattedWholeNumber(locale: us), "1,234")
+        XCTAssertEqual((1234).formattedWholeNumber(locale: german), "1.234")
+        XCTAssertEqual((1234567).formattedWholeNumber(locale: us), "1,234,567")
+        XCTAssertEqual((1234567).formattedWholeNumber(locale: german), "1.234.567")
+        XCTAssertEqual((800).formattedWholeNumber(locale: us), "800")
+        XCTAssertEqual((800).formattedWholeNumber(locale: german), "800")
+        XCTAssertEqual((0).formattedWholeNumber(locale: us), "0")
+        XCTAssertEqual((-1234).formattedWholeNumber(locale: us), "-1,234")
+        XCTAssertEqual((-1234).formattedWholeNumber(locale: german), "-1.234")
+        XCTAssertEqual((1234.4).formattedWholeNumber(locale: us), "1,234")
+        XCTAssertEqual((1234.5).formattedWholeNumber(locale: us), "1,235")
+    }
+
+    func testSignedWholeNumbersUseLocaleGrouping() {
+        XCTAssertEqual((1234).formattedSignedWholeNumber(locale: us), "+1,234")
+        XCTAssertEqual((1234).formattedSignedWholeNumber(locale: german), "+1.234")
+        XCTAssertEqual((-1234).formattedSignedWholeNumber(locale: us), "-1,234")
+        XCTAssertEqual((-1234).formattedSignedWholeNumber(locale: german), "-1.234")
+        XCTAssertEqual((0).formattedSignedWholeNumber(locale: us), "+0")
+    }
+
+    func testMinutesTextGroupsLargeHourValues() {
+        XCTAssertEqual((95.0).formattedMinutes(locale: us), "1h 35m")
+        XCTAssertEqual((45.0).formattedMinutes(locale: us), "45m")
+        XCTAssertEqual((1234.0 * 60).formattedMinutes(locale: us), "1,234h 0m")
+        XCTAssertEqual((1234.0 * 60).formattedMinutes(locale: german), "1.234h 0m")
+    }
+
     private func inclineRange(average: Double, maximum: Double, locale: Locale) -> String {
         "\(average.formattedPercent(fractionLength: 1, locale: locale)) / \(maximum.formattedPercent(fractionLength: 1, locale: locale))"
     }

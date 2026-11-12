@@ -45,7 +45,7 @@ struct ProgramDetailView: View {
                 .chartYScale(domain: .automatic(includesZero: false))
                 .frame(height: 220)
                 if let best {
-                    Label("Best: \(best.avgWatts) W on \(best.date.formatted(date: .abbreviated, time: .omitted))",
+                    Label("Best: \(best.avgWatts.formattedWholeNumber()) W on \(best.date.formatted(date: .abbreviated, time: .omitted))",
                           systemImage: "star.fill")
                         .foregroundStyle(.orange)
                 }
@@ -69,7 +69,7 @@ struct ProgramDetailView: View {
                     }
                 }
             } header: {
-                Text("\(efforts.count) efforts · select two to compare")
+                Text("\(efforts.count.formattedWholeNumber()) efforts · select two to compare")
             }
         }
         .navigationTitle(program.title)

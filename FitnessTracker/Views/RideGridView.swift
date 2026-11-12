@@ -119,7 +119,7 @@ struct RideImage: View {
 
 private extension Workout {
     var metricsText: String {
-        let watts = avgWatts > 0 ? "\(avgWatts) W avg" : "— W"
+        let watts = avgWatts > 0 ? "\(avgWatts.formattedWholeNumber()) W avg" : "— W"
         return "\(distanceMiles.formattedMilesWithUnit()) · \(watts)"
     }
 }
