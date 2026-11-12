@@ -24,12 +24,12 @@ extension Double {
     }
 
     /// Locale-aware decimal formatting with a fixed fraction length and no grouping.
-    /// Rounding is half away from zero so en_US matches `String(format: "%.<n>f")`.
+    /// Exact ties round to even (1.25 becomes "1.2"), so en_US matches `String(format: "%.<n>f")`.
     func formattedNumber(fractionLength: Int, locale: Locale = .current) -> String {
         formatted(
             .number
                 .precision(.fractionLength(fractionLength))
-                .rounded(rule: .toNearestOrAwayFromZero)
+                .rounded(rule: .toNearestOrEven)
                 .grouping(.never)
                 .locale(locale)
         )
