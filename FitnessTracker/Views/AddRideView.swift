@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import PhotosUI
 import UniformTypeIdentifiers
 #if os(iOS)
@@ -11,10 +12,12 @@ struct AddRideView: View {
     private enum Stage {
         case choose
         case processing
-        case review(PhotoImportResult)
-        case manual
+        /// Session is created by this presenter so the form can render immediately
+        /// (see `WorkoutFormView`).
+        case form(WorkoutFormEditing)
     }
 
+    @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @State private var stage: Stage = .choose
     @State private var pickerItem: PhotosPickerItem?
@@ -25,11 +28,8 @@ struct AddRideView: View {
 
     var body: some View {
         switch stage {
-        case .review(let result):
-            WorkoutFormView(workout: nil, draft: result.summary, draftPhoto: result.photoJPEG,
-                            draftThumbnailAnalysis: result.thumbnailAnalysis)
-        case .manual:
-            WorkoutFormView(workout: nil)
+        case .form(let editing):
+            WorkoutFormView(editing: editing)
         case .choose, .processing:
             chooser
         }
@@ -54,9 +54,11 @@ struct AddRideView: View {
                     Text(errorMessage).foregroundStyle(.red).font(.callout)
                 }
                 Spacer()
-                Button("Enter manually") { stage = .manual }
-                    .buttonStyle(.borderless)
-                    .padding(.bottom)
+                Button("Enter manually") {
+                    stage = .form(.manualEntry(container: context.container))
+                }
+                .buttonStyle(.borderless)
+                .padding(.bottom)
             }
             .padding()
             .navigationTitle("Add Ride")
@@ -190,7 +192,14 @@ struct AddRideView: View {
         stage = .processing
         do {
             let result = try await PhotoImportResult.process(imageData: data)
-            stage = .review(result)
+            stage = .form(
+                .prefilled(
+                    summary: result.summary,
+                    photo: result.photoJPEG,
+                    analysis: result.thumbnailAnalysis,
+                    container: context.container
+                )
+            )
         } catch {
             errorMessage = error.localizedDescription
             stage = .choose

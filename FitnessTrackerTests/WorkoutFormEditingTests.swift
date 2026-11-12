@@ -51,6 +51,7 @@ final class WorkoutFormEditingTests: XCTestCase {
         editing.workout.durationMinutes = 48
         editing.title = "Mineral Bottom Endurance Ride"
         XCTAssertFalse(editing.isEditingExisting)
+        XCTAssertTrue(editing.missingFields.isEmpty)
         let freshContext = ModelContext(container)
         XCTAssertEqual(try workoutCount(freshContext), 0)
     }
@@ -155,6 +156,7 @@ final class WorkoutFormEditingTests: XCTestCase {
 
         XCTAssertEqual(try workoutCount(ModelContext(container)), 0)
         XCTAssertFalse(editing.isEditingExisting)
+        XCTAssertEqual(editing.missingFields, summary.missingFields)
         XCTAssertEqual(editing.title, "Hurrah Pass Endurance Ride")
         XCTAssertEqual(editing.workout.date, date)
         XCTAssertEqual(editing.workout.durationMinutes, 65)

@@ -2,65 +2,28 @@ import SwiftUI
 import SwiftData
 
 struct WorkoutFormView: View {
-    private let existingWorkout: Workout?
-    /// Values parsed from a photo; fields the parser missed are flagged.
-    var draft: IFitSummary? = nil
-    var draftPhoto: Data? = nil
-    /// Thumbnail framing computed for `draftPhoto` during import.
-    var draftThumbnailAnalysis: ThumbnailFocusAnalysis? = nil
-    @Environment(\.modelContext) private var context
+    /// Created by the presenter and passed in, so the form can render immediately.
+    /// The session needs the model container to build its scratch context, and
+    /// `@Environment` isn't available in `View.init`, so creating it here would
+    /// mean waiting until `onAppear` and showing a `ProgressView` in the meantime.
+    @Bindable var editing: WorkoutFormEditing
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \Program.title) private var programs: [Program]
 
-    @State private var editing: WorkoutFormEditing?
-
-    init(workout: Workout? = nil, draft: IFitSummary? = nil, draftPhoto: Data? = nil,
-         draftThumbnailAnalysis: ThumbnailFocusAnalysis? = nil) {
-        existingWorkout = workout
-        self.draft = draft
-        self.draftPhoto = draftPhoto
-        self.draftThumbnailAnalysis = draftThumbnailAnalysis
-    }
-
     var body: some View {
         NavigationStack {
-            if let editing {
-                form(editing)
-            } else {
-                ProgressView()
-            }
+            WorkoutFormEditor(
+                editing: editing,
+                workout: editing.workout,
+                programs: programs,
+                missing: editing.missingFields,
+                onCancel: cancel,
+                onSave: save
+            )
         }
         #if os(macOS)
         .frame(minWidth: 460, minHeight: 600)
         #endif
-        .onAppear(perform: prepareIfNeeded)
-    }
-
-    private var missing: Set<IFitSummary.Field> { draft?.missingFields ?? [] }
-
-    private func prepareIfNeeded() {
-        guard editing == nil else { return }
-        let container = context.container
-        if let existingWorkout {
-            editing = try? WorkoutFormEditing.editing(existingWorkout, container: container)
-        } else if let draft {
-            editing = .prefilled(
-                summary: draft, photo: draftPhoto, analysis: draftThumbnailAnalysis, container: container
-            )
-        } else {
-            editing = .manualEntry(container: container)
-        }
-    }
-
-    private func form(_ editing: WorkoutFormEditing) -> some View {
-        WorkoutFormEditor(
-            editing: editing,
-            workout: editing.workout,
-            programs: programs,
-            missing: missing,
-            onCancel: cancel,
-            onSave: save
-        )
     }
 
     private func cancel() {
@@ -68,7 +31,6 @@ struct WorkoutFormView: View {
     }
 
     private func save() {
-        guard let editing else { return }
         do {
             try editing.save()
             dismiss()

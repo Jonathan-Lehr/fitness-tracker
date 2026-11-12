@@ -9,6 +9,9 @@ import SwiftData
 /// so unsaved edits stay off other views. New rides (manual defaults or a parser summary) are
 /// inserted into that context when the session is created; existing rides are fetched into it.
 /// Save persists. Cancel just dismisses; dropping the unsaved scratch context discards the edits.
+///
+/// Presenters create the session (the form cannot, because `@Environment` is unavailable in
+/// `View.init`); see `WorkoutFormView`.
 @MainActor @Observable
 final class WorkoutFormEditing {
     /// Program title typed in the form. Applied with `Program.findOrCreate` on Save, not by
@@ -17,6 +20,8 @@ final class WorkoutFormEditing {
     let workout: Workout
     /// True when this session is editing a ride that already exists in the store.
     let isEditingExisting: Bool
+    /// Fields the parser missed, flagged in the form. Empty for manual entry and edits.
+    let missingFields: Set<IFitSummary.Field>
     private let context: ModelContext
 
     static func manualEntry(date: Date = .now, container: ModelContainer) -> WorkoutFormEditing {
@@ -27,6 +32,7 @@ final class WorkoutFormEditing {
             workout: workout,
             title: "",
             isEditingExisting: false,
+            missingFields: [],
             context: context
         )
     }
@@ -44,6 +50,7 @@ final class WorkoutFormEditing {
             workout: workout,
             title: summary.title ?? "",
             isEditingExisting: false,
+            missingFields: summary.missingFields,
             context: context
         )
     }
@@ -59,14 +66,17 @@ final class WorkoutFormEditing {
             workout: scratchWorkout,
             title: scratchWorkout.title,
             isEditingExisting: true,
+            missingFields: [],
             context: context
         )
     }
 
-    private init(workout: Workout, title: String, isEditingExisting: Bool, context: ModelContext) {
+    private init(workout: Workout, title: String, isEditingExisting: Bool,
+                 missingFields: Set<IFitSummary.Field>, context: ModelContext) {
         self.workout = workout
         self.title = title
         self.isEditingExisting = isEditingExisting
+        self.missingFields = missingFields
         self.context = context
     }
 
@@ -82,6 +92,10 @@ final class WorkoutFormEditing {
         workout.program = program
         try context.save()
     }
+}
+
+extension WorkoutFormEditing: Identifiable {
+    var id: ObjectIdentifier { ObjectIdentifier(self) }
 }
 
 enum WorkoutFormEditingError: Error {
