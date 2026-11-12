@@ -6,11 +6,7 @@ import CoreGraphics
 @MainActor
 final class BackupTests: XCTestCase {
     func makeContext() throws -> ModelContext {
-        let schema = Schema([Program.self, Workout.self])
-        let container = try ModelContainer(for: schema, configurations: [
-            ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
-        ])
-        return ModelContext(container)
+        try TestSupport.inMemoryContext()
     }
 
     func count<T: PersistentModel>(_ type: T.Type, _ context: ModelContext) throws -> Int {
@@ -43,9 +39,19 @@ final class BackupTests: XCTestCase {
         SeedData.insertRealRides(context)
         let program = Program(title: "Fake Climb")
         context.insert(program)
-        context.insert(Workout(date: .now, program: program, durationMinutes: 1, distanceMiles: 1, calories: 1, elevationFeet: 1,
-                               avgRPM: 1, avgWatts: 1, inclineAvg: 0, inclineMax: 0, resistanceAvg: 1, resistanceMax: 1,
-                               isSimulated: true))
+        context.insert(TestSupport.ride(
+            date: .now,
+            program: program,
+            durationMinutes: 1,
+            distanceMiles: 1,
+            calories: 1,
+            elevationFeet: 1,
+            avgRPM: 1,
+            avgWatts: 1,
+            resistanceAvg: 1,
+            resistanceMax: 1,
+            isSimulated: true
+        ))
         XCTAssertEqual(BackupService.makeBackup(context).workouts.count, 4)
         XCTAssertEqual(BackupService.makeBackup(context).programs.count, 4)
         XCTAssertEqual(BackupService.makeBackup(context, includeSimulated: true).workouts.count, 5)
@@ -56,9 +62,20 @@ final class BackupTests: XCTestCase {
         SeedData.insertRealRides(source)
         let program = Program(title: "Delicate Arch Climb")
         source.insert(program)
-        source.insert(Workout(date: Date(timeIntervalSince1970: 1_760_500_000), program: program, durationMinutes: 35,
-                              distanceMiles: 7.5, calories: 300, elevationFeet: 1200, avgRPM: 74, avgWatts: 92,
-                              inclineAvg: 4, inclineMax: 12, resistanceAvg: 10, resistanceMax: 16))
+        source.insert(TestSupport.ride(
+            date: Date(timeIntervalSince1970: 1_760_500_000),
+            program: program,
+            durationMinutes: 35,
+            distanceMiles: 7.5,
+            calories: 300,
+            elevationFeet: 1200,
+            avgRPM: 74,
+            avgWatts: 92,
+            inclineAvg: 4,
+            inclineMax: 12,
+            resistanceAvg: 10,
+            resistanceMax: 16
+        ))
         let backup = try BackupService.decode(BackupService.encode(BackupService.makeBackup(source)))
 
         let target = try makeContext()
@@ -85,8 +102,18 @@ final class BackupTests: XCTestCase {
         let target = try makeContext()
         let program = Program(title: "Something Else")
         target.insert(program)
-        target.insert(Workout(date: .now, program: program, durationMinutes: 1, distanceMiles: 1, calories: 1, elevationFeet: 1,
-                              avgRPM: 1, avgWatts: 1, inclineAvg: 0, inclineMax: 0, resistanceAvg: 1, resistanceMax: 1))
+        target.insert(TestSupport.ride(
+            date: .now,
+            program: program,
+            durationMinutes: 1,
+            distanceMiles: 1,
+            calories: 1,
+            elevationFeet: 1,
+            avgRPM: 1,
+            avgWatts: 1,
+            resistanceAvg: 1,
+            resistanceMax: 1
+        ))
         try target.save()
         let summary = BackupService.importBackup(backup, into: target, mode: .replace)
         XCTAssertTrue(summary.replaced)
@@ -112,22 +139,12 @@ final class BackupTests: XCTestCase {
     }
 
     func testDefaultFilename() {
-        var components = DateComponents()
-        components.year = 2026
-        components.month = 10
-        components.day = 24
-        components.hour = 12
-        let date = Calendar.current.date(from: components)!
+        let date = TestSupport.date(year: 2026, month: 10, day: 24, hour: 12, calendar: .current)
         XCTAssertEqual(BackupService.defaultFilename(now: date), "FitnessTracker Backup 2026-10-24")
     }
 
     func testDefaultFilenameUsesLocalDateNearMidnight() {
-        var components = DateComponents()
-        components.year = 2026
-        components.month = 10
-        components.day = 24
-        components.hour = 23
-        let date = Calendar.current.date(from: components)!
+        let date = TestSupport.date(year: 2026, month: 10, day: 24, hour: 23, calendar: .current)
         XCTAssertEqual(BackupService.defaultFilename(now: date), "FitnessTracker Backup 2026-10-24")
     }
 

@@ -5,11 +5,7 @@ import SwiftData
 @MainActor
 final class ProgramTests: XCTestCase {
     func makeContext() throws -> ModelContext {
-        let schema = Schema([Program.self, Workout.self])
-        let container = try ModelContainer(for: schema, configurations: [
-            ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
-        ])
-        return ModelContext(container)
+        try TestSupport.inMemoryContext()
     }
 
     func testNormalizedTitleTrimsWhitespaceAndNewlines() {

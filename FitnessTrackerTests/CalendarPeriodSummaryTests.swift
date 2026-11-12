@@ -11,14 +11,18 @@ final class CalendarPeriodSummaryTests: XCTestCase {
         return Calendar.mondayFirst(c)
     }()
 
-    func date(_ y: Int, _ m: Int, _ d: Int, _ h: Int = 12, _ min: Int = 0) -> Date {
-        cal.date(from: DateComponents(year: y, month: m, day: d, hour: h, minute: min))!
+    func date(_ year: Int, _ month: Int, _ day: Int, _ hour: Int = 12, _ minute: Int = 0) -> Date {
+        TestSupport.date(year: year, month: month, day: day, hour: hour, minute: minute, calendar: cal)
     }
 
-    func ride(_ d: Date, _ miles: Double, minutes: Double = 30, watts: Int = 85, rpm: Int = 75) -> Workout {
-        Workout(date: d, program: nil, durationMinutes: minutes, distanceMiles: miles, calories: 300,
-                elevationFeet: 500, avgRPM: rpm, avgWatts: watts, inclineAvg: 0, inclineMax: 0,
-                resistanceAvg: 10, resistanceMax: 15)
+    func ride(_ date: Date, _ miles: Double, minutes: Double = 30, watts: Int = 85, rpm: Int = 75) -> Workout {
+        TestSupport.ride(
+            date: date,
+            durationMinutes: minutes,
+            distanceMiles: miles,
+            avgRPM: rpm,
+            avgWatts: watts
+        )
     }
 
     func summary(_ rides: [Workout], _ p: GroupingPeriod, _ d: Date) -> PeriodSummary {
