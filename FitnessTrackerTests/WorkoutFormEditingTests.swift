@@ -45,20 +45,19 @@ final class WorkoutFormEditingTests: XCTestCase {
         return workout
     }
 
-    func testNewRideIsNotInsertedUntilSave() throws {
+    func testNewRideIsNotPersistedUntilSave() throws {
         let container = try makeContainer()
-        let context = makeContext(container)
-        let editing = WorkoutFormEditing.manualEntry(date: date)
+        let editing = WorkoutFormEditing.manualEntry(date: date, container: container)
         editing.workout.durationMinutes = 48
         editing.title = "Mineral Bottom Endurance Ride"
-        XCTAssertEqual(try workoutCount(context), 0)
         XCTAssertFalse(editing.isEditingExisting)
+        let freshContext = ModelContext(container)
+        XCTAssertEqual(try workoutCount(freshContext), 0)
     }
 
     func testSaveInsertsNewRideWithEnteredValues() throws {
         let container = try makeContainer()
-        let context = makeContext(container)
-        let editing = WorkoutFormEditing.manualEntry(date: date)
+        let editing = WorkoutFormEditing.manualEntry(date: date, container: container)
         editing.title = "Mineral Bottom Endurance Ride"
         editing.workout.durationMinutes = 48
         editing.workout.distanceMiles = 9.85
@@ -71,11 +70,11 @@ final class WorkoutFormEditingTests: XCTestCase {
         editing.workout.resistanceAvg = 8
         editing.workout.resistanceMax = 15
         editing.workout.notes = "Hard climb"
-        XCTAssertEqual(try workoutCount(context), 0)
+        XCTAssertEqual(try workoutCount(ModelContext(container)), 0)
 
-        try editing.save(into: context)
+        try editing.save()
 
-        let rides = try context.fetch(FetchDescriptor<Workout>())
+        let rides = try ModelContext(container).fetch(FetchDescriptor<Workout>())
         XCTAssertEqual(rides.count, 1)
         let workout = try XCTUnwrap(rides.first)
         XCTAssertEqual(workout.title, "Mineral Bottom Endurance Ride")
@@ -127,7 +126,7 @@ final class WorkoutFormEditingTests: XCTestCase {
         editing.workout.durationMinutes = 50
         editing.workout.notes = "Updated"
         editing.title = "Green River Recovery Ride"
-        try editing.save(into: context)
+        try editing.save()
 
         // A new context on the same container should see the saved values.
         let freshContext = ModelContext(container)
@@ -138,7 +137,7 @@ final class WorkoutFormEditingTests: XCTestCase {
         XCTAssertEqual(try workoutCount(freshContext), 1)
     }
 
-    func testParserPrefillPopulatesUninsertedWorkout() throws {
+    func testParserPrefillPopulatesWorkoutWithoutPersisting() throws {
         var summary = IFitSummary()
         summary.title = "Hurrah Pass Endurance Ride"
         summary.date = date
@@ -150,10 +149,11 @@ final class WorkoutFormEditingTests: XCTestCase {
         let analysis = ThumbnailFocusAnalysis(focus: CGRect(x: 0.5, y: 0.1, width: 0.2, height: 0.25))
 
         let container = try makeContainer()
-        let context = makeContext(container)
-        let editing = WorkoutFormEditing.prefilled(summary: summary, photo: photo, analysis: analysis)
+        let editing = WorkoutFormEditing.prefilled(
+            summary: summary, photo: photo, analysis: analysis, container: container
+        )
 
-        XCTAssertEqual(try workoutCount(context), 0)
+        XCTAssertEqual(try workoutCount(ModelContext(container)), 0)
         XCTAssertFalse(editing.isEditingExisting)
         XCTAssertEqual(editing.title, "Hurrah Pass Endurance Ride")
         XCTAssertEqual(editing.workout.date, date)
@@ -174,14 +174,12 @@ final class WorkoutFormEditingTests: XCTestCase {
         summary.date = date
         summary.durationMinutes = 65
         summary.avgWatts = 85
-        let editing = WorkoutFormEditing.prefilled(summary: summary)
-
         let container = try makeContainer()
-        let context = makeContext(container)
-        XCTAssertEqual(try workoutCount(context), 0)
-        try editing.save(into: context)
+        let editing = WorkoutFormEditing.prefilled(summary: summary, container: container)
+        XCTAssertEqual(try workoutCount(ModelContext(container)), 0)
+        try editing.save()
 
-        let workout = try XCTUnwrap(try context.fetch(FetchDescriptor<Workout>()).first)
+        let workout = try XCTUnwrap(try ModelContext(container).fetch(FetchDescriptor<Workout>()).first)
         XCTAssertEqual(workout.title, "Hurrah Pass Endurance Ride")
         XCTAssertEqual(workout.durationMinutes, 65)
         XCTAssertEqual(workout.avgWatts, 85)

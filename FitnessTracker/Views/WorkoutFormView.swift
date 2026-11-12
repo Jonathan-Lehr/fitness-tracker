@@ -20,15 +20,6 @@ struct WorkoutFormView: View {
         self.draft = draft
         self.draftPhoto = draftPhoto
         self.draftThumbnailAnalysis = draftThumbnailAnalysis
-        if workout == nil {
-            if let draft {
-                _editing = State(initialValue: .prefilled(
-                    summary: draft, photo: draftPhoto, analysis: draftThumbnailAnalysis
-                ))
-            } else {
-                _editing = State(initialValue: .manualEntry())
-            }
-        }
     }
 
     var body: some View {
@@ -48,8 +39,17 @@ struct WorkoutFormView: View {
     private var missing: Set<IFitSummary.Field> { draft?.missingFields ?? [] }
 
     private func prepareIfNeeded() {
-        guard editing == nil, let existingWorkout else { return }
-        editing = try? WorkoutFormEditing.editing(existingWorkout, container: context.container)
+        guard editing == nil else { return }
+        let container = context.container
+        if let existingWorkout {
+            editing = try? WorkoutFormEditing.editing(existingWorkout, container: container)
+        } else if let draft {
+            editing = .prefilled(
+                summary: draft, photo: draftPhoto, analysis: draftThumbnailAnalysis, container: container
+            )
+        } else {
+            editing = .manualEntry(container: container)
+        }
     }
 
     private func form(_ editing: WorkoutFormEditing) -> some View {
@@ -70,7 +70,7 @@ struct WorkoutFormView: View {
     private func save() {
         guard let editing else { return }
         do {
-            try editing.save(into: context)
+            try editing.save()
             dismiss()
         } catch {
             // Leave the form open so unsaved edits can be retried or cancelled.
