@@ -86,7 +86,7 @@ Code quality, especially readability, maintainability, and reuse, is an importan
 - Use clear, descriptive names, and follow the surrounding code's patterns and file organization.
 - Avoid abbreviations in API and parameter names, types, and global or static properties and constants (for example, `avgWatts`, not `avgW`). Well-established abbreviations such as `avg`, `max`, `min`, `mph`, `rpm`, `id`, and `url` are fine. Don't use single-letter or cryptic names such as `m` outside the tightest scopes (for example, `i` in a loop or `$0`). When unsure whether a name is acceptable, ask Jonathan. Apply this to new code and code you're already changing. Existing abbreviations are renamed separately (#30).
 - Prefer one enum case per line (`case grid` and `case list`, not `case grid, list`). Leave a blank line after the last case when the enum also has properties, methods, or nested types.
-- Prefer one statement per line. Don't stack assignments or other statements with a semicolon (`count += 1; minutes += workout.durationMinutes`).
+- Prefer one statement per line. Don't stack assignments or other statements with a semicolon (`count += 1; minutes += workout.durationMinutes`). In a view builder, put each view on its own line (`Text("Next")` and `Image(...)`, not `Text("Next"); Image(...)`).
 - Comment the *why* for non-obvious decisions, not the *what*.
 - Prefer small, coherent changes. Remove dead code and unused helpers you replace.
 - Refactor where appropriate, for example code you touch that is duplicated, tangled, or hard to follow. Keep small refactors in the current PR. A refactoring that touches many files or lines of code gets its own issue and PR, separate from feature or bug work.

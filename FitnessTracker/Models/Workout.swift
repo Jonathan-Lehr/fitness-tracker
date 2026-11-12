@@ -49,6 +49,42 @@ final class Workout {
         self.isSimulated = isSimulated
     }
 
+    /// Hand-entry defaults (45 min, 10 mi, and so on) used when adding a ride without a photo.
+    convenience init(forManualEntry date: Date = .now) {
+        self.init(
+            date: date,
+            program: nil,
+            durationMinutes: 45,
+            distanceMiles: 10,
+            calories: 350,
+            elevationFeet: 1000,
+            avgRPM: 75,
+            avgWatts: 85,
+            inclineAvg: 2,
+            inclineMax: 10,
+            resistanceAvg: 10,
+            resistanceMax: 15
+        )
+    }
+
+    /// Values parsed from a photo; missing fields are 0, or the current date.
+    convenience init(summary: IFitSummary) {
+        self.init(
+            date: summary.date ?? .now,
+            program: nil,
+            durationMinutes: summary.durationMinutes ?? 0,
+            distanceMiles: summary.distanceMiles ?? 0,
+            calories: summary.calories ?? 0,
+            elevationFeet: summary.elevationFeet ?? 0,
+            avgRPM: summary.avgRPM ?? 0,
+            avgWatts: summary.avgWatts ?? 0,
+            inclineAvg: summary.inclineAvg ?? 0,
+            inclineMax: summary.inclineMax ?? 0,
+            resistanceAvg: summary.resistanceAvg ?? 0,
+            resistanceMax: summary.resistanceMax ?? 0
+        )
+    }
+
     var title: String { program?.title ?? "Untitled Ride" }
     var type: WorkoutType { program?.type ?? .other }
 }

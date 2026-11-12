@@ -167,7 +167,10 @@ private struct PeriodNavigationBar: View {
 
     private var nextButton: some View {
         Button(action: onNext) {
-            HStack(spacing: 4) { Text("Next"); Image(systemName: "chevron.right") }
+            HStack(spacing: 4) {
+                Text("Next")
+                Image(systemName: "chevron.right")
+            }
         }
         .accessibilityLabel("Next \(unit)")
         .keyboardShortcut(.rightArrow, modifiers: [])

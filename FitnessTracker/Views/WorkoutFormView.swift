@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct WorkoutFormView: View {
-    let workout: Workout?   // nil = add new
+    private let existingWorkout: Workout?
     /// Values parsed from a photo; fields the parser missed are flagged.
     var draft: IFitSummary? = nil
     var draftPhoto: Data? = nil
@@ -12,50 +12,123 @@ struct WorkoutFormView: View {
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \Program.title) private var programs: [Program]
 
-    @State private var workoutDraft = WorkoutDraft.manualEntry
+    @State private var editing: WorkoutFormEditing?
+    @State private var didSave = false
 
-    private var missing: Set<IFitSummary.Field> { draft?.missingFields ?? [] }
+    init(workout: Workout? = nil, draft: IFitSummary? = nil, draftPhoto: Data? = nil,
+         draftThumbnailAnalysis: ThumbnailFocusAnalysis? = nil) {
+        existingWorkout = workout
+        self.draft = draft
+        self.draftPhoto = draftPhoto
+        self.draftThumbnailAnalysis = draftThumbnailAnalysis
+        if workout == nil {
+            if let draft {
+                _editing = State(initialValue: .prefilled(
+                    summary: draft, photo: draftPhoto, analysis: draftThumbnailAnalysis
+                ))
+            } else {
+                _editing = State(initialValue: .manualEntry())
+            }
+        }
+    }
 
     var body: some View {
         NavigationStack {
-            Form {
-                if draft != nil && !missing.isEmpty {
-                    Section {
-                        missingFieldsBanner
-                    }
-                }
-                Section("Workout") {
-                    workoutFields
-                }
-                Section("Stats") {
-                    statsFields
-                }
-                Section("Notes") {
-                    TextField("Notes", text: $workoutDraft.notes, axis: .vertical)
-                }
-                if let photoData = workoutDraft.photoData, let image = ImageTools.cgImage(from: photoData, maxPixel: 800) {
-                    Section("Photo") {
-                        photoFields(image: image)
-                    }
-                }
+            if let editing {
+                form(editing)
+            } else {
+                ProgressView()
             }
-            .formStyle(.grouped)
-            .navigationTitle(workout == nil ? "Add Ride" : "Edit Ride")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        save()
-                        dismiss()
-                    }
-                        .disabled(Program.normalizedTitle(workoutDraft.title).isEmpty)
-                }
-            }
-            .onAppear(perform: load)
         }
         #if os(macOS)
         .frame(minWidth: 460, minHeight: 600)
         #endif
+        .onAppear(perform: prepareIfNeeded)
+        .onDisappear {
+            if !didSave {
+                editing?.cancel()
+            }
+        }
+    }
+
+    private var missing: Set<IFitSummary.Field> { draft?.missingFields ?? [] }
+
+    private func prepareIfNeeded() {
+        guard editing == nil, let existingWorkout else { return }
+        editing = try? WorkoutFormEditing.editing(existingWorkout, container: context.container)
+    }
+
+    private func form(_ editing: WorkoutFormEditing) -> some View {
+        WorkoutFormEditor(
+            editing: editing,
+            workout: editing.workout,
+            programs: programs,
+            missing: missing,
+            onCancel: cancel,
+            onSave: save
+        )
+    }
+
+    private func cancel() {
+        editing?.cancel()
+        dismiss()
+    }
+
+    private func save() {
+        guard let editing else { return }
+        do {
+            try editing.save(into: context)
+            didSave = true
+            dismiss()
+        } catch {
+            // Leave the form open so unsaved edits can be retried or cancelled.
+        }
+    }
+}
+
+/// Binds the form to the session's `Workout` (and the program title, which is not a workout field).
+private struct WorkoutFormEditor: View {
+    @Bindable var editing: WorkoutFormEditing
+    @Bindable var workout: Workout
+    let programs: [Program]
+    let missing: Set<IFitSummary.Field>
+    let onCancel: () -> Void
+    let onSave: () -> Void
+
+    var body: some View {
+        Form {
+            if !missing.isEmpty {
+                Section {
+                    missingFieldsBanner
+                }
+            }
+            Section("Workout") {
+                workoutFields
+            }
+            Section("Stats") {
+                statsFields
+            }
+            Section("Notes") {
+                TextField("Notes", text: notesBinding, axis: .vertical)
+            }
+            if let photoData = workout.photoData,
+               let image = ImageTools.cgImage(from: photoData, maxPixel: 800) {
+                Section("Photo") {
+                    photoFields(image: image)
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .navigationTitle(editing.isEditingExisting ? "Edit Ride" : "Add Ride")
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel", action: onCancel)
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save", action: onSave)
+                    .disabled(Program.normalizedTitle(editing.title).isEmpty)
+            }
+        }
     }
 
     private var missingFieldsBanner: some View {
@@ -66,28 +139,30 @@ struct WorkoutFormView: View {
 
     @ViewBuilder
     private var workoutFields: some View {
-        TextField("iFit program title", text: $workoutDraft.title)
+        TextField("iFit program title", text: $editing.title)
             .overlay(alignment: .trailing) { flag(.title) }
         if !programs.isEmpty {
             Menu("Choose existing program") {
-                ForEach(programs) { program in Button(program.title) { workoutDraft.title = program.title } }
+                ForEach(programs) { program in
+                    Button(program.title) { editing.title = program.title }
+                }
             }
         }
-        DatePicker(selection: $workoutDraft.date) { flaggedLabel("Start", .date) }
+        DatePicker(selection: $workout.date) { flaggedLabel("Start", .date) }
     }
 
     @ViewBuilder
     private var statsFields: some View {
-        numberField("Duration (min)", value: $workoutDraft.durationMinutes, field: .duration)
-        numberField("Distance (mi)", value: $workoutDraft.distanceMiles, field: .distance)
-        intField("Calories", value: $workoutDraft.calories, field: .calories)
-        intField("Elevation (ft)", value: $workoutDraft.elevationFeet, field: .elevation)
-        intField("Avg RPM", value: $workoutDraft.avgRPM, field: .rpm)
-        intField("Avg Watts", value: $workoutDraft.avgWatts, field: .watts)
-        numberField("Incline avg %", value: $workoutDraft.inclineAvg, field: .inclineAvg)
-        numberField("Incline max %", value: $workoutDraft.inclineMax, field: .inclineMax)
-        intField("Resistance avg", value: $workoutDraft.resistanceAvg, field: .resistanceAvg)
-        intField("Resistance max", value: $workoutDraft.resistanceMax, field: .resistanceMax)
+        numberField("Duration (min)", value: $workout.durationMinutes, field: .duration)
+        numberField("Distance (mi)", value: $workout.distanceMiles, field: .distance)
+        intField("Calories", value: $workout.calories, field: .calories)
+        intField("Elevation (ft)", value: $workout.elevationFeet, field: .elevation)
+        intField("Avg RPM", value: $workout.avgRPM, field: .rpm)
+        intField("Avg Watts", value: $workout.avgWatts, field: .watts)
+        numberField("Incline avg %", value: $workout.inclineAvg, field: .inclineAvg)
+        numberField("Incline max %", value: $workout.inclineMax, field: .inclineMax)
+        intField("Resistance avg", value: $workout.resistanceAvg, field: .resistanceAvg)
+        intField("Resistance max", value: $workout.resistanceMax, field: .resistanceMax)
     }
 
     @ViewBuilder
@@ -96,7 +171,16 @@ struct WorkoutFormView: View {
             .resizable().scaledToFit()
             .frame(maxHeight: 220)
             .clipShape(RoundedRectangle(cornerRadius: 8))
-        Button("Remove Photo", role: .destructive) { workoutDraft.photoData = nil }
+        Button("Remove Photo", role: .destructive) {
+            workout.replacePhoto(with: nil)
+        }
+    }
+
+    private var notesBinding: Binding<String> {
+        Binding(
+            get: { workout.notes ?? "" },
+            set: { workout.notes = $0.isEmpty ? nil : $0 }
+        )
     }
 
     @ViewBuilder
@@ -135,27 +219,5 @@ struct WorkoutFormView: View {
                 .keyboardType(.numberPad)
                 #endif
         } label: { flaggedLabel(label, field) }
-    }
-
-    private func load() {
-        if let summary = draft {
-            workoutDraft = WorkoutDraft(summary: summary, photoData: draftPhoto)
-        }
-        guard let workout else { return }
-        workoutDraft = WorkoutDraft(workout: workout)
-    }
-
-    private func save() {
-        let program = Program.findOrCreate(title: workoutDraft.title, in: context)
-        let workout = workout ?? {
-            let new = Workout(date: workoutDraft.date, program: program)
-            context.insert(new)
-            return new
-        }()
-        workout.program = program
-        workoutDraft.apply(to: workout)
-        workout.replacePhoto(with: workoutDraft.photoData,
-                             analysis: workoutDraft.photoData == draftPhoto ? draftThumbnailAnalysis : nil)
-        try? context.save()
     }
 }
