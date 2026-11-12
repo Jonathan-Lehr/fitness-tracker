@@ -18,9 +18,10 @@ env:
 # code never runs on the self-hosted Mac.
 
 jobs:
-  macos:
-    name: macOS build + test
-    # macos-26: compiling the Icon Composer AppIcon.icon for a Mac target needs a macOS 26 host.
+  build:
+    name: Build and test
+    # macos-26: compiling the Icon Composer AppIcon.icon for a Mac or iOS target needs a macOS 26 host.
+    # The macos-15 queue also kept cancelling jobs before they started.
     runs-on: ${{ fromJSON((github.event.pull_request.head.repo.fork && '"macos-26"') || vars.MACOS_RUNNER || '"macos-26"') }}
     steps:
       - uses: actions/checkout@v4
@@ -36,10 +37,25 @@ jobs:
           path: |
             DerivedData
             ~/Library/Caches/org.swift.swiftpm
-          key: dd-macos-${{ hashFiles('**/*.swift', '**/project.pbxproj', 'project.yml', 'Config/**') }}
-          restore-keys: dd-macos-
+          key: dd-${{ hashFiles('**/*.swift', '**/project.pbxproj', 'project.yml', 'Config/**') }}
+          restore-keys: dd-
+
+      # Cheapest first. `if: !cancelled()` keeps later checks running after a failure so all
+      # results show up; the job still fails if any check fails. Restore the committed project
+      # afterward so the macOS and iOS builds test the project in the repo, not the generated one.
+      - name: XcodeGen spec check
+        if: ${{ !cancelled() }}
+        run: |
+          command -v xcodegen >/dev/null || brew install xcodegen
+          trap 'git checkout -- FitnessTracker.xcodeproj' EXIT
+          rm -rf FitnessTracker.xcodeproj
+          xcodegen
+          xcodebuild -list -project FitnessTracker.xcodeproj | tee list.txt
+          grep -q FitnessTrackerTests list.txt
+
       # Single build: `test` compiles the app + tests once and runs them.
       - name: Test (macOS)
+        if: ${{ !cancelled() }}
         run: |
           code=0
           xcodebuild -project FitnessTracker.xcodeproj -scheme FitnessTracker \
@@ -50,44 +66,12 @@ jobs:
           [ $code -eq 0 ] || tail -80 test.log
           exit $code
 
-  ios:
-    name: iOS Simulator build
-    # macos-26: the icon needs a macOS 26 host, and the macos-15 queue kept cancelling jobs before they started.
-    runs-on: ${{ fromJSON((github.event.pull_request.head.repo.fork && '"macos-26"') || vars.MACOS_RUNNER || '"macos-26"') }}
-    steps:
-      - uses: actions/checkout@v4
-      # Hosted runners only: on the self-hosted Mac it needs sudo and would switch the selected Xcode.
-      - uses: maxim-lobanov/setup-xcode@v1
-        if: runner.environment == 'github-hosted'
-        with:
-          xcode-version: latest-stable
-      # Manual runs (workflow_dispatch) skip the cache for a clean build with a full warning list.
-      - uses: actions/cache@v4
-        if: github.event_name != 'workflow_dispatch' && runner.environment == 'github-hosted'
-        with:
-          path: |
-            DerivedData
-            ~/Library/Caches/org.swift.swiftpm
-          key: dd-ios-${{ hashFiles('**/*.swift', '**/project.pbxproj', 'project.yml', 'Config/**') }}
-          restore-keys: dd-ios-
       # build-for-testing compiles app + test bundle once, for one simulator arch only.
       - name: Build for testing (iOS Simulator, arm64)
+        if: ${{ !cancelled() }}
         run: |
           xcodebuild -project FitnessTracker.xcodeproj -scheme FitnessTracker \
             -destination "generic/platform=iOS Simulator" -derivedDataPath "$DERIVED_DATA" \
             ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO build-for-testing > build.log 2>&1 || { tail -80 build.log; exit 1; }
           tail -5 build.log
           echo "::group::Warnings"; grep -E "warning:" build.log | sort -u || true; echo "::endgroup::"
-
-  xcodegen:
-    name: XcodeGen spec check
-    runs-on: ${{ fromJSON((github.event.pull_request.head.repo.fork && '"macos-26"') || vars.MACOS_RUNNER || '"macos-26"') }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Generate project from project.yml
-        run: |
-          command -v xcodegen >/dev/null || brew install xcodegen
-          rm -rf FitnessTracker.xcodeproj
-          xcodegen
-          xcodebuild -list -project FitnessTracker.xcodeproj | tee list.txt
-          grep -q FitnessTrackerTests list.txt
