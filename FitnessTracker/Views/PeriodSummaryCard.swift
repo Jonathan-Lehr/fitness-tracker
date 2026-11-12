@@ -1,6 +1,11 @@
 import SwiftUI
 import Charts
 
+/// Rolling digits for numbers; a plain crossfade when Reduce Motion is on.
+private func numericContentTransition(value: Double, reduceMotion: Bool) -> ContentTransition {
+    reduceMotion ? .opacity : .numericText(value: value)
+}
+
 /// A change shown under a stat, colored by direction: green up, yellow for a small dip,
 /// red for a big drop, secondary when unchanged.
 struct StatDelta {
@@ -71,7 +76,7 @@ struct StatTile: View {
         Text(value)
             .font(.headline.weight(.semibold))
             .monospacedDigit()
-            .contentTransition(transition(for: numericValue))
+            .contentTransition(numericContentTransition(value: numericValue, reduceMotion: reduceMotion))
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width in
                 onValueWidthChange?(width)
             }
@@ -79,14 +84,10 @@ struct StatTile: View {
 
     private func deltaText(_ delta: StatDelta) -> some View {
         Text(delta.text)
-            .contentTransition(transition(for: delta.value))
+            .contentTransition(numericContentTransition(value: delta.value, reduceMotion: reduceMotion))
             .font(.caption2.weight(.medium))
             .monospacedDigit()
             .foregroundStyle(delta.color)
-    }
-
-    private func transition(for value: Double) -> ContentTransition {
-        reduceMotion ? .opacity : .numericText(value: value)
     }
 }
 
@@ -101,11 +102,6 @@ struct PeriodSummaryCard: View {
     static let columnSpacing: CGFloat = 16
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    /// Rolling digits for numbers; a plain crossfade when Reduce Motion is on.
-    private func numeric(_ value: Double) -> ContentTransition {
-        reduceMotion ? .opacity : .numericText(value: value)
-    }
 
     /// Measured card width; drives the layout instead of size classes (a non-Max iPhone in
     /// landscape reports a compact horizontal size class).
@@ -211,11 +207,11 @@ struct PeriodSummaryCard: View {
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
-                    .contentTransition(numeric(summary.current.miles))
+                    .contentTransition(numericContentTransition(value: summary.current.miles, reduceMotion: reduceMotion))
                 Text("mi").font(.title3.weight(.semibold)).foregroundStyle(.secondary)
             }
             Text(summary.deltaText)
-                .contentTransition(numeric(summary.milesDelta))
+                .contentTransition(numericContentTransition(value: summary.milesDelta, reduceMotion: reduceMotion))
                 .monospacedDigit()
                 .font(.caption.weight(.medium))
                 .lineLimit(1)

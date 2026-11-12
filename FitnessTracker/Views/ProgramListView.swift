@@ -14,7 +14,7 @@ struct ProgramListView: View {
                             Text(p.type.label).font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Text("\(p.workouts?.count ?? 0)×").monospacedDigit().foregroundStyle(.secondary)
+                        Text("\((p.workouts?.count ?? 0).formattedWholeNumber())×").monospacedDigit().foregroundStyle(.secondary)
                     }
                 }
             }

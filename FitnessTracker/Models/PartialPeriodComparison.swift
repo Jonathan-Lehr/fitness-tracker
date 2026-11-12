@@ -21,12 +21,8 @@ struct PartialPeriodComparison {
         self.period = period
         current = windows.current
         previous = windows.previous
-        currentTotals = Totals(workouts.filter { Self.contains(windows.current, $0.date) })
-        previousTotals = Totals(workouts.filter { Self.contains(windows.previous, $0.date) })
-    }
-
-    static func contains(_ interval: DateInterval, _ date: Date) -> Bool {
-        date >= interval.start && date < interval.end
+        currentTotals = Totals(workouts.filter { windows.current.halfOpenContains($0.date) })
+        previousTotals = Totals(workouts.filter { windows.previous.halfOpenContains($0.date) })
     }
 
     static func windows(period: GroupingPeriod, now: Date, calendar: Calendar = .app)

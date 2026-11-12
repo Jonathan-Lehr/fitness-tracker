@@ -122,10 +122,11 @@ enum GroupingPeriod: String, CaseIterable, Identifiable {
     }
 
     func label(for start: Date, calendar: Calendar = .app) -> String {
+        let style = Date.FormatStyle(calendar: calendar, timeZone: calendar.timeZone)
         switch self {
-        case .week: "Week of " + start.formatted(Date.FormatStyle(calendar: calendar, timeZone: calendar.timeZone).month(.abbreviated).day().year())
-        case .month: start.formatted(.dateTime.month(.wide).year())
-        case .year: start.formatted(.dateTime.year())
+        case .week: return "Week of " + start.formatted(style.month(.abbreviated).day().year())
+        case .month: return start.formatted(style.month(.wide).year())
+        case .year: return start.formatted(style.year())
         }
     }
 }

@@ -7,7 +7,7 @@ enum DataDeduper {
     static func key(title: String, date: Date) -> String {
         // Minute precision: rides are entered from a screen that shows minutes only.
         let minute = Int(date.timeIntervalSinceReferenceDate / 60)
-        return title.lowercased().trimmingCharacters(in: .whitespaces) + "|\(minute)"
+        return Program.normalizedTitleKey(title) + "|\(minute)"
     }
 
     static func key(_ w: Workout) -> String { key(title: w.title, date: w.date) }
@@ -17,7 +17,7 @@ enum DataDeduper {
 
         // 1. Programs with the same title (case-insensitive): keep the one with most rides.
         let programs = (try? context.fetch(FetchDescriptor<Program>())) ?? []
-        let byTitle = Dictionary(grouping: programs) { $0.title.lowercased().trimmingCharacters(in: .whitespaces) }
+        let byTitle = Dictionary(grouping: programs) { Program.normalizedTitleKey($0.title) }
         for (_, group) in byTitle where group.count > 1 {
             let sorted = group.sorted { ($0.workouts?.count ?? 0) > ($1.workouts?.count ?? 0) }
             let keeper = sorted[0]
