@@ -46,7 +46,10 @@ struct DebugMenuView: View {
                     Button("Remove Simulated Rides", role: .destructive) { pending = .removeSimulated }
                 }
                 Section("Real Data") {
-                    Button("Re-insert the 4 Real Rides") { SeedData.insertRealRides(context); dismiss() }
+                    Button("Re-insert the 4 Real Rides") {
+                        SeedData.insertRealRides(context)
+                        dismiss()
+                    }
                     Button("Clear ALL Data", role: .destructive) { pending = .clearAll }
                 }
             }

@@ -201,7 +201,10 @@ enum BackupService {
         for dto in file.workouts {
             let title = dto.programID.flatMap { id in file.programs.first { $0.id == id }?.title } ?? dto.programID ?? "Untitled Ride"
             let key = DataDeduper.key(title: title, date: dto.date)
-            if existingKeys.contains(key) { summary.workoutsSkipped += 1; continue }
+            if existingKeys.contains(key) {
+                summary.workoutsSkipped += 1
+                continue
+            }
             let w = Workout(date: dto.date, program: program(for: dto.programID),
                             durationMinutes: dto.durationMinutes, distanceMiles: dto.distanceMiles,
                             calories: dto.calories, elevationFeet: dto.elevationFeet, avgRPM: dto.avgRPM,

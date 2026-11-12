@@ -134,10 +134,14 @@ final class PhotoOCRIntegrationTests: XCTestCase {
         var correctFields = 0, totalFields = 0
         for ride in ExpectedRide.all {
             guard let url = bundle.url(forResource: ride.file, withExtension: "jpg") else {
-                XCTFail("Missing test resource \(ride.file).jpg"); continue
+                XCTFail("Missing test resource \(ride.file).jpg")
+                continue
             }
             let data = try Data(contentsOf: url)
-            guard let image = ImageTools.cgImage(from: data) else { XCTFail("Undecodable \(ride.file)"); continue }
+            guard let image = ImageTools.cgImage(from: data) else {
+                XCTFail("Undecodable \(ride.file)")
+                continue
+            }
             // Same path as import: the straightened copy is used when it reads at least as many fields.
             let reading = try OCRReading.bestReading(of: image)
             let straightened = ScreenStraightener.straightened(image) != nil

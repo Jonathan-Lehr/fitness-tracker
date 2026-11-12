@@ -40,7 +40,8 @@ struct PartialPeriodComparison {
         case .year:
             let md = calendar.dateComponents([.month, .day], from: now)
             var c = calendar.dateComponents([.era, .year], from: previousStart)
-            c.month = md.month; c.day = 1
+            c.month = md.month
+            c.day = 1
             correspondingDay = calendar.date(from: c).flatMap { calendar.date(byAdding: .day, value: (md.day ?? 1) - 1, to: $0) }
                 .map { calendar.startOfDay(for: $0) }
         }

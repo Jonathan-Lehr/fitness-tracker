@@ -140,7 +140,10 @@ enum IFitSummaryParser {
     /// "1388" read without its decimal point -> 13.88 (miles always have two decimals on this screen).
     static func droppedDecimal(_ digits: String) -> Double? {
         guard let n = Double(digits) else { return nil }
-        if digits.count >= 3 { let v = n / 100; return validDistance(v) ? v : nil }
+        if digits.count >= 3 {
+            let value = n / 100
+            return validDistance(value) ? value : nil
+        }
         return validDistance(n) ? n : nil
     }
 

@@ -13,16 +13,23 @@ struct Totals {
 
     init(_ workouts: [Workout]) {
         for w in workouts {
-            count += 1; minutes += w.durationMinutes; miles += w.distanceMiles
-            calories += w.calories; feet += w.elevationFeet
+            count += 1
+            minutes += w.durationMinutes
+            miles += w.distanceMiles
+            calories += w.calories
+            feet += w.elevationFeet
             let weight = max(w.durationMinutes, 0)
             if w.avgWatts > 0 {
-                wattRides += 1; wattSimple += w.avgWatts
-                wattWeighted += Double(w.avgWatts) * weight; wattWeight += weight
+                wattRides += 1
+                wattSimple += w.avgWatts
+                wattWeighted += Double(w.avgWatts) * weight
+                wattWeight += weight
             }
             if w.avgRPM > 0 {
-                rpmRides += 1; rpmSimple += w.avgRPM
-                rpmWeighted += Double(w.avgRPM) * weight; rpmWeight += weight
+                rpmRides += 1
+                rpmSimple += w.avgRPM
+                rpmWeighted += Double(w.avgRPM) * weight
+                rpmWeight += weight
             }
         }
     }

@@ -44,7 +44,10 @@ struct WorkoutFormView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { save(); dismiss() }
+                    Button("Save") {
+                        save()
+                        dismiss()
+                    }
                         .disabled(Program.normalizedTitle(workoutDraft.title).isEmpty)
                 }
             }

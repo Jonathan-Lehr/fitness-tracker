@@ -43,7 +43,10 @@ struct FilterView: View {
                     }
                 }
                 Section {
-                    Button("Reset Filters", role: .destructive) { filter = LogFilter(); minWattsText = "" }
+                    Button("Reset Filters", role: .destructive) {
+                        filter = LogFilter()
+                        minWattsText = ""
+                    }
                 }
             }
             .formStyle(.grouped)

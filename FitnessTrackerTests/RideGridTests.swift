@@ -71,8 +71,11 @@ final class RideGridTests: XCTestCase {
     private func image(_ fill: (Int, Int) -> UInt8, w: Int = 64, h: Int = 64) -> CGImage {
         var px = [UInt8](repeating: 255, count: w * h * 4)
         for y in 0..<h { for x in 0..<w {
-            let v = fill(x, y); let i = (y * w + x) * 4
-            px[i] = v; px[i + 1] = v; px[i + 2] = v
+            let value = fill(x, y)
+            let index = (y * w + x) * 4
+            px[index] = value
+            px[index + 1] = value
+            px[index + 2] = value
         } }
         let ctx = CGContext(data: &px, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
                             space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
@@ -110,7 +113,8 @@ final class RideGridTests: XCTestCase {
         let bad = Data([9, 9, 9])
         let a = await store.thumbnail(id: "x", data: bad, aspect: 2)
         let b = await store.thumbnail(id: "x", data: bad, aspect: 2)
-        XCTAssertNil(a); XCTAssertNil(b)
+        XCTAssertNil(a)
+        XCTAssertNil(b)
         let good = jpeg(image({ x, y in UInt8((x * 3 + y * 5) % 256) }, w: 800, h: 600))
         let c = await store.thumbnail(id: "y", data: good, aspect: 2)
         let d = await store.thumbnail(id: "y", data: good, aspect: 2)

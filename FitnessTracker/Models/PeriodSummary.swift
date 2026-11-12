@@ -181,9 +181,15 @@ struct PeriodSummary {
         let format: Date.FormatStyle
         let every: Int
         switch period {
-        case .week: format = Date.FormatStyle(calendar: calendar, timeZone: calendar.timeZone).weekday(.narrow); every = 1
-        case .month: format = Date.FormatStyle(calendar: calendar, timeZone: calendar.timeZone).day(); every = 7
-        case .year: format = Date.FormatStyle(calendar: calendar, timeZone: calendar.timeZone).month(.narrow); every = 3
+        case .week:
+            format = Date.FormatStyle(calendar: calendar, timeZone: calendar.timeZone).weekday(.narrow)
+            every = 1
+        case .month:
+            format = Date.FormatStyle(calendar: calendar, timeZone: calendar.timeZone).day()
+            every = 7
+        case .year:
+            format = Date.FormatStyle(calendar: calendar, timeZone: calendar.timeZone).month(.narrow)
+            every = 3
         }
         return bounds.enumerated().map { i, start in
             let end = i + 1 < bounds.count ? bounds[i + 1] : interval.end

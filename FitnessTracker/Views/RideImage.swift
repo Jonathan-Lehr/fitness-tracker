@@ -40,7 +40,10 @@ struct RideImage: View {
         .aspectRatio(aspect, contentMode: .fit)
         .clipped()
         .task(id: taskID) {
-            guard let data = workout.photoData else { image = nil; return }
+            guard let data = workout.photoData else {
+                image = nil
+                return
+            }
             let id = String(describing: workout.persistentModelID)
             image = await ThumbnailStore.shared.thumbnail(id: id, data: data, aspect: aspect,
                                                           focus: workout.thumbnailFocus)

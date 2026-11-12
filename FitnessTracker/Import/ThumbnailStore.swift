@@ -96,7 +96,10 @@ enum ThumbnailCropper {
 actor ThumbnailStore {
     static let shared = ThumbnailStore()
 
-    private final class Entry { let image: CGImage?; init(_ i: CGImage?) { image = i } }
+    private final class Entry {
+        let image: CGImage?
+        init(_ image: CGImage?) { self.image = image }
+    }
     private let cache: NSCache<NSString, Entry> = {
         let c = NSCache<NSString, Entry>()
         c.countLimit = 300
