@@ -1,5 +1,6 @@
 import XCTest
 import SwiftData
+import CoreGraphics
 @testable import FitnessTracker
 
 @MainActor
@@ -114,5 +115,54 @@ final class BackupTests: XCTestCase {
         var c = DateComponents(); c.year = 2026; c.month = 10; c.day = 24; c.hour = 12
         let d = Calendar.current.date(from: c)!
         XCTAssertEqual(BackupService.defaultFilename(now: d), "FitnessTracker Backup 2026-10-24")
+    }
+
+    // MARK: Thumbnail focus
+
+    private let focus = CGRect(x: 0.5, y: 0.1, width: 0.2, height: 0.25)
+
+    private func backupWithFocusedPhoto() throws -> BackupFile {
+        let context = try makeContext()
+        SeedData.insertRealRides(context)
+        let w = try context.fetch(FetchDescriptor<Workout>()).first!
+        w.replacePhoto(with: Data([0xFF, 0xD8, 0xFF, 0x01]), analysis: ThumbnailFocusAnalysis(focus: focus))
+        // Whole seconds, since the file stores milliseconds.
+        return BackupService.makeBackup(context, now: Date(timeIntervalSince1970: 1_761_000_000))
+    }
+
+    func testThumbnailFocusRoundTripsAndRestores() throws {
+        let backup = try backupWithFocusedPhoto()
+        let decoded = try BackupService.decode(BackupService.encode(backup))
+        XCTAssertEqual(decoded, backup)
+        let withPhoto = try XCTUnwrap(decoded.workouts.first { $0.photoData != nil })
+        XCTAssertEqual(withPhoto.thumbnailFocus?.rect, focus)
+        XCTAssertEqual(withPhoto.thumbnailFocusAnalysisVersion, ThumbnailFocusFinder.analysisVersion)
+        XCTAssertTrue(decoded.workouts.filter { $0.photoData == nil }.allSatisfy { $0.thumbnailFocusAnalysisVersion == nil })
+
+        let target = try makeContext()
+        BackupService.importBackup(decoded, into: target, mode: .replace)
+        let restored = try XCTUnwrap(try target.fetch(FetchDescriptor<Workout>()).first { $0.photoData != nil })
+        XCTAssertEqual(restored.thumbnailFocus, focus)
+        XCTAssertFalse(restored.needsThumbnailFocusAnalysis)
+    }
+
+    func testBackupWithoutThumbnailFocusDecodesAndNeedsAnalysis() throws {
+        // Strip the new keys to mimic a backup written before thumbnail focus existed.
+        let data = try BackupService.encode(try backupWithFocusedPhoto())
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let workouts = try XCTUnwrap(json["workouts"] as? [[String: Any]])
+        json["workouts"] = workouts.map { workout in
+            workout.filter { $0.key != "thumbnailFocus" && $0.key != "thumbnailFocusAnalysisVersion" }
+        }
+        let decoded = try BackupService.decode(JSONSerialization.data(withJSONObject: json))
+        let withPhoto = try XCTUnwrap(decoded.workouts.first { $0.photoData != nil })
+        XCTAssertNil(withPhoto.thumbnailFocus)
+        XCTAssertNil(withPhoto.thumbnailFocusAnalysisVersion)
+
+        let target = try makeContext()
+        BackupService.importBackup(decoded, into: target, mode: .replace)
+        let restored = try XCTUnwrap(try target.fetch(FetchDescriptor<Workout>()).first { $0.photoData != nil })
+        XCTAssertNil(restored.thumbnailFocus)
+        XCTAssertTrue(restored.needsThumbnailFocusAnalysis)
     }
 }

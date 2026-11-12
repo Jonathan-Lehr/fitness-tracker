@@ -138,8 +138,12 @@ final class PhotoOCRIntegrationTests: XCTestCase {
             }
             let data = try Data(contentsOf: url)
             guard let image = ImageTools.cgImage(from: data) else { XCTFail("Undecodable \(ride.file)"); continue }
-            let items = try TextRecognizer.recognize(image)
-            let summary = IFitSummaryParser.parse(items: items)
+            // Same path as import: the straightened copy is used when it reads at least as many fields.
+            let reading = try OCRReading.bestReading(of: image)
+            let straightened = ScreenStraightener.straightened(image) != nil
+            print("Straightened \(ride.file): \(straightened ? "yes" : "no")")
+            let items = reading.items
+            let summary = reading.summary
             let problems = ride.mismatches(summary)
             totalFields += 12
             correctFields += 12 - problems.count

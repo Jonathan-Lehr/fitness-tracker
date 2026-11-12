@@ -7,27 +7,53 @@ enum ThumbnailCropper {
     /// Source band (fractions of image size). iFit summary screens put the scenery/rider header
     /// above the title and stats panel, with "Nice job!" text on the left, so the rider usually
     /// sits right of center. The band starts near the top so heads aren't cut; camera shots may
-    /// show a sliver of bezel at the top instead. Conservative fixed bounds, not content-aware.
+    /// show a sliver of bezel at the top instead.
     static let bandTop = 0.05
     static let bandBottom = 0.40
     /// Horizontal inset trimming bezel/edge UI on camera shots.
     static let sideInset = 0.06
-    /// Horizontal center of the crop when the band is wider than the card aspect.
+    /// Horizontal center of the crop when no focus is stored and the band is wider than the card aspect.
     static let centerX = 0.62
 
-    /// Crop rect (pixels, top-left origin) at `aspect` (width/height) inside the scenic band:
-    /// as tall as the band allows, anchored to the band top, centered at `centerX` and clamped
-    /// inside the band. Returns nil for degenerate sizes.
-    static func cropRect(width: Int, height: Int, aspect: Double) -> CGRect? {
+    /// The scenic band as fractions of the image, top-left origin. Crops stay inside it, and
+    /// `ThumbnailFocusFinder` analyzes only this area.
+    static let band = CGRect(x: sideInset, y: bandTop, width: 1 - 2 * sideInset, height: bandBottom - bandTop)
+
+    /// Crop rect (pixels, top-left origin) at `aspect` (width/height) inside the scenic band, as large
+    /// as the band allows. With a stored `focus` (fractions, top-left origin) the crop centers on it;
+    /// otherwise it uses the fixed framing: anchored to the band top and centered at `centerX`.
+    /// Either way it is clamped inside the band. Returns nil for degenerate sizes.
+    static func cropRect(width: Int, height: Int, aspect: Double, focus: CGRect? = nil) -> CGRect? {
         guard width >= 32, height >= 32, aspect > 0, aspect.isFinite else { return nil }
-        let w = Double(width), h = Double(height)
-        let bandX = w * sideInset, bandW = w * (1 - 2 * sideInset)
-        let bandY = h * bandTop, bandH = h * (bandBottom - bandTop)
-        var cropW = bandW, cropH = bandW / aspect
-        if cropH > bandH { cropH = bandH; cropW = bandH * aspect }
-        let x = min(max(w * centerX - cropW / 2, bandX), bandX + bandW - cropW)
-        return CGRect(x: x, y: bandY, width: cropW, height: cropH).integral
-            .intersection(CGRect(x: 0, y: 0, width: w, height: h))
+        let imageBounds = CGRect(x: 0, y: 0, width: width, height: height)
+        let bandPixels = pixelRect(band, in: imageBounds)
+        let size = largestSize(aspect: aspect, fitting: bandPixels.size)
+        let focusPixels = focus.map { pixelRect($0, in: imageBounds) }
+        let cropCenter = focusPixels.map { CGPoint(x: $0.midX, y: $0.midY) }
+            ?? CGPoint(x: imageBounds.width * centerX, y: bandPixels.minY + size.height / 2)
+        return rect(size: size, centeredOn: cropCenter, clampedInside: bandPixels).integral
+            .intersection(imageBounds)
+    }
+
+    /// Largest size with `aspect` (width/height) that fits inside `bounds`.
+    static func largestSize(aspect: Double, fitting bounds: CGSize) -> CGSize {
+        let widthLimited = CGSize(width: bounds.width, height: bounds.width / aspect)
+        guard widthLimited.height > bounds.height else { return widthLimited }
+        return CGSize(width: bounds.height * aspect, height: bounds.height)
+    }
+
+    /// A rect of `size` centered on `center` as closely as possible while staying inside `bounds`.
+    /// `size` must fit inside `bounds`.
+    static func rect(size: CGSize, centeredOn center: CGPoint, clampedInside bounds: CGRect) -> CGRect {
+        let x = min(max(center.x - size.width / 2, bounds.minX), bounds.maxX - size.width)
+        let y = min(max(center.y - size.height / 2, bounds.minY), bounds.maxY - size.height)
+        return CGRect(origin: CGPoint(x: x, y: y), size: size)
+    }
+
+    /// `fraction` (fractions of `bounds`, top-left origin) in the pixel space of `bounds`.
+    static func pixelRect(_ fraction: CGRect, in bounds: CGRect) -> CGRect {
+        CGRect(x: bounds.minX + fraction.minX * bounds.width, y: bounds.minY + fraction.minY * bounds.height,
+               width: fraction.width * bounds.width, height: fraction.height * bounds.height)
     }
 
     /// Rejects crops that are nearly black or flat (e.g. dark bezel, blank screen), so the card
@@ -54,11 +80,11 @@ enum ThumbnailCropper {
         return (mean, variance.squareRoot())
     }
 
-    /// Decodes the saved photo once at reduced size, crops the scenic band and returns it,
-    /// or nil if the photo is unreadable or the crop looks unusable.
-    static func thumbnail(from data: Data, aspect: Double, maxPixel: Int = 900) -> CGImage? {
+    /// Decodes the saved photo once at reduced size, crops the scenic band (around `focus` when
+    /// one is stored) and returns it, or nil if the photo is unreadable or the crop looks unusable.
+    static func thumbnail(from data: Data, aspect: Double, focus: CGRect? = nil, maxPixel: Int = 900) -> CGImage? {
         guard let image = ImageTools.cgImage(from: data, maxPixel: maxPixel),
-              let rect = cropRect(width: image.width, height: image.height, aspect: aspect),
+              let rect = cropRect(width: image.width, height: image.height, aspect: aspect, focus: focus),
               let cropped = image.cropping(to: rect),
               isUsable(cropped) else { return nil }
         return cropped
@@ -77,15 +103,24 @@ actor ThumbnailStore {
         return c
     }()
 
-    static func key(id: String, data: Data, aspect: Double) -> String {
-        "\(id)|\(data.count)|\(data.hashValue)|\(Int(aspect * 100))"
+    /// Includes the focus so a ride re-crops once the backfill (or a new photo) changes it.
+    static func key(id: String, data: Data, aspect: Double, focus: CGRect? = nil) -> String {
+        "\(id)|\(data.count)|\(data.hashValue)|\(Int(aspect * 100))|\(focusKey(focus))"
     }
 
-    func thumbnail(id: String, data: Data, aspect: Double) async -> CGImage? {
-        let key = Self.key(id: id, data: data, aspect: aspect) as NSString
+    /// Focus rounded to 0.1% of the image, or "band" for the fixed framing.
+    private static func focusKey(_ focus: CGRect?) -> String {
+        guard let focus else { return "band" }
+        return [focus.minX, focus.minY, focus.width, focus.height]
+            .map { String(Int(($0 * 1000).rounded())) }
+            .joined(separator: ",")
+    }
+
+    func thumbnail(id: String, data: Data, aspect: Double, focus: CGRect? = nil) async -> CGImage? {
+        let key = Self.key(id: id, data: data, aspect: aspect, focus: focus) as NSString
         if let hit = cache.object(forKey: key) { return hit.image }
         let image = await Task.detached(priority: .utility) {
-            ThumbnailCropper.thumbnail(from: data, aspect: aspect)
+            ThumbnailCropper.thumbnail(from: data, aspect: aspect, focus: focus)
         }.value
         cache.setObject(Entry(image), forKey: key)
         return image

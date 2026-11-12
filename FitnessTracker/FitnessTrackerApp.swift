@@ -48,12 +48,15 @@ struct FitnessTrackerApp: App {
                     let context = container.mainContext
                     SeedData.seedIfNeeded(context)
                     DataDeduper.run(context)
+                    Task { await ThumbnailFocusBackfill.run(context) }
                 }
                 // CloudKit imports arrive as remote store changes; dedupe after each burst.
                 .onReceive(NotificationCenter.default
                     .publisher(for: .NSPersistentStoreRemoteChange)
                     .debounce(for: .seconds(2), scheduler: RunLoop.main)) { _ in
                     DataDeduper.run(container.mainContext)
+                    // Picks up synced or restored rides whose photos haven't been analyzed.
+                    Task { await ThumbnailFocusBackfill.run(container.mainContext) }
                 }
         }
         .modelContainer(container)
