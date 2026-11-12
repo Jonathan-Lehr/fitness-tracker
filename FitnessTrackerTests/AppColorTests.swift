@@ -25,10 +25,11 @@ final class AppColorTests: XCTestCase {
         ]
     }
 
-    /// Tags use the same value in dark mode for now; the small-dip color matches system yellow.
+    /// Tags use the same value in dark mode for now; the small-dip color matches system yellow as
+    /// resolved on macOS 26 (255/214/0; earlier releases used 255/214/10).
     private var expectedDark: [AppColor: RGB] {
         var dark = expectedLight
-        dark[.smallDipYellow] = RGB(red: 1.0, green: 214.0 / 255.0, blue: 10.0 / 255.0)
+        dark[.smallDipYellow] = RGB(red: 1.0, green: 214.0 / 255.0, blue: 0.0)
         return dark
     }
 
