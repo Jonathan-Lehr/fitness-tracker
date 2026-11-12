@@ -85,8 +85,8 @@ struct DebugMenuView: View {
     private func perform(_ action: Action) {
         switch action {
         case .generate: SimulatedData.generate(into: context)
-        case .removeSimulated: SeedData.deleteAll(context, simulatedOnly: true)
-        case .clearAll: SeedData.deleteAll(context)
+        case .removeSimulated: DataMaintenance.deleteAll(context, simulatedOnly: true)
+        case .clearAll: DataMaintenance.deleteAll(context)
         }
         dismiss()
     }

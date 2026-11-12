@@ -177,7 +177,7 @@ enum BackupService {
     @discardableResult
     static func importBackup(_ file: BackupFile, into context: ModelContext, mode: ImportMode) -> ImportSummary {
         var summary = ImportSummary(replaced: mode == .replace)
-        if mode == .replace { SeedData.deleteAll(context) }
+        if mode == .replace { DataMaintenance.deleteAll(context) }
 
         var programsByID: [String: Program] = [:]
         for p in (try? context.fetch(FetchDescriptor<Program>())) ?? [] {
