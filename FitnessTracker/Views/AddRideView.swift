@@ -44,45 +44,12 @@ struct AddRideView: View {
         NavigationStack {
             VStack(spacing: 20) {
                 Spacer()
-                Image(systemName: "camera.viewfinder")
-                    .font(.system(size: 64))
-                    .foregroundStyle(.tint)
-                Text("Snap the iFit summary screen")
-                    .font(.title2.bold())
-                Text("The numbers are read from the photo, and you can review them before saving.")
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.secondary)
-
+                chooserHeader
                 if isProcessing {
                     ProgressView("Reading photo…").padding()
                 } else {
-                    VStack(spacing: 12) {
-                        #if os(iOS)
-                        if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                            Button { showCamera = true } label: {
-                                Label("Take Photo", systemImage: "camera.fill").frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.large)
-                        }
-                        #endif
-                        PhotosPicker(selection: $pickerItem, matching: .images) {
-                            Label("Choose Photo", systemImage: "photo.on.rectangle").frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.large)
-                        #if os(macOS)
-                        Button { showFileImporter = true } label: {
-                            Label("Open Image File…", systemImage: "folder").frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.large)
-                        dropZone
-                        #endif
-                    }
-                    .frame(maxWidth: 360)
+                    chooserSourceButtons
                 }
-
                 if let errorMessage {
                     Text(errorMessage).foregroundStyle(.red).font(.callout)
                 }
@@ -130,6 +97,47 @@ struct AddRideView: View {
             case .failure(let error): errorMessage = error.localizedDescription
             }
         }
+    }
+
+    private var chooserHeader: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "camera.viewfinder")
+                .font(.system(size: 64))
+                .foregroundStyle(.tint)
+            Text("Snap the iFit summary screen")
+                .font(.title2.bold())
+            Text("The numbers are read from the photo, and you can review them before saving.")
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var chooserSourceButtons: some View {
+        VStack(spacing: 12) {
+            #if os(iOS)
+            if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                Button { showCamera = true } label: {
+                    Label("Take Photo", systemImage: "camera.fill").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+            }
+            #endif
+            PhotosPicker(selection: $pickerItem, matching: .images) {
+                Label("Choose Photo", systemImage: "photo.on.rectangle").frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            #if os(macOS)
+            Button { showFileImporter = true } label: {
+                Label("Open Image File…", systemImage: "folder").frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
+            dropZone
+            #endif
+        }
+        .frame(maxWidth: 360)
     }
 
     #if os(macOS)

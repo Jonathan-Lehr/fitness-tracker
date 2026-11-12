@@ -8,11 +8,11 @@ enum ChartMetric: String, CaseIterable, Identifiable {
     case calories = "Calories"
 
     var id: String { rawValue }
-    func value(_ w: Workout) -> Double {
+    func value(_ workout: Workout) -> Double {
         switch self {
-        case .watts: Double(w.avgWatts)
-        case .duration: w.durationMinutes
-        case .calories: Double(w.calories)
+        case .watts: Double(workout.avgWatts)
+        case .duration: workout.durationMinutes
+        case .calories: Double(workout.calories)
         }
     }
 }
@@ -32,44 +32,17 @@ struct ProgramDetailView: View {
     var body: some View {
         List {
             Section {
-                Picker("Metric", selection: $metric) {
-                    ForEach(ChartMetric.allCases) { Text($0.rawValue).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                Chart {
-                    ForEach(efforts) { w in
-                        LineMark(x: .value("Date", w.date), y: .value(metric.rawValue, metric.value(w)))
-                            .interpolationMethod(.catmullRom)
-                        PointMark(x: .value("Date", w.date), y: .value(metric.rawValue, metric.value(w)))
-                            .foregroundStyle(w.persistentModelID == best?.persistentModelID ? Color.orange : Color.blue)
-                            .symbolSize(w.persistentModelID == best?.persistentModelID ? 120 : 30)
-                    }
-                }
-                .chartYScale(domain: .automatic(includesZero: false))
-                .frame(height: 220)
-                if let best {
-                    Label("Best: \(best.avgWatts.formattedWholeNumber()) W on \(best.date.formatted(date: .abbreviated, time: .omitted))",
-                          systemImage: "star.fill")
-                        .foregroundStyle(.orange)
-                }
+                effortChart
             }
 
             Section {
-                ForEach(efforts.reversed()) { w in
-                    HStack {
-                        Button { toggle(w) } label: {
-                            Image(systemName: selected.contains(w.persistentModelID) ? "checkmark.circle.fill" : "circle")
-                        }
-                        .buttonStyle(.borderless)
-                        NavigationLink(value: w) {
-                            HStack {
-                                WorkoutRow(workout: w, showYear: true)
-                                if w.persistentModelID == best?.persistentModelID {
-                                    Image(systemName: "star.fill").foregroundStyle(.orange)
-                                }
-                            }
-                        }
-                    }
+                ForEach(efforts.reversed()) { workout in
+                    ProgramEffortRow(
+                        workout: workout,
+                        isSelected: selected.contains(workout.persistentModelID),
+                        isBest: workout.persistentModelID == best?.persistentModelID,
+                        onToggle: { toggle(workout) }
+                    )
                 }
             } header: {
                 Text("\(efforts.count.formattedWholeNumber()) efforts · select two to compare")
@@ -88,13 +61,63 @@ struct ProgramDetailView: View {
         }
     }
 
-    private func toggle(_ w: Workout) {
-        let id = w.persistentModelID
+    private func toggle(_ workout: Workout) {
+        let id = workout.persistentModelID
         if selected.contains(id) {
             selected.remove(id)
         } else {
             if selected.count >= 2, let oldest = selectedPair.first { selected.remove(oldest.persistentModelID) }
             selected.insert(id)
+        }
+    }
+
+    /// Metric picker, effort chart, and the current "Best" label.
+    @ViewBuilder
+    private var effortChart: some View {
+        Picker("Metric", selection: $metric) {
+            ForEach(ChartMetric.allCases) { Text($0.rawValue).tag($0) }
+        }
+        .pickerStyle(.segmented)
+        Chart {
+            ForEach(efforts) { workout in
+                LineMark(x: .value("Date", workout.date), y: .value(metric.rawValue, metric.value(workout)))
+                    .interpolationMethod(.catmullRom)
+                PointMark(x: .value("Date", workout.date), y: .value(metric.rawValue, metric.value(workout)))
+                    .foregroundStyle(workout.persistentModelID == best?.persistentModelID ? Color.orange : Color.blue)
+                    .symbolSize(workout.persistentModelID == best?.persistentModelID ? 120 : 30)
+            }
+        }
+        .chartYScale(domain: .automatic(includesZero: false))
+        .frame(height: 220)
+        if let best {
+            Label("Best: \(best.avgWatts.formattedWholeNumber()) W on \(best.date.formatted(date: .abbreviated, time: .omitted))",
+                  systemImage: "star.fill")
+                .foregroundStyle(.orange)
+        }
+    }
+}
+
+/// One effort in the program list: selection circle, row, and optional best-effort star.
+private struct ProgramEffortRow: View {
+    let workout: Workout
+    let isSelected: Bool
+    let isBest: Bool
+    let onToggle: () -> Void
+
+    var body: some View {
+        HStack {
+            Button(action: onToggle) {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+            }
+            .buttonStyle(.borderless)
+            NavigationLink(value: workout) {
+                HStack {
+                    WorkoutRow(workout: workout, showYear: true)
+                    if isBest {
+                        Image(systemName: "star.fill").foregroundStyle(.orange)
+                    }
+                }
+            }
         }
     }
 }
