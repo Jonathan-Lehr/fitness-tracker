@@ -11,8 +11,6 @@ struct PeriodSummaryCard: View {
 
     static let columnSpacing: CGFloat = 16
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     /// Measured card width; drives the layout instead of size classes (a non-Max iPhone in
     /// landscape reports a compact horizontal size class).
     @State private var cardWidth: CGFloat = 0
@@ -71,8 +69,10 @@ struct PeriodSummaryCard: View {
                 // chart from column 3 to the end of the last (Calories) stat's value; bottom row: one
                 // stat per column.
                 HStack(alignment: .bottom, spacing: Self.columnSpacing) {
-                    hero.frame(width: wideHeroWidth, alignment: .leading)
-                    chart.frame(width: wideChartWidth)
+                    PeriodSummaryHero(summary: summary, filtered: filtered)
+                        .frame(width: wideHeroWidth, alignment: .leading)
+                    PeriodSummaryMileageChart(summary: summary)
+                        .frame(width: wideChartWidth)
                     Spacer(minLength: 0)
                 }
                 statsGrid(columns: Self.wideColumns)
@@ -80,9 +80,11 @@ struct PeriodSummaryCard: View {
                 // Narrow (iPhone portrait, narrow Mac): miles + chart, then a 3-column grid (2 rows):
                 // Rides | Time | Watts / RPM | Elevation | Calories.
                 HStack(alignment: .bottom) {
-                    hero.layoutPriority(1)
+                    PeriodSummaryHero(summary: summary, filtered: filtered)
+                        .layoutPriority(1)
                     Spacer(minLength: 16)
-                    chart.frame(minWidth: 80, maxWidth: 200)
+                    PeriodSummaryMileageChart(summary: summary)
+                        .frame(minWidth: 80, maxWidth: 200)
                 }
                 statsGrid(columns: Self.narrowColumns)
             }
@@ -96,7 +98,46 @@ struct PeriodSummaryCard: View {
         }
     }
 
-    private var hero: some View {
+    /// Stats in equal flexible columns spanning the full card width, each leading-aligned.
+    private func statsGrid(columns: Int) -> some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Self.columnSpacing, alignment: .leading),
+                                 count: columns),
+                  alignment: .leading, spacing: 12) {
+            ForEach(PeriodSummary.Metric.allCases, id: \.self) { metric in
+                stat(metric)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func stat(_ metric: PeriodSummary.Metric) -> some View {
+        let (value, label) = summary.valueText(metric)
+        let isLast = metric == PeriodSummary.Metric.allCases.last
+        return StatTile(
+            value: value,
+            label: label,
+            delta: StatDelta(text: summary.deltaText(metric), value: summary.delta(metric),
+                             previousValue: summary.previousValue(metric)),
+            numericValue: summary.numericValue(metric),
+            // The last stat's value width sets where the landscape chart ends.
+            onValueWidthChange: isLast ? { lastStatWidth = $0 } : nil
+        )
+    }
+}
+
+/// Title, mileage, and delta for the period summary card.
+private struct PeriodSummaryHero: View {
+    let summary: PeriodSummary
+    var filtered: Bool = false
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var heroDelta: StatDelta {
+        StatDelta(text: summary.deltaText, value: summary.milesDelta, previousValue: summary.previous.miles)
+    }
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
                 Text(summary.title).font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
@@ -129,62 +170,37 @@ struct PeriodSummaryCard: View {
                 .foregroundStyle(heroDelta.color)
         }
     }
+}
 
-    private var heroDelta: StatDelta {
-        StatDelta(text: summary.deltaText, value: summary.milesDelta, previousValue: summary.previous.miles)
-    }
+/// Daily (or weekly/monthly) mileage bars for the period summary card.
+///
+/// The chart uses a categorical x axis (one band per bucket, keyed by index) so bars,
+/// tracks, ticks and labels all share the same band centers. Date-based x values put
+/// ticks/labels at bucket boundaries, which drifted half a slot from the bars.
+private struct PeriodSummaryMileageChart: View {
+    let summary: PeriodSummary
 
-    /// Stats in equal flexible columns spanning the full card width, each leading-aligned.
-    private func statsGrid(columns: Int) -> some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Self.columnSpacing, alignment: .leading),
-                                 count: columns),
-                  alignment: .leading, spacing: 12) {
-            ForEach(PeriodSummary.Metric.allCases, id: \.self) { m in
-                stat(m)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func stat(_ metric: PeriodSummary.Metric) -> some View {
-        let (value, label) = summary.valueText(metric)
-        let isLast = metric == PeriodSummary.Metric.allCases.last
-        return StatTile(
-            value: value,
-            label: label,
-            delta: StatDelta(text: summary.deltaText(metric), value: summary.delta(metric),
-                             previousValue: summary.previousValue(metric)),
-            numericValue: summary.numericValue(metric),
-            // The last stat's value width sets where the landscape chart ends.
-            onValueWidthChange: isLast ? { lastStatWidth = $0 } : nil
-        )
-    }
-
-    // The chart uses a categorical x axis (one band per bucket, keyed by index) so bars,
-    // tracks, ticks and labels all share the same band centers. Date-based x values put
-    // ticks/labels at bucket boundaries, which drifted half a slot from the bars.
     private func key(_ index: Int) -> String { String(index) }
 
     private var labeledKeys: [String] {
         summary.buckets.indices.filter { summary.buckets[$0].label != nil }.map(key)
     }
 
-    private func label(forKey k: String) -> String {
-        guard let i = Int(k), summary.buckets.indices.contains(i) else { return "" }
-        return summary.buckets[i].label ?? ""
+    private func label(forKey key: String) -> String {
+        guard let index = Int(key), summary.buckets.indices.contains(index) else { return "" }
+        return summary.buckets[index].label ?? ""
     }
 
-    private var chart: some View {
+    var body: some View {
         let top = max(summary.buckets.map(\.miles).max() ?? 0, 0.1)
         let keys = summary.buckets.indices.map(key)
         return Chart {
-            ForEach(Array(summary.buckets.enumerated()), id: \.offset) { i, b in
+            ForEach(Array(summary.buckets.enumerated()), id: \.offset) { index, bucket in
                 // Faint full-height track behind every bucket, so empty days read as empty.
-                BarMark(x: .value("Bucket", key(i)), yStart: .value("Track", 0), yEnd: .value("Track", top))
+                BarMark(x: .value("Bucket", key(index)), yStart: .value("Track", 0), yEnd: .value("Track", top))
                     .foregroundStyle(Color.secondary.opacity(0.1))
                     .cornerRadius(2)
-                BarMark(x: .value("Bucket", key(i)), yStart: .value("Start", 0), yEnd: .value("Miles", b.miles))
+                BarMark(x: .value("Bucket", key(index)), yStart: .value("Start", 0), yEnd: .value("Miles", bucket.miles))
                     .foregroundStyle(Color.accentColor.gradient)
                     .cornerRadius(2)
             }
@@ -199,7 +215,7 @@ struct PeriodSummaryCard: View {
         .chartXAxis {
             AxisMarks(values: labeledKeys) { value in
                 AxisValueLabel(verticalSpacing: 3) {
-                    if let k = value.as(String.self) { Text(label(forKey: k)) }
+                    if let key = value.as(String.self) { Text(label(forKey: key)) }
                 }
             }
         }

@@ -66,24 +66,6 @@ struct PastPeriodSummaryView: View {
         withAnimation(.default) { selection = current.moved(by: offset) }
     }
 
-    private var previousButton: some View {
-        Button { go(-1) } label: {
-            Label("Previous", systemImage: "chevron.left").labelStyle(.titleAndIcon)
-        }
-        .accessibilityLabel("Previous \(unit)")
-        .keyboardShortcut(.leftArrow, modifiers: [])
-        .disabled(!canGoBack)
-    }
-
-    private var nextButton: some View {
-        Button { go(1) } label: {
-            HStack(spacing: 4) { Text("Next"); Image(systemName: "chevron.right") }
-        }
-        .accessibilityLabel("Next \(unit)")
-        .keyboardShortcut(.rightArrow, modifiers: [])
-        .disabled(!canGoForward)
-    }
-
     private var summary: PeriodSummary {
         PeriodSummary.computeCalendar(workouts, period: current.period, containing: current.start)
     }
@@ -109,8 +91,8 @@ struct PastPeriodSummaryView: View {
                                                description: Text(filtered ? "No rides this \(unit.lowercased()) match the filters."
                                                                  : "No rides this \(unit.lowercased())."))
                     }
-                    ForEach(rides) { w in
-                        NavigationLink(value: w) { WorkoutRow(workout: w) }
+                    ForEach(rides) { workout in
+                        NavigationLink(value: workout) { WorkoutRow(workout: workout) }
                     }
                 }
             }
@@ -129,19 +111,13 @@ struct PastPeriodSummaryView: View {
             // (Custom title + chevron labels inside a system bottomBar ToolbarItemGroup kept
             // highlighting on touch while disabled.)
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                VStack(spacing: 0) {
-                    Divider()
-                    HStack {
-                        previousButton
-                        Spacer()
-                        nextButton
-                    }
-                    .buttonStyle(.borderless)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .frame(minHeight: 44)
-                }
-                .background(.bar)
+                PeriodNavigationBar(
+                    unit: unit,
+                    canGoBack: canGoBack,
+                    canGoForward: canGoForward,
+                    onPrevious: { go(-1) },
+                    onNext: { go(1) }
+                )
             }
         }
         #if os(iOS)
@@ -153,5 +129,48 @@ struct PastPeriodSummaryView: View {
         #if os(macOS)
         .frame(minWidth: 620, idealWidth: 680, minHeight: 480, idealHeight: 560)
         #endif
+    }
+}
+
+/// Previous / Next bar pinned below the past-period summary list.
+private struct PeriodNavigationBar: View {
+    let unit: String
+    let canGoBack: Bool
+    let canGoForward: Bool
+    let onPrevious: () -> Void
+    let onNext: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Divider()
+            HStack {
+                previousButton
+                Spacer()
+                nextButton
+            }
+            .buttonStyle(.borderless)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .frame(minHeight: 44)
+        }
+        .background(.bar)
+    }
+
+    private var previousButton: some View {
+        Button(action: onPrevious) {
+            Label("Previous", systemImage: "chevron.left").labelStyle(.titleAndIcon)
+        }
+        .accessibilityLabel("Previous \(unit)")
+        .keyboardShortcut(.leftArrow, modifiers: [])
+        .disabled(!canGoBack)
+    }
+
+    private var nextButton: some View {
+        Button(action: onNext) {
+            HStack(spacing: 4) { Text("Next"); Image(systemName: "chevron.right") }
+        }
+        .accessibilityLabel("Next \(unit)")
+        .keyboardShortcut(.rightArrow, modifiers: [])
+        .disabled(!canGoForward)
     }
 }
