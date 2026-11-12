@@ -9,7 +9,8 @@ import SwiftData
 /// into the caller's context only on Save.
 ///
 /// Existing rides are fetched into a scratch `ModelContext` on the same container with
-/// autosave disabled, so unsaved edits stay off other views. Save persists; Cancel rolls back.
+/// autosave disabled, so unsaved edits stay off other views. Save persists. Cancel just
+/// dismisses; dropping the unsaved scratch context discards the edits.
 @MainActor @Observable
 final class WorkoutFormEditing {
     /// Program title typed in the form. Applied with `Program.findOrCreate` on Save, not by
@@ -75,11 +76,6 @@ final class WorkoutFormEditing {
             context.insert(workout)
             try context.save()
         }
-    }
-
-    /// Discards unsaved edits in the scratch context. No-op for a new uninserted ride.
-    func cancel() {
-        scratchContext?.rollback()
     }
 }
 

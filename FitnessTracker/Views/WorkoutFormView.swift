@@ -13,7 +13,6 @@ struct WorkoutFormView: View {
     @Query(sort: \Program.title) private var programs: [Program]
 
     @State private var editing: WorkoutFormEditing?
-    @State private var didSave = false
 
     init(workout: Workout? = nil, draft: IFitSummary? = nil, draftPhoto: Data? = nil,
          draftThumbnailAnalysis: ThumbnailFocusAnalysis? = nil) {
@@ -44,11 +43,6 @@ struct WorkoutFormView: View {
         .frame(minWidth: 460, minHeight: 600)
         #endif
         .onAppear(perform: prepareIfNeeded)
-        .onDisappear {
-            if !didSave {
-                editing?.cancel()
-            }
-        }
     }
 
     private var missing: Set<IFitSummary.Field> { draft?.missingFields ?? [] }
@@ -70,7 +64,6 @@ struct WorkoutFormView: View {
     }
 
     private func cancel() {
-        editing?.cancel()
         dismiss()
     }
 
@@ -78,7 +71,6 @@ struct WorkoutFormView: View {
         guard let editing else { return }
         do {
             try editing.save(into: context)
-            didSave = true
             dismiss()
         } catch {
             // Leave the form open so unsaved edits can be retried or cancelled.

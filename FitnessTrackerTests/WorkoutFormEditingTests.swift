@@ -93,20 +93,20 @@ final class WorkoutFormEditingTests: XCTestCase {
         XCTAssertEqual(workout.notes, "Hard climb")
     }
 
-    func testEditCancelRevertsAndDoesNotLeakIntoMainContext() throws {
+    func testEditCancelDoesNotLeakIntoMainContext() throws {
         let container = try makeContainer()
         let context = makeContext(container)
         let workout = try insertSampleRide(into: context)
-        let editing = try WorkoutFormEditing.editing(workout, container: container)
-
-        editing.workout.durationMinutes = 99
-        editing.workout.notes = "changed"
-        editing.title = "Other Ride"
-        XCTAssertEqual(workout.durationMinutes, 42, "edits in the scratch context must not leak")
-        XCTAssertEqual(workout.notes, "Felt good")
-        XCTAssertEqual(workout.title, "Green River Recovery Ride")
-
-        editing.cancel()
+        do {
+            let editing = try WorkoutFormEditing.editing(workout, container: container)
+            editing.workout.durationMinutes = 99
+            editing.workout.notes = "changed"
+            editing.title = "Other Ride"
+            XCTAssertEqual(workout.durationMinutes, 42, "edits in the scratch context must not leak")
+            XCTAssertEqual(workout.notes, "Felt good")
+            XCTAssertEqual(workout.title, "Green River Recovery Ride")
+        }
+        // Session (and its unsaved scratch context) dropped, as Cancel does.
 
         XCTAssertEqual(workout.durationMinutes, 42)
         XCTAssertEqual(workout.notes, "Felt good")
