@@ -231,7 +231,7 @@ private struct FeaturedStat: View {
     let container = PreviewSupport.container()
     let workout = PreviewSupport.sampleWorkout(in: container)
     workout.notes = nil
-    NavigationStack {
+    return NavigationStack {
         WorkoutDetailView(workout: workout)
     }
     .modelContainer(container)
