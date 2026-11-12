@@ -13,8 +13,8 @@ extension Double {
         return "\(minutes.formattedWholeNumber(locale: locale))m"
     }
 
-    /// Miles for a single ride: always two fraction digits and no grouping, so en_US
-    /// matches the previous `"%.2f"` output ("19.14", "1234.50").
+    /// Miles for a single ride: always two fraction digits and no grouping, so a value
+    /// like 1234.5 stays "1234.50" in en_US instead of "1,234.50".
     func formattedMiles(locale: Locale = .current) -> String {
         formattedNumber(fractionLength: 2, locale: locale)
     }
@@ -31,7 +31,8 @@ extension Double {
     }
 
     /// Locale-aware decimal formatting with a fixed fraction length and no grouping.
-    /// Exact ties round to even (1.25 becomes "1.2"), so en_US matches `String(format: "%.<n>f")`.
+    /// Exact ties round to even (1.25 becomes "1.2"), matching `String(format:)` so tests
+    /// and display stay consistent in en_US.
     func formattedNumber(fractionLength: Int, locale: Locale = .current) -> String {
         formatted(
             .number
@@ -43,7 +44,7 @@ extension Double {
     }
 
     /// Same as `formattedNumber`, with a leading "+" for zero and positive values,
-    /// matching the Compare view's previous delta strings ("+0.00", "-1.5").
+    /// so Compare deltas read as "+0.00" or "-1.5".
     func formattedSignedNumber(fractionLength: Int, locale: Locale = .current) -> String {
         let number = abs(self).formattedNumber(fractionLength: fractionLength, locale: locale)
         return self < 0 ? "-\(number)" : "+\(number)"
@@ -62,7 +63,6 @@ extension Double {
 
 extension Int {
     /// Whole number with the locale's default grouping, e.g. "1,234" in en_US and "1.234" in de_DE.
-    /// Four-digit values now show a separator in en_US; they previously had none.
     func formattedWholeNumber(locale: Locale = .current) -> String {
         let number = Swift.abs(self).formatted(.number.grouping(.automatic).locale(locale))
         return self < 0 ? "-\(number)" : number
@@ -76,7 +76,7 @@ extension Int {
 }
 
 /// Average watts with a unit, or `placeholder` when there is no value.
-/// Call sites pass "—" or "— W" to keep their current empty-state text.
+/// Call sites pass "—" or "— W" because list, grid, and detail use different empty states.
 func formattedAverageWatts(_ watts: Double?, placeholder: String, locale: Locale = .current) -> String {
     watts.map { "\($0.formattedWholeNumber(locale: locale)) W" } ?? placeholder
 }

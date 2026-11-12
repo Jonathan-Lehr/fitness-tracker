@@ -48,3 +48,12 @@ struct TypeTag: View {
         }
     }
 }
+
+#Preview("Type tags") {
+    VStack(alignment: .leading, spacing: 8) {
+        ForEach(WorkoutType.allCases) { type in
+            TypeTag(type: type)
+        }
+    }
+    .padding()
+}

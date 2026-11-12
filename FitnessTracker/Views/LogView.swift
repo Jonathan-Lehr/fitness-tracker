@@ -302,3 +302,20 @@ private extension ToolbarContent {
         }
     }
 }
+
+#Preview("Section header") {
+    let container = PreviewSupport.container()
+    let workouts = PreviewSupport.workouts(in: container)
+    List {
+        Section {
+            EmptyView()
+        } header: {
+            SectionHeader(
+                title: "Week of Oct 12",
+                totals: Totals(workouts),
+                showsDisclosure: true
+            )
+        }
+    }
+    .modelContainer(container)
+}
