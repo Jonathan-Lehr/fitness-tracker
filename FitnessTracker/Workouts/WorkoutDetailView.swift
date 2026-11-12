@@ -5,6 +5,8 @@ struct WorkoutDetailView: View {
     let workout: Workout
     @Environment(\.modelContext) private var context
     @State private var editing: WorkoutFormEditing?
+    // Presenter creates the session and passes it in; see `WorkoutFormView`.
+    @State private var noteEditing: NoteEditing?
 
     /// Margin between the screen edge and the summary card.
     private let screenMargin: CGFloat = 12
@@ -37,23 +39,56 @@ struct WorkoutDetailView: View {
         .sheet(item: $editing) { editing in
             WorkoutFormView(editing: editing)
         }
+        .sheet(item: $noteEditing) { noteEditing in
+            NoteEditView(editing: noteEditing)
+        }
+    }
+
+    private var hasNote: Bool {
+        let notes = workout.notes?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return !notes.isEmpty
     }
 
     @ViewBuilder private var notesSection: some View {
-        if let notes = workout.notes, !notes.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
-                Divider()
-                    .padding(.horizontal, notesInset)
-                    .padding(.bottom, 8)
-                Text("Notes")
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-                    .padding(.leading, notesInset)
+        VStack(alignment: .leading, spacing: 8) {
+            Divider()
+                .padding(.horizontal, notesInset)
+                .padding(.bottom, 8)
+            notesHeading
+            if hasNote, let notes = workout.notes {
                 Text(notes)
                     .padding(.horizontal, notesInset)
+            } else {
+                addNotesButton
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var notesHeading: some View {
+        HStack {
+            Text("Notes")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+            if hasNote {
+                Spacer()
+                Button("Edit", action: openNoteEditor)
+            }
+        }
+        .padding(.horizontal, notesInset)
+    }
+
+    private var addNotesButton: some View {
+        Button(action: openNoteEditor) {
+            Label("Add Notes", systemImage: "note.text.badge.plus")
+        }
+        .buttonStyle(.borderedProminent)
+        .padding(.vertical, 16)
+        .frame(maxWidth: .infinity)
+    }
+
+    private func openNoteEditor() {
+        noteEditing = try? NoteEditing.editing(workout, container: context.container)
     }
 }
 
@@ -210,4 +245,26 @@ private struct FeaturedStat: View {
     .modelContainer(container)
     .environment(\.calendar, .app)
     .preferredColorScheme(.dark)
+}
+
+#Preview("Workout detail, no note") {
+    let container = PreviewSupport.container()
+    let workout = PreviewSupport.sampleWorkout(in: container)
+    workout.notes = nil
+    return NavigationStack {
+        WorkoutDetailView(workout: workout)
+    }
+    .modelContainer(container)
+    .environment(\.calendar, .app)
+}
+
+#Preview("Workout detail, with notes") {
+    let container = PreviewSupport.container()
+    let workout = PreviewSupport.sampleWorkout(in: container)
+    workout.notes = "Felt strong on the climb"
+    return NavigationStack {
+        WorkoutDetailView(workout: workout)
+    }
+    .modelContainer(container)
+    .environment(\.calendar, .app)
 }
