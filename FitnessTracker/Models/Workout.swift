@@ -29,9 +29,9 @@ final class Workout {
     var isSimulated: Bool = false
     var program: Program?
 
-    init(date: Date, program: Program?, durationMinutes: Double, distanceMiles: Double,
-         calories: Int, elevationFeet: Int, avgRPM: Int, avgWatts: Int,
-         inclineAvg: Double, inclineMax: Double, resistanceAvg: Int, resistanceMax: Int,
+    init(date: Date, program: Program?, durationMinutes: Double = 0, distanceMiles: Double = 0,
+         calories: Int = 0, elevationFeet: Int = 0, avgRPM: Int = 0, avgWatts: Int = 0,
+         inclineAvg: Double = 0, inclineMax: Double = 0, resistanceAvg: Int = 0, resistanceMax: Int = 0,
          notes: String? = nil, isSimulated: Bool = false) {
         self.date = date
         self.program = program
