@@ -7,7 +7,10 @@ import Foundation
 /// - calendar: one calendar week (Monday-first), month or year vs the calendar period before it
 ///   (the past-period summary sheet).
 struct PeriodSummary {
-    enum Kind: Equatable { case rolling, calendar }
+    enum Kind: Equatable {
+        case rolling
+        case calendar
+    }
 
     struct Bucket: Identifiable, Equatable {
         let start: Date

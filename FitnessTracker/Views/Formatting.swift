@@ -1,8 +1,6 @@
 import Foundation
 
 extension Double {
-    var minutesText: String { formattedMinutes() }
-
     /// Duration as hours and minutes, e.g. "1h 35m" or "45m". The hour component uses
     /// grouping when it reaches four digits; minutes are always two digits or fewer.
     func formattedMinutes(locale: Locale = .current) -> String {

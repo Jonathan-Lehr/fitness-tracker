@@ -89,7 +89,6 @@ struct OCRReading {
 struct PhotoImportResult {
     var summary: IFitSummary
     var photoJPEG: Data?
-    var recognizedLines: [String]
     /// Thumbnail framing for `photoJPEG`, or nil if Vision failed (the backfill retries later).
     /// Fractions carry over because the stored JPEG is a uniform downscale of the same upright image.
     var thumbnailAnalysis: ThumbnailFocusAnalysis?
@@ -100,7 +99,6 @@ struct PhotoImportResult {
             let reading = try OCRReading.bestReading(of: image)
             return PhotoImportResult(summary: reading.summary,
                                      photoJPEG: ImageTools.storageJPEG(from: imageData),
-                                     recognizedLines: IFitSummaryParser.groupIntoLines(reading.items),
                                      thumbnailAnalysis: try? ThumbnailFocusFinder.analyze(image))
         }.value
     }

@@ -139,7 +139,7 @@ struct RideTile: View {
                 }
             VStack(alignment: .leading, spacing: 4) {
                 Text(workout.title).font(.headline).lineLimit(2, reservesSpace: true)
-                Text(workout.durationMinutes.minutesText).font(.subheadline)
+                Text(workout.durationMinutes.formattedMinutes()).font(.subheadline)
                 Text(workout.metricsText).font(.caption).foregroundStyle(.secondary).monospacedDigit()
             }
             .padding(10)
@@ -161,7 +161,7 @@ struct RideRowCard: View {
                 Text(workout.title).font(.headline).lineLimit(2, reservesSpace: true)
                 HStack(spacing: 8) {
                     TypeTag(type: workout.type)
-                    Text(workout.durationMinutes.minutesText).font(.subheadline.weight(.semibold))
+                    Text(workout.durationMinutes.formattedMinutes()).font(.subheadline.weight(.semibold))
                 }
                 Text(workout.metricsText).font(.caption).foregroundStyle(.secondary).monospacedDigit()
             }
