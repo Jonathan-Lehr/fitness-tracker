@@ -45,7 +45,8 @@ jobs:
 
   ios:
     name: iOS Simulator build
-    runs-on: macos-15
+    # macos-26: the icon needs a macOS 26 host, and the macos-15 queue kept cancelling jobs before they started.
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
       - uses: maxim-lobanov/setup-xcode@v1
@@ -71,7 +72,7 @@ jobs:
 
   xcodegen:
     name: XcodeGen spec check
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
       - name: Generate project from project.yml
