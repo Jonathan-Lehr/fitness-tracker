@@ -77,6 +77,7 @@ Keep `project.yml` in sync with any structural project change. A Swift file adde
 Code quality, especially readability, maintainability, and reuse, is an important consideration.
 
 - Reuse existing views, helpers, formatters, and models before adding new ones. Extract shared logic instead of duplicating it.
+- Display numbers with the locale-aware helpers in `Formatting.swift` (`FormatStyle`), not `String(format:)`. Pass an explicit `Locale` in tests. Machine-readable values (backups, CloudKit, OCR parsing) stay locale-independent.
 - Keep SwiftUI views small and focused. Make liberal use of computed properties, methods, and small subview structs so `body` reads as a clear outline of the layout. Move calculations and data shaping out of `body` into testable helpers or view models.
 - Use clear, descriptive names, and follow the surrounding code's patterns and file organization.
 - Avoid abbreviations in API and parameter names, types, and global or static properties and constants (for example, `averageWatts`, not `avgW`). Well-established abbreviations such as `mph`, `rpm`, `id`, and `url` are fine. Short names are acceptable for local variables and closure parameters with very small scope (for example, `i` in a loop or `$0`), but prefer full words elsewhere. Apply this to new code and code you're already changing. Existing abbreviations are renamed separately (#30).
