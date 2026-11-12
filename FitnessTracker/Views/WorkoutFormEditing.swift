@@ -95,7 +95,8 @@ final class WorkoutFormEditing {
 }
 
 extension WorkoutFormEditing: Identifiable {
-    var id: ObjectIdentifier { ObjectIdentifier(self) }
+    // Identifiable.id is nonisolated; ObjectIdentifier(self) needs no isolated state.
+    nonisolated var id: ObjectIdentifier { ObjectIdentifier(self) }
 }
 
 enum WorkoutFormEditingError: Error {
