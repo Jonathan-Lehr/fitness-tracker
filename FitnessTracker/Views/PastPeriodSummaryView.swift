@@ -23,10 +23,10 @@ struct PastPeriodSelection: Identifiable, Hashable {
 
     /// This selection kept within [period of `earliest`, current period]; unchanged if already inside.
     func clamped(earliest: Date?, now: Date = .now, calendar: Calendar = .app) -> PastPeriodSelection {
-        var s = period.start(of: start, calendar: calendar)
-        s = min(s, period.start(of: now, calendar: calendar))
-        if let earliest { s = max(s, period.start(of: earliest, calendar: calendar)) }
-        return PastPeriodSelection(period: period, start: s)
+        var clampedStart = period.start(of: start, calendar: calendar)
+        clampedStart = min(clampedStart, period.start(of: now, calendar: calendar))
+        if let earliest { clampedStart = max(clampedStart, period.start(of: earliest, calendar: calendar)) }
+        return PastPeriodSelection(period: period, start: clampedStart)
     }
 
     /// Whether a next period exists that isn't after the current calendar period containing `now`.
@@ -75,15 +75,15 @@ struct PastPeriodSummaryView: View {
     }
 
     var body: some View {
-        let s = summary
+        let periodSummary = summary
         let rides = periodWorkouts
         NavigationStack {
             List {
                 Section {
-                    PeriodSummaryCard(period: .constant(current.period), summary: s,
+                    PeriodSummaryCard(period: .constant(current.period), summary: periodSummary,
                                       filtered: filtered, showsPeriodPicker: false)
                 } footer: {
-                    Text("Compared with the \(s.comparisonText).")
+                    Text("Compared with the \(periodSummary.comparisonText).")
                 }
                 Section("Rides") {
                     if rides.isEmpty {
@@ -96,7 +96,7 @@ struct PastPeriodSummaryView: View {
                     }
                 }
             }
-            .navigationTitle(s.title)
+            .navigationTitle(periodSummary.title)
             .navigationDestination(for: Workout.self) { WorkoutDetailView(workout: $0) }
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
@@ -167,7 +167,10 @@ private struct PeriodNavigationBar: View {
 
     private var nextButton: some View {
         Button(action: onNext) {
-            HStack(spacing: 4) { Text("Next"); Image(systemName: "chevron.right") }
+            HStack(spacing: 4) {
+                Text("Next")
+                Image(systemName: "chevron.right")
+            }
         }
         .accessibilityLabel("Next \(unit)")
         .keyboardShortcut(.rightArrow, modifiers: [])

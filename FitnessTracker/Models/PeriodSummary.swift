@@ -38,12 +38,12 @@ struct PeriodSummary {
 
     /// Whole-number change in average watts / RPM; nil if either window has no data.
     var wattsDelta: Int? {
-        guard let a = current.averageWatts, let b = previous.averageWatts else { return nil }
-        return Int(a.rounded()) - Int(b.rounded())
+        guard let currentWatts = current.averageWatts, let previousWatts = previous.averageWatts else { return nil }
+        return Int(currentWatts.rounded()) - Int(previousWatts.rounded())
     }
     var rpmDelta: Int? {
-        guard let a = current.averageRPM, let b = previous.averageRPM else { return nil }
-        return Int(a.rounded()) - Int(b.rounded())
+        guard let currentRPM = current.averageRPM, let previousRPM = previous.averageRPM else { return nil }
+        return Int(currentRPM.rounded()) - Int(previousRPM.rounded())
     }
 
     /// Display order on the card (grid reads left-to-right, top-to-bottom; the last stat's
@@ -69,8 +69,8 @@ struct PeriodSummary {
     }
 
     /// Signed change vs the previous period, for coloring (>0 up, <0 down, 0 same/unknown).
-    func delta(_ m: Metric) -> Double {
-        switch m {
+    func delta(_ metric: Metric) -> Double {
+        switch metric {
         case .rides: Double(ridesDelta)
         case .time: minutesDelta.rounded()
         case .calories: Double(caloriesDelta)
@@ -82,13 +82,13 @@ struct PeriodSummary {
 
     /// Compact delta text, e.g. "▲ 2", "▼ 15m", "▲ 120 cal", "▲ 340 ft", "▲ 12 W", "▼ 3 rpm",
     /// "– 0"; "—" when an average can't be compared (no data in either window).
-    func deltaText(_ m: Metric, locale: Locale = .current) -> String {
-        if (m == .watts && wattsDelta == nil) || (m == .rpm && rpmDelta == nil) { return "—" }
-        let d = delta(m)
-        let arrow = d > 0 ? "▲" : (d < 0 ? "▼" : "–")
-        let mag = abs(d)
+    func deltaText(_ metric: Metric, locale: Locale = .current) -> String {
+        if (metric == .watts && wattsDelta == nil) || (metric == .rpm && rpmDelta == nil) { return "—" }
+        let change = delta(metric)
+        let arrow = change > 0 ? "▲" : (change < 0 ? "▼" : "–")
+        let mag = abs(change)
         let value: String
-        switch m {
+        switch metric {
         case .rides: value = Int(mag).formattedWholeNumber(locale: locale)
         case .time: value = mag.formattedMinutes(locale: locale)
         case .calories: value = "\(Int(mag).formattedWholeNumber(locale: locale)) cal"
@@ -100,42 +100,39 @@ struct PeriodSummary {
     }
 
     /// Display value and label for a metric ("—" for averages with no data).
-    func valueText(_ m: Metric, locale: Locale = .current) -> (value: String, label: String) {
-        let t = current
-        switch m {
-        case .rides: return (t.count.formattedWholeNumber(locale: locale), m.label)
-        case .time: return (t.minutes.formattedMinutes(locale: locale), m.label)
-        case .calories: return (t.calories.formattedWholeNumber(locale: locale), m.label)
-        case .elevation: return ("\(t.feet.formattedWholeNumber(locale: locale)) ft", m.label)
-        case .watts: return (formattedAverageWatts(t.averageWatts, placeholder: "—", locale: locale), m.label)
-        case .rpm: return (t.averageRPM.map { Int($0.rounded()).formattedWholeNumber(locale: locale) } ?? "—", m.label)
+    func valueText(_ metric: Metric, locale: Locale = .current) -> (value: String, label: String) {
+        switch metric {
+        case .rides: return (current.count.formattedWholeNumber(locale: locale), metric.label)
+        case .time: return (current.minutes.formattedMinutes(locale: locale), metric.label)
+        case .calories: return (current.calories.formattedWholeNumber(locale: locale), metric.label)
+        case .elevation: return ("\(current.feet.formattedWholeNumber(locale: locale)) ft", metric.label)
+        case .watts: return (formattedAverageWatts(current.averageWatts, placeholder: "—", locale: locale), metric.label)
+        case .rpm: return (current.averageRPM.map { Int($0.rounded()).formattedWholeNumber(locale: locale) } ?? "—", metric.label)
         }
     }
 
     /// Numeric value driving the rolling-digit animation.
-    func numericValue(_ m: Metric) -> Double {
-        let t = current
-        switch m {
-        case .rides: return Double(t.count)
-        case .time: return t.minutes
-        case .calories: return Double(t.calories)
-        case .elevation: return Double(t.feet)
-        case .watts: return (t.averageWatts ?? 0).rounded()
-        case .rpm: return (t.averageRPM ?? 0).rounded()
+    func numericValue(_ metric: Metric) -> Double {
+        switch metric {
+        case .rides: return Double(current.count)
+        case .time: return current.minutes
+        case .calories: return Double(current.calories)
+        case .elevation: return Double(current.feet)
+        case .watts: return (current.averageWatts ?? 0).rounded()
+        case .rpm: return (current.averageRPM ?? 0).rounded()
         }
     }
 
     /// The previous period's value for a metric, used to judge how big a decline is.
     /// Nil for an average with no data in the previous window.
-    func previousValue(_ m: Metric) -> Double? {
-        let t = previous
-        switch m {
-        case .rides: return Double(t.count)
-        case .time: return t.minutes
-        case .calories: return Double(t.calories)
-        case .elevation: return Double(t.feet)
-        case .watts: return t.averageWatts
-        case .rpm: return t.averageRPM
+    func previousValue(_ metric: Metric) -> Double? {
+        switch metric {
+        case .rides: return Double(previous.count)
+        case .time: return previous.minutes
+        case .calories: return Double(previous.calories)
+        case .elevation: return Double(previous.feet)
+        case .watts: return previous.averageWatts
+        case .rpm: return previous.averageRPM
         }
     }
 
@@ -167,10 +164,10 @@ struct PeriodSummary {
             bounds = (0..<12).compactMap { calendar.date(byAdding: .month, value: $0, to: interval.start) }
                 .filter { $0 < interval.end }
         case .week, .month:
-            var d = interval.start
-            while d < interval.end {
-                bounds.append(d)
-                d = calendar.date(byAdding: .day, value: 1, to: d) ?? interval.end
+            var start = interval.start
+            while start < interval.end {
+                bounds.append(start)
+                start = calendar.date(byAdding: .day, value: 1, to: start) ?? interval.end
             }
         case .year:
             let lastDay = calendar.date(byAdding: .day, value: -1, to: interval.end) ?? interval.end
@@ -181,9 +178,15 @@ struct PeriodSummary {
         let format: Date.FormatStyle
         let every: Int
         switch period {
-        case .week: format = Date.FormatStyle(calendar: calendar, timeZone: calendar.timeZone).weekday(.narrow); every = 1
-        case .month: format = Date.FormatStyle(calendar: calendar, timeZone: calendar.timeZone).day(); every = 7
-        case .year: format = Date.FormatStyle(calendar: calendar, timeZone: calendar.timeZone).month(.narrow); every = 3
+        case .week:
+            format = Date.FormatStyle(calendar: calendar, timeZone: calendar.timeZone).weekday(.narrow)
+            every = 1
+        case .month:
+            format = Date.FormatStyle(calendar: calendar, timeZone: calendar.timeZone).day()
+            every = 7
+        case .year:
+            format = Date.FormatStyle(calendar: calendar, timeZone: calendar.timeZone).month(.narrow)
+            every = 3
         }
         return bounds.enumerated().map { i, start in
             let end = i + 1 < bounds.count ? bounds[i + 1] : interval.end
@@ -201,15 +204,15 @@ struct PeriodSummary {
 
     static func compute(_ workouts: [Workout], period: GroupingPeriod,
                         now: Date = .now, calendar: Calendar = .current) -> PeriodSummary {
-        let n = days(for: period)
+        let dayCount = days(for: period)
         let end = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now)) ?? now
-        let start = calendar.date(byAdding: .day, value: -n, to: end) ?? end
-        let prevStart = calendar.date(byAdding: .day, value: -n, to: start) ?? start
+        let start = calendar.date(byAdding: .day, value: -dayCount, to: end) ?? end
+        let prevStart = calendar.date(byAdding: .day, value: -dayCount, to: start) ?? start
         let interval = DateInterval(start: start, end: end)
         let previousInterval = DateInterval(start: prevStart, end: start)
 
         // Half-open [start, end) so a ride at exactly midnight belongs to one window only.
-        func inside(_ w: Workout, _ i: DateInterval) -> Bool { i.halfOpenContains(w.date) }
+        func inside(_ workout: Workout, _ interval: DateInterval) -> Bool { interval.halfOpenContains(workout.date) }
         let current = workouts.filter { inside($0, interval) }
         let previous = workouts.filter { inside($0, previousInterval) }
 
@@ -230,7 +233,7 @@ struct PeriodSummary {
         let previousInterval = calendar.dateInterval(of: period.component, for: beforeStart)
             ?? DateInterval(start: interval.start, duration: 0)
 
-        func inside(_ w: Workout, _ i: DateInterval) -> Bool { i.halfOpenContains(w.date) }
+        func inside(_ workout: Workout, _ interval: DateInterval) -> Bool { interval.halfOpenContains(workout.date) }
         let current = workouts.filter { inside($0, interval) }
         let previous = workouts.filter { inside($0, previousInterval) }
         let buckets = makeBuckets(period: period, interval: interval, calendar: calendar, calendarAligned: true) { slot in

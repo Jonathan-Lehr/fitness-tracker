@@ -1,8 +1,10 @@
 import SwiftUI
+import SwiftData
 
 struct WorkoutDetailView: View {
     let workout: Workout
-    @State private var showEdit = false
+    @Environment(\.modelContext) private var context
+    @State private var editing: WorkoutFormEditing?
 
     /// Margin between the screen edge and the summary card.
     private let screenMargin: CGFloat = 12
@@ -27,11 +29,13 @@ struct WorkoutDetailView: View {
         #endif
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button("Edit") { showEdit = true }
+                Button("Edit") {
+                    editing = try? WorkoutFormEditing.editing(workout, container: context.container)
+                }
             }
         }
-        .sheet(isPresented: $showEdit) {
-            WorkoutFormView(workout: workout)
+        .sheet(item: $editing) { editing in
+            WorkoutFormView(editing: editing)
         }
     }
 

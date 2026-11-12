@@ -65,11 +65,11 @@ enum ThumbnailCropper {
 
     static func luminanceStats(_ image: CGImage, side: Int = 16) -> (mean: Double, stdDev: Double)? {
         var px = [UInt8](repeating: 0, count: side * side * 4)
-        guard let ctx = CGContext(data: &px, width: side, height: side, bitsPerComponent: 8,
+        guard let context = CGContext(data: &px, width: side, height: side, bitsPerComponent: 8,
                                   bytesPerRow: side * 4, space: CGColorSpaceCreateDeviceRGB(),
                                   bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
-        ctx.interpolationQuality = .low
-        ctx.draw(image, in: CGRect(x: 0, y: 0, width: side, height: side))
+        context.interpolationQuality = .low
+        context.draw(image, in: CGRect(x: 0, y: 0, width: side, height: side))
         var values: [Double] = []
         values.reserveCapacity(side * side)
         for i in stride(from: 0, to: px.count, by: 4) {
@@ -96,11 +96,14 @@ enum ThumbnailCropper {
 actor ThumbnailStore {
     static let shared = ThumbnailStore()
 
-    private final class Entry { let image: CGImage?; init(_ i: CGImage?) { image = i } }
+    private final class Entry {
+        let image: CGImage?
+        init(_ image: CGImage?) { self.image = image }
+    }
     private let cache: NSCache<NSString, Entry> = {
-        let c = NSCache<NSString, Entry>()
-        c.countLimit = 300
-        return c
+        let cache = NSCache<NSString, Entry>()
+        cache.countLimit = 300
+        return cache
     }()
 
     /// Includes the focus so a ride re-crops once the backfill (or a new photo) changes it.

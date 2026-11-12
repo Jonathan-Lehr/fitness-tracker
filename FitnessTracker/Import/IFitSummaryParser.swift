@@ -38,20 +38,20 @@ struct IFitSummary: Equatable {
     var resistanceMax: Int?
 
     var missingFields: Set<Field> {
-        var m = Set<Field>()
-        if title == nil { m.insert(.title) }
-        if date == nil { m.insert(.date) }
-        if durationMinutes == nil { m.insert(.duration) }
-        if distanceMiles == nil { m.insert(.distance) }
-        if calories == nil { m.insert(.calories) }
-        if elevationFeet == nil { m.insert(.elevation) }
-        if avgRPM == nil { m.insert(.rpm) }
-        if avgWatts == nil { m.insert(.watts) }
-        if inclineAvg == nil { m.insert(.inclineAvg) }
-        if inclineMax == nil { m.insert(.inclineMax) }
-        if resistanceAvg == nil { m.insert(.resistanceAvg) }
-        if resistanceMax == nil { m.insert(.resistanceMax) }
-        return m
+        var missing = Set<Field>()
+        if title == nil { missing.insert(.title) }
+        if date == nil { missing.insert(.date) }
+        if durationMinutes == nil { missing.insert(.duration) }
+        if distanceMiles == nil { missing.insert(.distance) }
+        if calories == nil { missing.insert(.calories) }
+        if elevationFeet == nil { missing.insert(.elevation) }
+        if avgRPM == nil { missing.insert(.rpm) }
+        if avgWatts == nil { missing.insert(.watts) }
+        if inclineAvg == nil { missing.insert(.inclineAvg) }
+        if inclineMax == nil { missing.insert(.inclineMax) }
+        if resistanceAvg == nil { missing.insert(.resistanceAvg) }
+        if resistanceMax == nil { missing.insert(.resistanceMax) }
+        return missing
     }
 }
 
@@ -65,13 +65,13 @@ enum IFitSummaryParser {
     static func parse(items: [RecognizedText], calendar: Calendar = .current) -> IFitSummary {
         let lines = groupIntoLines(items)
         var summary = parse(lines: lines, calendar: calendar)
-        if let t = titleByProximity(items) { summary.title = t }
+        if let title = titleByProximity(items) { summary.title = title }
         // Geometry fallbacks when the unit landed on a different "line" than its value.
-        if summary.distanceMiles == nil, let v = valueLeftOf(unitPattern: miUnit, in: items) {
-            summary.distanceMiles = parseDistance(v + " mi")
+        if summary.distanceMiles == nil, let distanceText = valueLeftOf(unitPattern: miUnit, in: items) {
+            summary.distanceMiles = parseDistance(distanceText + " mi")
         }
-        if summary.elevationFeet == nil, let v = valueLeftOf(unitPattern: ftUnit, in: items) {
-            summary.elevationFeet = parseElevation(v + " ft")
+        if summary.elevationFeet == nil, let elevationText = valueLeftOf(unitPattern: ftUnit, in: items) {
+            summary.elevationFeet = parseElevation(elevationText + " ft")
         }
         return summary
     }
@@ -80,40 +80,40 @@ enum IFitSummaryParser {
     static func parse(lines rawLines: [String], calendar: Calendar = .current) -> IFitSummary {
         let lines = rawLines.map(normalize).filter { !$0.isEmpty }
         let text = lines.joined(separator: " ")
-        var s = IFitSummary()
+        var summary = IFitSummary()
 
-        s.title = titleFromLines(lines)
-        s.date = parseDate(text, calendar: calendar)
+        summary.title = titleFromLines(lines)
+        summary.date = parseDate(text, calendar: calendar)
 
         // Duration: "1 hr 5 min", "1hr", "42 min"
         if let m = firstMatch(#"(\d{1,2})\s*hrs?\b(?:\s*(\d{1,2})\s*min)?"#, in: text) {
-            s.durationMinutes = Double((Int(m[1]) ?? 0) * 60 + (Int(m[2]) ?? 0))
+            summary.durationMinutes = Double((Int(m[1]) ?? 0) * 60 + (Int(m[2]) ?? 0))
         } else if let m = firstMatch(#"(\d{1,3})\s*min\b"#, in: text) {
-            s.durationMinutes = Double(m[1])
+            summary.durationMinutes = Double(m[1])
         }
-        s.distanceMiles = parseDistance(text)
-        if let m = firstMatch(#"(\d{2,4})\s*ca[l1I]s?\b"#, in: text) { s.calories = Int(m[1]) }
-        s.elevationFeet = parseElevation(text)
-        if let m = firstMatch(#"(\d{2,3})\s*avg\s*rpm"#, in: text) { s.avgRPM = Int(m[1]) }
-        if let m = firstMatch(#"(\d{2,4})\s*avg\s*watts?"#, in: text) { s.avgWatts = Int(m[1]) }
+        summary.distanceMiles = parseDistance(text)
+        if let m = firstMatch(#"(\d{2,4})\s*ca[l1I]s?\b"#, in: text) { summary.calories = Int(m[1]) }
+        summary.elevationFeet = parseElevation(text)
+        if let m = firstMatch(#"(\d{2,3})\s*avg\s*rpm"#, in: text) { summary.avgRPM = Int(m[1]) }
+        if let m = firstMatch(#"(\d{2,4})\s*avg\s*watts?"#, in: text) { summary.avgWatts = Int(m[1]) }
 
         // Incline "2.6 % avg · 10.0 % max"
         let dec = #"(\d{1,2}(?:[.,]\d)?)"#
-        if let m = firstMatch(dec + #"\s*%\s*avg"#, in: text) { s.inclineAvg = inclinePercent(m[1]) }
-        if let m = firstMatch(dec + #"\s*%\s*max"#, in: text) { s.inclineMax = inclinePercent(m[1]) }
+        if let m = firstMatch(dec + #"\s*%\s*avg"#, in: text) { summary.inclineAvg = inclinePercent(m[1]) }
+        if let m = firstMatch(dec + #"\s*%\s*max"#, in: text) { summary.inclineMax = inclinePercent(m[1]) }
 
         // Resistance "10 avg · 16 max" (no % sign; prefer text after the word Resistance)
         let resText: String
-        if let r = text.range(of: "resistance", options: .caseInsensitive) {
-            resText = String(text[r.upperBound...])
+        if let range = text.range(of: "resistance", options: .caseInsensitive) {
+            resText = String(text[range.upperBound...])
         } else {
             resText = text
         }
-        if let m = firstMatch(#"(?<![\d.%])(\d{1,2})\s*avg\b(?!\s*(?:rpm|watt))"#, in: resText) { s.resistanceAvg = Int(m[1]) }
+        if let m = firstMatch(#"(?<![\d.%])(\d{1,2})\s*avg\b(?!\s*(?:rpm|watt))"#, in: resText) { summary.resistanceAvg = Int(m[1]) }
         if let m = firstMatch(#"(?<![\d.])(\d{1,2})\s*max\b"#, in: resText.replacingOccurrences(of: #"\d+(?:[.,]\d)?\s*%\s*max"#, with: "", options: .regularExpression)) {
-            s.resistanceMax = Int(m[1])
+            summary.resistanceMax = Int(m[1])
         }
-        return s
+        return summary
     }
 
     // MARK: Distance & elevation (camera OCR is noisiest here)
@@ -135,13 +135,16 @@ enum IFitSummaryParser {
         return nil
     }
 
-    static func validDistance(_ v: Double) -> Bool { v > 0 && v <= 60 }
+    static func validDistance(_ miles: Double) -> Bool { miles > 0 && miles <= 60 }
 
     /// "1388" read without its decimal point -> 13.88 (miles always have two decimals on this screen).
     static func droppedDecimal(_ digits: String) -> Double? {
-        guard let n = Double(digits) else { return nil }
-        if digits.count >= 3 { let v = n / 100; return validDistance(v) ? v : nil }
-        return validDistance(n) ? n : nil
+        guard let number = Double(digits) else { return nil }
+        if digits.count >= 3 {
+            let value = number / 100
+            return validDistance(value) ? value : nil
+        }
+        return validDistance(number) ? number : nil
     }
 
     static func parseElevation(_ text: String) -> Int? {
@@ -155,9 +158,9 @@ enum IFitSummaryParser {
         return nil
     }
 
-    static func validElevation(_ v: Int) -> Bool { v >= 0 && v <= 10_000 }
+    static func validElevation(_ feet: Int) -> Bool { feet >= 0 && feet <= 10_000 }
 
-    static func integer(_ s: String) -> Int? { Int(s.filter(\.isNumber)) }
+    static func integer(_ text: String) -> Int? { Int(text.filter(\.isNumber)) }
 
     // MARK: Geometry fallback
 
@@ -187,29 +190,29 @@ enum IFitSummaryParser {
     static let lastCompletedPattern = #"last\s*complet"#
 
     static func titleFromLines(_ lines: [String]) -> String? {
-        guard let i = lines.firstIndex(where: { $0.range(of: lastCompletedPattern, options: [.regularExpression, .caseInsensitive]) != nil }) else { return nil }
+        guard let completedIndex = lines.firstIndex(where: { $0.range(of: lastCompletedPattern, options: [.regularExpression, .caseInsensitive]) != nil }) else { return nil }
         // Title on the same line before "Last completed"
-        if let r = lines[i].range(of: lastCompletedPattern, options: [.regularExpression, .caseInsensitive]) {
-            let prefix = cleanTitle(String(lines[i][..<r.lowerBound]))
+        if let range = lines[completedIndex].range(of: lastCompletedPattern, options: [.regularExpression, .caseInsensitive]) {
+            let prefix = cleanTitle(String(lines[completedIndex][..<range.lowerBound]))
             if let prefix { return prefix }
         }
-        var j = i - 1
-        while j >= 0 {
-            if let t = cleanTitle(lines[j]) { return t }
-            j -= 1
+        var lineIndex = completedIndex - 1
+        while lineIndex >= 0 {
+            if let title = cleanTitle(lines[lineIndex]) { return title }
+            lineIndex -= 1
         }
         return nil
     }
 
-    static func cleanTitle(_ s: String) -> String? {
-        var t = s
-        for b in buttonPhrases {
-            t = t.replacingOccurrences(of: b, with: "", options: .caseInsensitive)
+    static func cleanTitle(_ text: String) -> String? {
+        var title = text
+        for phrase in buttonPhrases {
+            title = title.replacingOccurrences(of: phrase, with: "", options: .caseInsensitive)
         }
-        t = t.trimmingCharacters(in: .whitespacesAndNewlines.union(.punctuationCharacters))
+        title = title.trimmingCharacters(in: .whitespacesAndNewlines.union(.punctuationCharacters))
         // Must look like a title: at least 2 words with letters.
-        let letters = t.filter(\.isLetter).count
-        return letters >= 4 && t.contains(" ") ? t : nil
+        let letters = title.filter(\.isLetter).count
+        return letters >= 4 && title.contains(" ") ? title : nil
     }
 
     /// The observation directly above "Last completed", left-aligned with it.
@@ -238,9 +241,9 @@ enum IFitSummaryParser {
         return calendar.date(from: DateComponents(year: year, month: month, day: day, hour: hour, minute: minute))
     }
 
-    static func monthIndex(_ s: String) -> Int? {
+    static func monthIndex(_ name: String) -> Int? {
         let months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
-        return months.firstIndex(of: s.lowercased().prefix(3).description).map { $0 + 1 }
+        return months.firstIndex(of: name.lowercased().prefix(3).description).map { $0 + 1 }
     }
 
     // MARK: Lines
@@ -262,28 +265,28 @@ enum IFitSummaryParser {
 
     // MARK: Helpers
 
-    static func normalize(_ s: String) -> String {
-        var t = s.replacingOccurrences(of: "\u{2013}", with: "-")
+    static func normalize(_ text: String) -> String {
+        var normalized = text.replacingOccurrences(of: "\u{2013}", with: "-")
             .replacingOccurrences(of: "\u{2014}", with: "-")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         // Letter/digit confusions next to digits: "1O.O2" -> "10.02", "l3.88" -> "13.88".
         for _ in 0..<2 {
-            t = t.replacingOccurrences(of: #"(?<=\d)[Oo]|(?<=\d[.,])[Oo]|[Oo](?=[.,]?\d)"#, with: "0", options: .regularExpression)
-            t = t.replacingOccurrences(of: #"(?<=\d)[lI|]|[lI|](?=\d)"#, with: "1", options: .regularExpression)
+            normalized = normalized.replacingOccurrences(of: #"(?<=\d)[Oo]|(?<=\d[.,])[Oo]|[Oo](?=[.,]?\d)"#, with: "0", options: .regularExpression)
+            normalized = normalized.replacingOccurrences(of: #"(?<=\d)[lI|]|[lI|](?=\d)"#, with: "1", options: .regularExpression)
         }
-        return t
+        return normalized
     }
 
-    static func number(_ s: String) -> Double? { Double(s.replacingOccurrences(of: ",", with: ".")) }
+    static func number(_ text: String) -> Double? { Double(text.replacingOccurrences(of: ",", with: ".")) }
 
     /// Highest incline the bike supports, in percent.
     static let maximumInclinePercent = 20.0
 
     /// Incline percent, restoring a dropped decimal point: iFit shows incline with one decimal,
     /// so "28" above the bike's maximum incline was read from "2.8" (or similar).
-    static func inclinePercent(_ s: String) -> Double? {
-        guard let value = number(s) else { return nil }
-        let hasDecimal = s.contains(".") || s.contains(",")
+    static func inclinePercent(_ text: String) -> Double? {
+        guard let value = number(text) else { return nil }
+        let hasDecimal = text.contains(".") || text.contains(",")
         return !hasDecimal && value > maximumInclinePercent ? value / 10 : value
     }
 

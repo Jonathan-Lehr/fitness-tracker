@@ -29,9 +29,9 @@ final class Workout {
     var isSimulated: Bool = false
     var program: Program?
 
-    init(date: Date, program: Program?, durationMinutes: Double, distanceMiles: Double,
-         calories: Int, elevationFeet: Int, avgRPM: Int, avgWatts: Int,
-         inclineAvg: Double, inclineMax: Double, resistanceAvg: Int, resistanceMax: Int,
+    init(date: Date, program: Program?, durationMinutes: Double = 0, distanceMiles: Double = 0,
+         calories: Int = 0, elevationFeet: Int = 0, avgRPM: Int = 0, avgWatts: Int = 0,
+         inclineAvg: Double = 0, inclineMax: Double = 0, resistanceAvg: Int = 0, resistanceMax: Int = 0,
          notes: String? = nil, isSimulated: Bool = false) {
         self.date = date
         self.program = program
@@ -47,6 +47,42 @@ final class Workout {
         self.resistanceMax = resistanceMax
         self.notes = notes
         self.isSimulated = isSimulated
+    }
+
+    /// Hand-entry defaults (45 min, 10 mi, and so on) used when adding a ride without a photo.
+    convenience init(forManualEntry date: Date = .now) {
+        self.init(
+            date: date,
+            program: nil,
+            durationMinutes: 45,
+            distanceMiles: 10,
+            calories: 350,
+            elevationFeet: 1000,
+            avgRPM: 75,
+            avgWatts: 85,
+            inclineAvg: 2,
+            inclineMax: 10,
+            resistanceAvg: 10,
+            resistanceMax: 15
+        )
+    }
+
+    /// Values parsed from a photo; missing fields are 0, or the current date.
+    convenience init(summary: IFitSummary) {
+        self.init(
+            date: summary.date ?? .now,
+            program: nil,
+            durationMinutes: summary.durationMinutes ?? 0,
+            distanceMiles: summary.distanceMiles ?? 0,
+            calories: summary.calories ?? 0,
+            elevationFeet: summary.elevationFeet ?? 0,
+            avgRPM: summary.avgRPM ?? 0,
+            avgWatts: summary.avgWatts ?? 0,
+            inclineAvg: summary.inclineAvg ?? 0,
+            inclineMax: summary.inclineMax ?? 0,
+            resistanceAvg: summary.resistanceAvg ?? 0,
+            resistanceMax: summary.resistanceMax ?? 0
+        )
     }
 
     var title: String { program?.title ?? "Untitled Ride" }

@@ -20,9 +20,9 @@ final class BackupTests: XCTestCase {
     func testRoundTripEncodeDecode() throws {
         let context = try makeContext()
         SeedData.insertRealRides(context)
-        let w = try context.fetch(FetchDescriptor<Workout>()).first!
-        w.notes = "Felt strong"
-        w.photoData = Data([0xFF, 0xD8, 0xFF, 0x01])
+        let workout = try context.fetch(FetchDescriptor<Workout>()).first!
+        workout.notes = "Felt strong"
+        workout.photoData = Data([0xFF, 0xD8, 0xFF, 0x01])
         let backup = BackupService.makeBackup(context, now: Date(timeIntervalSince1970: 1_761_000_000.25))
 
         let data = try BackupService.encode(backup)
@@ -41,9 +41,9 @@ final class BackupTests: XCTestCase {
     func testExportExcludesSimulatedByDefault() throws {
         let context = try makeContext()
         SeedData.insertRealRides(context)
-        let p = Program(title: "Fake Climb")
-        context.insert(p)
-        context.insert(Workout(date: .now, program: p, durationMinutes: 1, distanceMiles: 1, calories: 1, elevationFeet: 1,
+        let program = Program(title: "Fake Climb")
+        context.insert(program)
+        context.insert(Workout(date: .now, program: program, durationMinutes: 1, distanceMiles: 1, calories: 1, elevationFeet: 1,
                                avgRPM: 1, avgWatts: 1, inclineAvg: 0, inclineMax: 0, resistanceAvg: 1, resistanceMax: 1,
                                isSimulated: true))
         XCTAssertEqual(BackupService.makeBackup(context).workouts.count, 4)
@@ -54,9 +54,9 @@ final class BackupTests: XCTestCase {
     func testMergeSkipsDuplicatesAndAddsNew() throws {
         let source = try makeContext()
         SeedData.insertRealRides(source)
-        let p = Program(title: "Delicate Arch Climb")
-        source.insert(p)
-        source.insert(Workout(date: Date(timeIntervalSince1970: 1_760_500_000), program: p, durationMinutes: 35,
+        let program = Program(title: "Delicate Arch Climb")
+        source.insert(program)
+        source.insert(Workout(date: Date(timeIntervalSince1970: 1_760_500_000), program: program, durationMinutes: 35,
                               distanceMiles: 7.5, calories: 300, elevationFeet: 1200, avgRPM: 74, avgWatts: 92,
                               inclineAvg: 4, inclineMax: 12, resistanceAvg: 10, resistanceMax: 16))
         let backup = try BackupService.decode(BackupService.encode(BackupService.makeBackup(source)))
@@ -83,9 +83,9 @@ final class BackupTests: XCTestCase {
         let backup = BackupService.makeBackup(source)
 
         let target = try makeContext()
-        let p = Program(title: "Something Else")
-        target.insert(p)
-        target.insert(Workout(date: .now, program: p, durationMinutes: 1, distanceMiles: 1, calories: 1, elevationFeet: 1,
+        let program = Program(title: "Something Else")
+        target.insert(program)
+        target.insert(Workout(date: .now, program: program, durationMinutes: 1, distanceMiles: 1, calories: 1, elevationFeet: 1,
                               avgRPM: 1, avgWatts: 1, inclineAvg: 0, inclineMax: 0, resistanceAvg: 1, resistanceMax: 1))
         try target.save()
         let summary = BackupService.importBackup(backup, into: target, mode: .replace)
@@ -112,15 +112,23 @@ final class BackupTests: XCTestCase {
     }
 
     func testDefaultFilename() {
-        var c = DateComponents(); c.year = 2026; c.month = 10; c.day = 24; c.hour = 12
-        let d = Calendar.current.date(from: c)!
-        XCTAssertEqual(BackupService.defaultFilename(now: d), "FitnessTracker Backup 2026-10-24")
+        var components = DateComponents()
+        components.year = 2026
+        components.month = 10
+        components.day = 24
+        components.hour = 12
+        let date = Calendar.current.date(from: components)!
+        XCTAssertEqual(BackupService.defaultFilename(now: date), "FitnessTracker Backup 2026-10-24")
     }
 
     func testDefaultFilenameUsesLocalDateNearMidnight() {
-        var c = DateComponents(); c.year = 2026; c.month = 10; c.day = 24; c.hour = 23
-        let d = Calendar.current.date(from: c)!
-        XCTAssertEqual(BackupService.defaultFilename(now: d), "FitnessTracker Backup 2026-10-24")
+        var components = DateComponents()
+        components.year = 2026
+        components.month = 10
+        components.day = 24
+        components.hour = 23
+        let date = Calendar.current.date(from: components)!
+        XCTAssertEqual(BackupService.defaultFilename(now: date), "FitnessTracker Backup 2026-10-24")
     }
 
     // MARK: Thumbnail focus
@@ -130,8 +138,8 @@ final class BackupTests: XCTestCase {
     private func backupWithFocusedPhoto() throws -> BackupFile {
         let context = try makeContext()
         SeedData.insertRealRides(context)
-        let w = try context.fetch(FetchDescriptor<Workout>()).first!
-        w.replacePhoto(with: Data([0xFF, 0xD8, 0xFF, 0x01]), analysis: ThumbnailFocusAnalysis(focus: focus))
+        let workout = try context.fetch(FetchDescriptor<Workout>()).first!
+        workout.replacePhoto(with: Data([0xFF, 0xD8, 0xFF, 0x01]), analysis: ThumbnailFocusAnalysis(focus: focus))
         // Whole seconds, since the file stores milliseconds.
         return BackupService.makeBackup(context, now: Date(timeIntervalSince1970: 1_761_000_000))
     }

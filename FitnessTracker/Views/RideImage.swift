@@ -6,16 +6,17 @@ struct ScenePlaceholder: View {
     let type: WorkoutType
     var body: some View {
         GeometryReader { geo in
-            let w = geo.size.width, h = geo.size.height
+            let width = geo.size.width
+            let height = geo.size.height
             ZStack {
                 LinearGradient(colors: [type.color, type.color.opacity(0.55)], startPoint: .top, endPoint: .bottom)
-                Path { p in
-                    p.move(to: CGPoint(x: 0, y: h))
-                    p.addLine(to: CGPoint(x: w * 0.35, y: h * 0.45))
-                    p.addLine(to: CGPoint(x: w * 0.6, y: h * 0.75))
-                    p.addLine(to: CGPoint(x: w * 0.8, y: h * 0.5))
-                    p.addLine(to: CGPoint(x: w, y: h))
-                    p.closeSubpath()
+                Path { path in
+                    path.move(to: CGPoint(x: 0, y: height))
+                    path.addLine(to: CGPoint(x: width * 0.35, y: height * 0.45))
+                    path.addLine(to: CGPoint(x: width * 0.6, y: height * 0.75))
+                    path.addLine(to: CGPoint(x: width * 0.8, y: height * 0.5))
+                    path.addLine(to: CGPoint(x: width, y: height))
+                    path.closeSubpath()
                 }
                 .fill(Color.black.opacity(0.3))
             }
@@ -40,7 +41,10 @@ struct RideImage: View {
         .aspectRatio(aspect, contentMode: .fit)
         .clipped()
         .task(id: taskID) {
-            guard let data = workout.photoData else { image = nil; return }
+            guard let data = workout.photoData else {
+                image = nil
+                return
+            }
             let id = String(describing: workout.persistentModelID)
             image = await ThumbnailStore.shared.thumbnail(id: id, data: data, aspect: aspect,
                                                           focus: workout.thumbnailFocus)
