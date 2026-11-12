@@ -2,7 +2,8 @@ import Foundation
 
 /// Log presentation mode; persisted so the Log reopens in the last chosen mode.
 enum LogLayout: String, CaseIterable, Identifiable {
-    case grid, list
+    case grid
+    case list
     var id: String { rawValue }
     var label: String { self == .list ? "List" : "Grid" }
     var systemImage: String { self == .list ? "list.bullet" : "square.grid.2x2" }

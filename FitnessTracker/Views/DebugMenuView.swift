@@ -8,7 +8,9 @@ struct DebugMenuView: View {
 
     /// Destructive/data-changing debug actions; each one offers a backup first.
     private enum Action: Identifiable {
-        case generate, removeSimulated, clearAll
+        case generate
+        case removeSimulated
+        case clearAll
         var id: Self { self }
         var title: String {
             switch self {

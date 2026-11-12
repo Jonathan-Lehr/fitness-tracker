@@ -55,11 +55,13 @@ Or ⌘U in Xcode for tests. Add or update unit tests when you change logic.
 
 ## CI
 
-`.github/workflows/build.yml` runs on every push and PR (macos-15, latest-stable Xcode). Three jobs:
+`.github/workflows/build.yml` runs on every push and PR as a single **Build and test** job. It runs on Jonathan's self-hosted Mac when the repo variable `MACOS_RUNNER` is set (for example `["self-hosted","macOS","ARM64"]`), and falls back to GitHub-hosted `macos-26` when that variable is unset. Pull requests from forks always use hosted `macos-26`, so outside code never runs on the self-hosted Mac. Hosted runners select the latest-stable Xcode.
+
+The job runs these checks in order, and a failure in one does not skip the others:
 
 1. **XcodeGen spec check** — regenerates `FitnessTracker.xcodeproj` from `project.yml` and confirms the `FitnessTrackerTests` target exists.
-2. **iOS Simulator build** — `build-for-testing` for `generic/platform=iOS Simulator`.
-3. **macOS build + tests** — `xcodebuild test` on `platform=macOS`.
+2. **Test (macOS)** — `xcodebuild test` on `platform=macOS`.
+3. **Build for testing (iOS Simulator, arm64)** — `build-for-testing` for `generic/platform=iOS Simulator`.
 
 Keep `project.yml` in sync with any structural project change. A Swift file added under an existing synced folder does not require a `project.yml` edit.
 
@@ -81,6 +83,7 @@ Code quality, especially readability, maintainability, and reuse, is an importan
 - Keep SwiftUI views small and focused. Make liberal use of computed properties, methods, and small subview structs so `body` reads as a clear outline of the layout. Move calculations and data shaping out of `body` into testable helpers or view models.
 - Use clear, descriptive names, and follow the surrounding code's patterns and file organization.
 - Avoid abbreviations in API and parameter names, types, and global or static properties and constants (for example, `averageWatts`, not `avgW`). Well-established abbreviations such as `mph`, `rpm`, `id`, and `url` are fine. Short names are acceptable for local variables and closure parameters with very small scope (for example, `i` in a loop or `$0`), but prefer full words elsewhere. Apply this to new code and code you're already changing. Existing abbreviations are renamed separately (#30).
+- Prefer one enum case per line (`case grid` and `case list`, not `case grid, list`).
 - Comment the *why* for non-obvious decisions, not the *what*.
 - Prefer small, coherent changes. Remove dead code and unused helpers you replace.
 - Refactor where appropriate, for example code you touch that is duplicated, tangled, or hard to follow. Keep small refactors in the current PR. A refactoring that touches many files or lines of code gets its own issue and PR, separate from feature or bug work.

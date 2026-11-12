@@ -46,7 +46,12 @@ struct PeriodSummary {
     /// Display order on the card (grid reads left-to-right, top-to-bottom; the last stat's
     /// width sets where the landscape chart ends).
     enum Metric: CaseIterable {
-        case rides, time, watts, rpm, elevation, calories
+        case rides
+        case time
+        case watts
+        case rpm
+        case elevation
+        case calories
 
         var label: String {
             switch self {

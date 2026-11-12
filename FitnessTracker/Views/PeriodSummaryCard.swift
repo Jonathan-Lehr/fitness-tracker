@@ -6,7 +6,10 @@ import Charts
 struct StatDelta {
     /// How a change compares with the previous value.
     enum Trend: Equatable {
-        case up, unchanged, smallDip, bigDrop
+        case up
+        case unchanged
+        case smallDip
+        case bigDrop
     }
 
     /// A decline is a small dip while the new value is still at least this fraction of the previous one.

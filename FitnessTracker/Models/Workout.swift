@@ -102,7 +102,9 @@ extension Workout {
 // MARK: - Grouping
 
 enum GroupingPeriod: String, CaseIterable, Identifiable {
-    case week = "Week", month = "Month", year = "Year"
+    case week = "Week"
+    case month = "Month"
+    case year = "Year"
     var id: String { rawValue }
 
     var component: Calendar.Component {
