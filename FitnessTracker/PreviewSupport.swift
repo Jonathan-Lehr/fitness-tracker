@@ -4,6 +4,7 @@ import SwiftData
 
 /// In-memory SwiftData fixtures for `#Preview`s. Each call gets a fresh container
 /// so one preview's edits don't leak into another.
+@MainActor
 enum PreviewSupport {
     static func container() -> ModelContainer {
         let schema = Schema([Program.self, Workout.self])
