@@ -74,8 +74,8 @@ struct ProgramChooserView: View {
     #endif
 
     private var matches: [String] {
-        let q = query.trimmingCharacters(in: .whitespaces)
-        return q.isEmpty ? titles : titles.filter { $0.localizedCaseInsensitiveContains(q) }
+        let trimmedQuery = query.trimmingCharacters(in: .whitespaces)
+        return trimmedQuery.isEmpty ? titles : titles.filter { $0.localizedCaseInsensitiveContains(trimmedQuery) }
     }
 
     var body: some View {

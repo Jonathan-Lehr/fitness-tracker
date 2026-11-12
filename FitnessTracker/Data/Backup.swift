@@ -71,8 +71,8 @@ enum BackupError: LocalizedError, Equatable {
 
     var errorDescription: String? {
         switch self {
-        case .unsupportedVersion(let v):
-            "This backup was made by a newer version of FitnessTracker (format \(v)). Update the app to import it."
+        case .unsupportedVersion(let version):
+            "This backup was made by a newer version of FitnessTracker (format \(version)). Update the app to import it."
         case .unreadable(let why):
             "The file isn't a FitnessTracker backup (\(why))."
         }
@@ -121,32 +121,32 @@ enum BackupService {
         let workouts = ((try? context.fetch(FetchDescriptor<Workout>(sortBy: [SortDescriptor(\.date)]))) ?? [])
             .filter { includeSimulated || !$0.isSimulated }
         let programs = ((try? context.fetch(FetchDescriptor<Program>(sortBy: [SortDescriptor(\.title)]))) ?? [])
-            .filter { p in includeSimulated || (p.workouts ?? []).contains { !$0.isSimulated } || (p.workouts ?? []).isEmpty }
+            .filter { program in includeSimulated || (program.workouts ?? []).contains { !$0.isSimulated } || (program.workouts ?? []).isEmpty }
         return BackupFile(
             version: BackupFile.currentVersion,
             exportedAt: now,
             programs: programs.map { ProgramDTO(id: programID($0.title), title: $0.title, type: $0.typeRaw) },
-            workouts: workouts.map { w in
-                WorkoutDTO(id: DataDeduper.key(w), programID: w.program.map { programID($0.title) },
-                           date: w.date, durationMinutes: w.durationMinutes, distanceMiles: w.distanceMiles,
-                           calories: w.calories, elevationFeet: w.elevationFeet, avgRPM: w.avgRPM,
-                           avgWatts: w.avgWatts, inclineAvg: w.inclineAvg, inclineMax: w.inclineMax,
-                           resistanceAvg: w.resistanceAvg, resistanceMax: w.resistanceMax,
-                           notes: w.notes, photoData: w.photoData, isSimulated: w.isSimulated,
-                           thumbnailFocus: w.thumbnailFocus.map { ThumbnailFocusDTO($0) },
-                           thumbnailFocusAnalysisVersion: w.photoData == nil ? nil : w.thumbnailFocusAnalysisVersion)
+            workouts: workouts.map { workout in
+                WorkoutDTO(id: DataDeduper.key(workout), programID: workout.program.map { programID($0.title) },
+                           date: workout.date, durationMinutes: workout.durationMinutes, distanceMiles: workout.distanceMiles,
+                           calories: workout.calories, elevationFeet: workout.elevationFeet, avgRPM: workout.avgRPM,
+                           avgWatts: workout.avgWatts, inclineAvg: workout.inclineAvg, inclineMax: workout.inclineMax,
+                           resistanceAvg: workout.resistanceAvg, resistanceMax: workout.resistanceMax,
+                           notes: workout.notes, photoData: workout.photoData, isSimulated: workout.isSimulated,
+                           thumbnailFocus: workout.thumbnailFocus.map { ThumbnailFocusDTO($0) },
+                           thumbnailFocusAnalysisVersion: workout.photoData == nil ? nil : workout.thumbnailFocusAnalysisVersion)
             })
     }
 
     // ISO 8601 with fractional seconds on write; accepts with or without on read.
     static func encode(_ file: BackupFile) throws -> Data {
-        let enc = JSONEncoder()
-        enc.outputFormatting = [.prettyPrinted, .sortedKeys]
-        enc.dateEncodingStrategy = .custom { date, encoder in
-            var c = encoder.singleValueContainer()
-            try c.encode(iso8601WithFractionalSeconds.string(from: date))
+        let jsonEncoder = JSONEncoder()
+        jsonEncoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        jsonEncoder.dateEncodingStrategy = .custom { date, encoder in
+            var container = encoder.singleValueContainer()
+            try container.encode(iso8601WithFractionalSeconds.string(from: date))
         }
-        return try enc.encode(file)
+        return try jsonEncoder.encode(file)
     }
 
     static func decode(_ data: Data) throws -> BackupFile {
@@ -159,14 +159,14 @@ enum BackupService {
         guard header.version >= 1 else { throw BackupError.unreadable("invalid version \(header.version)") }
         guard header.version <= BackupFile.currentVersion else { throw BackupError.unsupportedVersion(header.version) }
 
-        let dec = JSONDecoder()
-        dec.dateDecodingStrategy = .custom { decoder in
-            let s = try decoder.singleValueContainer().decode(String.self)
-            if let d = iso8601WithFractionalSeconds.date(from: s) ?? iso8601.date(from: s) { return d }
-            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "Bad date \(s)"))
+        let jsonDecoder = JSONDecoder()
+        jsonDecoder.dateDecodingStrategy = .custom { decoder in
+            let text = try decoder.singleValueContainer().decode(String.self)
+            if let date = iso8601WithFractionalSeconds.date(from: text) ?? iso8601.date(from: text) { return date }
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "Bad date \(text)"))
         }
         do {
-            return try dec.decode(BackupFile.self, from: data)
+            return try jsonDecoder.decode(BackupFile.self, from: data)
         } catch {
             throw BackupError.unreadable(error.localizedDescription)
         }
@@ -180,20 +180,20 @@ enum BackupService {
         if mode == .replace { DataMaintenance.deleteAll(context) }
 
         var programsByID: [String: Program] = [:]
-        for p in (try? context.fetch(FetchDescriptor<Program>())) ?? [] {
-            programsByID[programID(p.title)] = programsByID[programID(p.title)] ?? p
+        for program in (try? context.fetch(FetchDescriptor<Program>())) ?? [] {
+            programsByID[programID(program.title)] = programsByID[programID(program.title)] ?? program
         }
         var existingKeys = Set(((try? context.fetch(FetchDescriptor<Workout>())) ?? []).map(DataDeduper.key))
 
         func program(for id: String?) -> Program? {
             guard let id else { return nil }
-            if let p = programsByID[id] { return p }
+            if let existing = programsByID[id] { return existing }
             let dto = file.programs.first { $0.id == id }
-            let p = Program(title: dto?.title ?? id, type: dto.flatMap { WorkoutType(rawValue: $0.type) })
-            context.insert(p)
-            programsByID[id] = p
+            let imported = Program(title: dto?.title ?? id, type: dto.flatMap { WorkoutType(rawValue: $0.type) })
+            context.insert(imported)
+            programsByID[id] = imported
             summary.programsAdded += 1
-            return p
+            return imported
         }
 
         for dto in file.programs where programsByID[dto.id] == nil { _ = program(for: dto.id) }
@@ -205,15 +205,15 @@ enum BackupService {
                 summary.workoutsSkipped += 1
                 continue
             }
-            let w = Workout(date: dto.date, program: program(for: dto.programID),
+            let workout = Workout(date: dto.date, program: program(for: dto.programID),
                             durationMinutes: dto.durationMinutes, distanceMiles: dto.distanceMiles,
                             calories: dto.calories, elevationFeet: dto.elevationFeet, avgRPM: dto.avgRPM,
                             avgWatts: dto.avgWatts, inclineAvg: dto.inclineAvg, inclineMax: dto.inclineMax,
                             resistanceAvg: dto.resistanceAvg, resistanceMax: dto.resistanceMax,
                             notes: dto.notes, isSimulated: dto.isSimulated)
-            w.photoData = dto.photoData
-            restoreThumbnailFocus(from: dto, to: w)
-            context.insert(w)
+            workout.photoData = dto.photoData
+            restoreThumbnailFocus(from: dto, to: workout)
+            context.insert(workout)
             existingKeys.insert(key)
             summary.workoutsAdded += 1
         }

@@ -38,20 +38,20 @@ struct PartialPeriodComparison {
             let dayOffset = calendar.dateComponents([.day], from: calendar.startOfDay(for: currentStart), to: today).day ?? 0
             correspondingDay = calendar.date(byAdding: .day, value: dayOffset, to: calendar.startOfDay(for: previousStart))
         case .year:
-            let md = calendar.dateComponents([.month, .day], from: now)
-            var c = calendar.dateComponents([.era, .year], from: previousStart)
-            c.month = md.month
-            c.day = 1
-            correspondingDay = calendar.date(from: c).flatMap { calendar.date(byAdding: .day, value: (md.day ?? 1) - 1, to: $0) }
+            let monthDay = calendar.dateComponents([.month, .day], from: now)
+            var components = calendar.dateComponents([.era, .year], from: previousStart)
+            components.month = monthDay.month
+            components.day = 1
+            correspondingDay = calendar.date(from: components).flatMap { calendar.date(byAdding: .day, value: (monthDay.day ?? 1) - 1, to: $0) }
                 .map { calendar.startOfDay(for: $0) }
         }
         let previousEnd: Date
         if let day = correspondingDay, day < currentStart,
            // A shorter previous month (or Feb 29 in a non-leap year) spills past its month; clip below.
            period != .year || calendar.component(.month, from: day) == calendar.component(.month, from: now) {
-            let t = calendar.dateComponents([.hour, .minute, .second, .nanosecond], from: now)
-            let end = calendar.date(bySettingHour: t.hour ?? 0, minute: t.minute ?? 0, second: t.second ?? 0, of: day)
-                .map { $0.addingTimeInterval(Double(t.nanosecond ?? 0) / 1e9) } ?? day
+            let time = calendar.dateComponents([.hour, .minute, .second, .nanosecond], from: now)
+            let end = calendar.date(bySettingHour: time.hour ?? 0, minute: time.minute ?? 0, second: time.second ?? 0, of: day)
+                .map { $0.addingTimeInterval(Double(time.nanosecond ?? 0) / 1e9) } ?? day
             previousEnd = min(max(end, previousStart), currentStart)
         } else if let day = correspondingDay, period == .year {
             previousEnd = calendar.startOfDay(for: day) // e.g. Feb 29 -> end of Feb 28 (start of Mar 1)
