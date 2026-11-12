@@ -2,7 +2,13 @@ import Foundation
 import SwiftData
 
 enum WorkoutType: String, CaseIterable, Identifiable, Codable {
-    case endurance, interval, recovery, climb, tempo, other
+    case endurance
+    case interval
+    case recovery
+    case climb
+    case tempo
+    case other
+
     var id: String { rawValue }
     var label: String { rawValue.capitalized }
 

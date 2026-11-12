@@ -94,7 +94,9 @@ struct ImportSummary: Equatable {
 }
 
 enum ImportMode: String, CaseIterable, Identifiable {
-    case merge = "Merge", replace = "Replace All"
+    case merge = "Merge"
+    case replace = "Replace All"
+
     var id: String { rawValue }
 }
 

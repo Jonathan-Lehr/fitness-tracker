@@ -55,11 +55,13 @@ Or ⌘U in Xcode for tests. Add or update unit tests when you change logic.
 
 ## CI
 
-`.github/workflows/build.yml` runs on every push and PR (macos-15, latest-stable Xcode). Three jobs:
+`.github/workflows/build.yml` runs on every push and PR as a single **Build and test** job. It runs on Jonathan's self-hosted Mac when the repo variable `MACOS_RUNNER` is set (for example `["self-hosted","macOS","ARM64"]`), and falls back to GitHub-hosted `macos-26` when that variable is unset. Pull requests from forks always use hosted `macos-26`, so outside code never runs on the self-hosted Mac. Hosted runners select the latest-stable Xcode.
+
+The job runs these checks in order, and a failure in one does not skip the others:
 
 1. **XcodeGen spec check** — regenerates `FitnessTracker.xcodeproj` from `project.yml` and confirms the `FitnessTrackerTests` target exists.
-2. **iOS Simulator build** — `build-for-testing` for `generic/platform=iOS Simulator`.
-3. **macOS build + tests** — `xcodebuild test` on `platform=macOS`.
+2. **Test (macOS)** — `xcodebuild test` on `platform=macOS`.
+3. **Build for testing (iOS Simulator, arm64)** — `build-for-testing` for `generic/platform=iOS Simulator`.
 
 Keep `project.yml` in sync with any structural project change. A Swift file added under an existing synced folder does not require a `project.yml` edit.
 
@@ -81,6 +83,7 @@ Code quality, especially readability, maintainability, and reuse, is an importan
 - Keep SwiftUI views small and focused. Make liberal use of computed properties, methods, and small subview structs so `body` reads as a clear outline of the layout. Move calculations and data shaping out of `body` into testable helpers or view models.
 - Use clear, descriptive names, and follow the surrounding code's patterns and file organization.
 - Avoid abbreviations in API and parameter names, types, and global or static properties and constants (for example, `averageWatts`, not `avgW`). Well-established abbreviations such as `mph`, `rpm`, `id`, and `url` are fine. Short names are acceptable for local variables and closure parameters with very small scope (for example, `i` in a loop or `$0`), but prefer full words elsewhere. Apply this to new code and code you're already changing. Existing abbreviations are renamed separately (#30).
+- Prefer one enum case per line (`case grid` and `case list`, not `case grid, list`). Leave a blank line after the last case when the enum also has properties, methods, or nested types.
 - Comment the *why* for non-obvious decisions, not the *what*.
 - Prefer small, coherent changes. Remove dead code and unused helpers you replace.
 - Refactor where appropriate, for example code you touch that is duplicated, tangled, or hard to follow. Keep small refactors in the current PR. A refactoring that touches many files or lines of code gets its own issue and PR, separate from feature or bug work.
@@ -94,6 +97,7 @@ Settled during implementation (especially #14, #18, #20). Follow these unless th
 - Rows and date subheads share the section headers' leading and trailing edges (default insets). Keep section backgrounds so rows line up with the summary card. iPhone photo rows use standard separators, no card borders, and 6 pt of padding at the bottom of each section.
 - The List/Grid control is a mutually exclusive segmented `Picker` in its own leading toolbar group, sized with `@ScaledMetric` (44 pt per segment on iOS, 36 pt on Mac).
 - Period headers use non-hierarchical secondary gray in both list and grid modes.
-- Ride-type tag colors: endurance blue, climb green, interval coral, recovery purple, tempo gold (see `RideGridView` / `WorkoutType` tints). Show the text label and a tinted capsule.
+- Ride-type tag colors: endurance blue, climb magenta, interval coral, recovery purple, tempo gold, other green (see `WorkoutType.color`). Show the text label and a tinted capsule.
+- Custom colors are named color sets in `Assets.xcassets` (light and dark variants), referenced through `AppColor` (#34). Don't hardcode RGB values in views; system colors are used directly.
 - Grid/detail navigation uses `NavigationPath` and `Button`s so Back returns to the grid, not a previous detail. On Mac, `selectionDisabled` on the grid's containing row prevents a highlight on return.
 - Trends charts use completed periods only; the in-progress period is omitted from the charts and shown separately. Average Watts fits the Y axis to the plotted data (padded, rounded, never below 0) and the X axis to the first–last period that has watts (no empty end padding). Interior periods without watts are dashed bridges, not measured values. The current unfinished period is compared with the same elapsed portion of the previous period ("so far").

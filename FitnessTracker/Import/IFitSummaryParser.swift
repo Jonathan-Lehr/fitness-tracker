@@ -10,8 +10,18 @@ struct RecognizedText: Equatable {
 /// Values parsed from an iFit post-workout ("Nice job!") summary screen.
 struct IFitSummary: Equatable {
     enum Field: String, CaseIterable {
-        case title, date, duration, distance, calories, elevation, rpm, watts
-        case inclineAvg, inclineMax, resistanceAvg, resistanceMax
+        case title
+        case date
+        case duration
+        case distance
+        case calories
+        case elevation
+        case rpm
+        case watts
+        case inclineAvg
+        case inclineMax
+        case resistanceAvg
+        case resistanceMax
     }
 
     var title: String?

@@ -7,6 +7,7 @@ import Vision
 
 enum PhotoImportError: LocalizedError {
     case unreadableImage
+
     var errorDescription: String? { "That file couldn't be read as an image." }
 }
 

@@ -6,7 +6,10 @@ import Charts
 struct StatDelta {
     /// How a change compares with the previous value.
     enum Trend: Equatable {
-        case up, unchanged, smallDip, bigDrop
+        case up
+        case unchanged
+        case smallDip
+        case bigDrop
     }
 
     /// A decline is a small dip while the new value is still at least this fraction of the previous one.
@@ -30,30 +33,10 @@ struct StatDelta {
         switch trend {
         case .up: .green
         case .unchanged: .secondary
-        case .smallDip: .smallDipYellow
+        case .smallDip: AppColor.smallDipYellow.color
         case .bigDrop: .red
         }
     }
-}
-
-extension Color {
-    /// System yellow in dark mode; a darker amber in light mode, where system yellow washes out.
-    static let smallDipYellow: Color = {
-        let amber = (red: 0.78, green: 0.53, blue: 0.0)
-        #if os(macOS)
-        return Color(nsColor: NSColor(name: nil) { appearance in
-            appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-                ? .systemYellow
-                : NSColor(srgbRed: amber.red, green: amber.green, blue: amber.blue, alpha: 1)
-        })
-        #else
-        return Color(uiColor: UIColor { traits in
-            traits.userInterfaceStyle == .dark
-                ? .systemYellow
-                : UIColor(red: amber.red, green: amber.green, blue: amber.blue, alpha: 1)
-        })
-        #endif
-    }()
 }
 
 /// One metric: value, label, and an optional delta. Shared by the period summary cards and the

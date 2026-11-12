@@ -3,7 +3,10 @@ import SwiftData
 import Charts
 
 enum ChartMetric: String, CaseIterable, Identifiable {
-    case watts = "Watts", duration = "Duration", calories = "Calories"
+    case watts = "Watts"
+    case duration = "Duration"
+    case calories = "Calories"
+
     var id: String { rawValue }
     func value(_ w: Workout) -> Double {
         switch self {
