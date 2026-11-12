@@ -55,7 +55,7 @@ struct DebugMenuView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }
-            .confirmationDialog(pending?.title ?? "", isPresented: Binding(get: { pending != nil }, set: { if !$0 { pending = nil } }),
+            .confirmationDialog(pending?.title ?? "", isPresented: .isPresented($pending),
                                 titleVisibility: .visible, presenting: pending) { action in
                 Button("Back Up First…") { backUpThen(action) }
                 Button(action.confirm, role: action == .generate ? nil : .destructive) { perform(action) }

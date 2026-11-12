@@ -74,3 +74,9 @@ extension Int {
         return self < 0 ? "-\(number)" : "+\(number)"
     }
 }
+
+/// Average watts with a unit, or `placeholder` when there is no value.
+/// Call sites pass "—" or "— W" to keep their current empty-state text.
+func formattedAverageWatts(_ watts: Double?, placeholder: String, locale: Locale = .current) -> String {
+    watts.map { "\($0.formattedWholeNumber(locale: locale)) W" } ?? placeholder
+}

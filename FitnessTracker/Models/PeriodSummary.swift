@@ -107,7 +107,7 @@ struct PeriodSummary {
         case .time: return (t.minutes.formattedMinutes(locale: locale), m.label)
         case .calories: return (t.calories.formattedWholeNumber(locale: locale), m.label)
         case .elevation: return ("\(t.feet.formattedWholeNumber(locale: locale)) ft", m.label)
-        case .watts: return (t.averageWatts.map { "\(Int($0.rounded()).formattedWholeNumber(locale: locale)) W" } ?? "—", m.label)
+        case .watts: return (formattedAverageWatts(t.averageWatts, placeholder: "—", locale: locale), m.label)
         case .rpm: return (t.averageRPM.map { Int($0.rounded()).formattedWholeNumber(locale: locale) } ?? "—", m.label)
         }
     }
@@ -209,7 +209,7 @@ struct PeriodSummary {
         let previousInterval = DateInterval(start: prevStart, end: start)
 
         // Half-open [start, end) so a ride at exactly midnight belongs to one window only.
-        func inside(_ w: Workout, _ i: DateInterval) -> Bool { w.date >= i.start && w.date < i.end }
+        func inside(_ w: Workout, _ i: DateInterval) -> Bool { i.halfOpenContains(w.date) }
         let current = workouts.filter { inside($0, interval) }
         let previous = workouts.filter { inside($0, previousInterval) }
 
@@ -230,7 +230,7 @@ struct PeriodSummary {
         let previousInterval = calendar.dateInterval(of: period.component, for: beforeStart)
             ?? DateInterval(start: interval.start, duration: 0)
 
-        func inside(_ w: Workout, _ i: DateInterval) -> Bool { w.date >= i.start && w.date < i.end }
+        func inside(_ w: Workout, _ i: DateInterval) -> Bool { i.halfOpenContains(w.date) }
         let current = workouts.filter { inside($0, interval) }
         let previous = workouts.filter { inside($0, previousInterval) }
         let buckets = makeBuckets(period: period, interval: interval, calendar: calendar, calendarAligned: true) { slot in
@@ -253,7 +253,7 @@ struct PeriodSummary {
     static func calendarWorkouts(_ workouts: [Workout], period: GroupingPeriod, containing date: Date,
                                  calendar: Calendar = .app) -> [Workout] {
         let i = calendarInterval(period, containing: date, calendar: calendar)
-        return workouts.filter { $0.date >= i.start && $0.date < i.end }.sorted { $0.date > $1.date }
+        return workouts.filter { i.halfOpenContains($0.date) }.sorted { $0.date > $1.date }
     }
 
     var title: String {

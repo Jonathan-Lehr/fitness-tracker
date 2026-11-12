@@ -16,7 +16,7 @@ struct LogFilter: Equatable {
             let cal = Calendar.app
             let lo = cal.startOfDay(for: startDate)
             let hi = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: endDate)) ?? endDate
-            if w.date < lo || w.date >= hi { return false }
+            if !DateInterval(start: lo, end: hi).halfOpenContains(w.date) { return false }
         }
         if let programTitle, w.title != programTitle { return false }
         if let type, w.type != type { return false }
@@ -261,7 +261,7 @@ struct SectionHeader: View {
     var showsDisclosure = false
     /// Duration-weighted average watts (rides without watts skipped); "— W" if none recorded.
     private var wattsText: String {
-        totals.averageWatts.map { "\(Int($0.rounded()).formattedWholeNumber()) W" } ?? "— W"
+        formattedAverageWatts(totals.averageWatts, placeholder: "— W")
     }
     var body: some View {
         HStack(alignment: .firstTextBaseline) {

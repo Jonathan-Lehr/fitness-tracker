@@ -43,11 +43,22 @@ final class Program {
         (workouts ?? []).sorted { $0.date < $1.date }
     }
 
-    /// Finds a program by title (case-insensitive) or creates one.
+    /// Title with leading and trailing whitespace and newlines removed.
+    static func normalizedTitle(_ title: String) -> String {
+        title.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Case-insensitive key for matching program titles.
+    static func normalizedTitleKey(_ title: String) -> String {
+        normalizedTitle(title).lowercased()
+    }
+
+    /// Finds a program by title (case-insensitive, ignoring surrounding whitespace) or creates one.
     static func findOrCreate(title: String, in context: ModelContext) -> Program {
-        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = normalizedTitle(title)
+        let key = normalizedTitleKey(trimmed)
         let all = (try? context.fetch(FetchDescriptor<Program>())) ?? []
-        if let existing = all.first(where: { $0.title.caseInsensitiveCompare(trimmed) == .orderedSame }) {
+        if let existing = all.first(where: { normalizedTitleKey($0.title) == key }) {
             return existing
         }
         let p = Program(title: trimmed)

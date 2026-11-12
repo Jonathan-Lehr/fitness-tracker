@@ -26,15 +26,21 @@ enum SeedData {
         UserDefaults.standard.set(true, forKey: seededKey)
     }
 
+    /// Parses the fixed `yyyy-MM-dd HH:mm` seed timestamps in America/New_York.
+    /// A static formatter is required here because the seed strings are machine-readable, not locale-formatted.
+    private static let rideDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "America/New_York")
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        return formatter
+    }()
+
     static func insertRealRides(_ context: ModelContext) {
-        let fmt = DateFormatter()
-        fmt.locale = Locale(identifier: "en_US_POSIX")
-        fmt.timeZone = TimeZone(identifier: "America/New_York")
-        fmt.dateFormat = "yyyy-MM-dd HH:mm"
         let existing = (try? context.fetch(FetchDescriptor<Workout>())) ?? []
         let existingKeys = Set(existing.map(DataDeduper.key))
         for r in realRides {
-            let date = fmt.date(from: r.date) ?? .now
+            let date = rideDateFormatter.date(from: r.date) ?? .now
             if existingKeys.contains(DataDeduper.key(title: r.title, date: date)) { continue }
             let program = Program.findOrCreate(title: r.title, in: context)
             let w = Workout(date: date, program: program,

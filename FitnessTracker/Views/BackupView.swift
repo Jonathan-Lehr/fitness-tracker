@@ -70,10 +70,10 @@ struct BackupView: View {
             } message: {
                 Text("All current rides will be deleted first. Export a backup now if you might need them.")
             }
-            .alert("Import Complete", isPresented: Binding(get: { resultMessage != nil }, set: { if !$0 { resultMessage = nil } })) {
+            .alert("Import Complete", isPresented: .isPresented($resultMessage)) {
                 Button("OK") {}
             } message: { Text(resultMessage ?? "") }
-            .alert("Backup Error", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
+            .alert("Backup Error", isPresented: .isPresented($errorMessage)) {
                 Button("OK") {}
             } message: { Text(errorMessage ?? "") }
         }

@@ -211,6 +211,18 @@ final class MondayWeekTests: XCTestCase {
         XCTAssertTrue(GroupingPeriod.week.label(for: start, calendar: cal).hasPrefix("Week of Oct 19"))
     }
 
+    func testMonthAndYearLabelsUsePassedCalendar() {
+        var tokyo = Calendar(identifier: .gregorian)
+        tokyo.locale = Locale(identifier: "en_US")
+        tokyo.timeZone = TimeZone(identifier: "Asia/Tokyo")!
+        // 2026-12-31 23:30 in New York is 2027-01-01 13:30 in Tokyo.
+        let date = usCalendar.date(from: DateComponents(year: 2026, month: 12, day: 31, hour: 23, minute: 30))!
+        XCTAssertEqual(GroupingPeriod.month.label(for: date, calendar: usCalendar), "December 2026")
+        XCTAssertEqual(GroupingPeriod.month.label(for: date, calendar: tokyo), "January 2027")
+        XCTAssertEqual(GroupingPeriod.year.label(for: date, calendar: usCalendar), "2026")
+        XCTAssertEqual(GroupingPeriod.year.label(for: date, calendar: tokyo), "2027")
+    }
+
     func testISOWeekNumbering() {
         let cal = Calendar.mondayFirst(usCalendar)
         // Jan 1, 2027 is a Friday, so ISO week 1 of 2027 starts Mon Jan 4; Jan 1 is in week 53 of 2026.

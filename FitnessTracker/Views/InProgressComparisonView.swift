@@ -52,18 +52,18 @@ struct InProgressComparisonView: View {
     private var wattsRow: some View {
         GridRow {
             Text("Avg Watts").lineLimit(1).fixedSize()
-            Text(cur.averageWatts.map { "\(Int($0.rounded()).formattedWholeNumber()) W" } ?? "— W").dataColumn()
-            Text(prev.averageWatts.map { "\(Int($0.rounded()).formattedWholeNumber()) W" } ?? "— W").foregroundStyle(.secondary).dataColumn()
+            Text(formattedAverageWatts(cur.averageWatts, placeholder: "— W")).dataColumn()
+            Text(formattedAverageWatts(prev.averageWatts, placeholder: "— W")).foregroundStyle(.secondary).dataColumn()
             Text(cur.averageWatts.flatMap { a in prev.averageWatts.map { Self.change(a, $0) } } ?? "—")
                 .foregroundStyle(.secondary).changeColumn()
         }
     }
 
     /// Percent change; "—" when the earlier value is zero (no meaningful percentage).
-    static func change(_ a: Double, _ b: Double) -> String {
-        guard b > 0 else { return "—" }
-        let pct = (a - b) / b * 100
-        return pct.formatted(.number.precision(.fractionLength(0)).sign(strategy: .always())) + "%"
+    static func change(_ current: Double, _ previous: Double, locale: Locale = .current) -> String {
+        guard previous > 0 else { return "—" }
+        let percent = (current - previous) / previous * 100
+        return percent.formattedSignedWholeNumber(locale: locale) + "%"
     }
 
     static func range(_ i: DateInterval) -> String {

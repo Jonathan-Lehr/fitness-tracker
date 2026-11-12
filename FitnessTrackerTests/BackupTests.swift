@@ -117,6 +117,12 @@ final class BackupTests: XCTestCase {
         XCTAssertEqual(BackupService.defaultFilename(now: d), "FitnessTracker Backup 2026-10-24")
     }
 
+    func testDefaultFilenameUsesLocalDateNearMidnight() {
+        var c = DateComponents(); c.year = 2026; c.month = 10; c.day = 24; c.hour = 23
+        let d = Calendar.current.date(from: c)!
+        XCTAssertEqual(BackupService.defaultFilename(now: d), "FitnessTracker Backup 2026-10-24")
+    }
+
     // MARK: Thumbnail focus
 
     private let focus = CGRect(x: 0.5, y: 0.1, width: 0.2, height: 0.25)

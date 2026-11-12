@@ -114,7 +114,7 @@ enum BackupService {
     private static let iso8601 = ISO8601DateFormatter()
 
     static func programID(_ title: String) -> String {
-        title.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        Program.normalizedTitleKey(title)
     }
 
     static func makeBackup(_ context: ModelContext, includeSimulated: Bool = false, now: Date = .now) -> BackupFile {
@@ -226,10 +226,8 @@ enum BackupService {
     }
 
     static func defaultFilename(now: Date = .now) -> String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.dateFormat = "yyyy-MM-dd"
-        return "FitnessTracker Backup " + f.string(from: now)
+        let date = now.formatted(Date.ISO8601FormatStyle(timeZone: .current).year().month().day())
+        return "FitnessTracker Backup " + date
     }
 }
 

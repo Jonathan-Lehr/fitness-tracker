@@ -80,7 +80,7 @@ struct WorkoutFormView: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { save(); dismiss() }
-                        .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
+                        .disabled(Program.normalizedTitle(title).isEmpty)
                 }
             }
             .onAppear(perform: load)

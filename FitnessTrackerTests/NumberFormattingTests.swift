@@ -92,6 +92,15 @@ final class NumberFormattingTests: XCTestCase {
         XCTAssertEqual((1234.0 * 60).formattedMinutes(locale: german), "1.234h 0m")
     }
 
+    func testFormattedAverageWattsUsesPlaceholderAndLocaleGrouping() {
+        XCTAssertEqual(formattedAverageWatts(1234.4, placeholder: "—", locale: us), "1,234 W")
+        XCTAssertEqual(formattedAverageWatts(1234.5, placeholder: "—", locale: us), "1,235 W")
+        XCTAssertEqual(formattedAverageWatts(1234, placeholder: "—", locale: german), "1.234 W")
+        XCTAssertEqual(formattedAverageWatts(80, placeholder: "— W", locale: us), "80 W")
+        XCTAssertEqual(formattedAverageWatts(nil, placeholder: "—", locale: us), "—")
+        XCTAssertEqual(formattedAverageWatts(nil, placeholder: "— W", locale: us), "— W")
+    }
+
     private func inclineRange(average: Double, maximum: Double, locale: Locale) -> String {
         "\(average.formattedPercent(fractionLength: 1, locale: locale)) / \(maximum.formattedPercent(fractionLength: 1, locale: locale))"
     }
