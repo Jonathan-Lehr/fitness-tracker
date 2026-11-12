@@ -71,13 +71,19 @@ struct NoteEditView: View {
     @Bindable var editing: NoteEditing
     @Environment(\.dismiss) private var dismiss
     @FocusState private var notesFocused: Bool
+    #if os(iOS)
+    /// Sized for a few lines of text plus the navigation toolbar.
+    private static let sheetHeight: CGFloat = 300
+    /// Caps the field so focus and typing can't grow the sheet.
+    private static let notesFieldMinHeight: CGFloat = 88
+    private static let notesFieldMaxHeight: CGFloat = 132
+    #endif
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("Notes", text: $editing.notesText, axis: .vertical)
-                        .focused($notesFocused)
+                    notesField
                 }
             }
             .formStyle(.grouped)
@@ -101,10 +107,21 @@ struct NoteEditView: View {
             }
         }
         #if os(iOS)
-        .presentationDetents([.medium])
+        // A single fixed-height detent stays compact when the field takes focus.
+        // `.medium` expands to full height once the keyboard appears.
+        .presentationDetents([.height(Self.sheetHeight)])
+        .presentationDragIndicator(.hidden)
         #elseif os(macOS)
         .frame(minWidth: 360, minHeight: 240)
         #endif
+    }
+
+    private var notesField: some View {
+        TextField("Notes", text: $editing.notesText, axis: .vertical)
+            .focused($notesFocused)
+            #if os(iOS)
+            .frame(minHeight: Self.notesFieldMinHeight, maxHeight: Self.notesFieldMaxHeight, alignment: .topLeading)
+            #endif
     }
 
     private func cancel() {
