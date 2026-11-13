@@ -60,7 +60,7 @@ struct StatTile: View {
         VStack(alignment: .leading, spacing: 1) {
             valueText
             Text(label)
-                .font(.caption)
+                .font(PeriodSummaryCard.Typography.statLabelFont)
                 .foregroundStyle(.secondary)
             if let delta {
                 deltaText(delta)
@@ -73,7 +73,7 @@ struct StatTile: View {
 
     private var valueText: some View {
         Text(value)
-            .font(.headline.weight(.semibold))
+            .font(PeriodSummaryCard.Typography.statValueFont)
             .monospacedDigit()
             .contentTransition(numericContentTransition(value: numericValue, reduceMotion: reduceMotion))
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width in
@@ -84,7 +84,7 @@ struct StatTile: View {
     private func deltaText(_ delta: StatDelta) -> some View {
         Text(delta.text)
             .contentTransition(numericContentTransition(value: delta.value, reduceMotion: reduceMotion))
-            .font(.caption2.weight(.medium))
+            .font(PeriodSummaryCard.Typography.statDeltaFont)
             .monospacedDigit()
             .foregroundStyle(delta.color)
     }

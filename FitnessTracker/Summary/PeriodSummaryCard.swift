@@ -127,6 +127,71 @@ struct PeriodSummaryCard: View {
     }
 }
 
+/// Fonts and worst-case strings shared with Mac window sizing so the measured
+/// minimum width can't drift from the card.
+extension PeriodSummaryCard {
+    enum Typography {
+        /// Text styles the card uses, so SwiftUI fonts and the AppKit fonts
+        /// used for measurement stay in lockstep.
+        enum TextStyle {
+            case title3
+            case headline
+            case subheadline
+            case caption
+            case caption2
+
+            var font: Font {
+                switch self {
+                case .title3: .title3
+                case .headline: .headline
+                case .subheadline: .subheadline
+                case .caption: .caption
+                case .caption2: .caption2
+                }
+            }
+        }
+
+        static let titleStyle: TextStyle = .subheadline
+        static let titleWeight: Font.Weight = .semibold
+        static var titleFont: Font { titleStyle.font.weight(titleWeight) }
+
+        static let filterIconStyle: TextStyle = .caption
+        static var filterIconFont: Font { filterIconStyle.font }
+
+        static let milesSize: CGFloat = 48
+        static let milesWeight: Font.Weight = .bold
+        static let milesDesign: Font.Design = .rounded
+        static var milesFont: Font { .system(size: milesSize, weight: milesWeight, design: milesDesign) }
+
+        static let milesUnitStyle: TextStyle = .title3
+        static let milesUnitWeight: Font.Weight = .semibold
+        static var milesUnitFont: Font { milesUnitStyle.font.weight(milesUnitWeight) }
+        static let milesUnit = "mi"
+
+        static let heroDeltaStyle: TextStyle = .caption
+        static let heroDeltaWeight: Font.Weight = .medium
+        static var heroDeltaFont: Font { heroDeltaStyle.font.weight(heroDeltaWeight) }
+
+        static let statValueStyle: TextStyle = .headline
+        static let statValueWeight: Font.Weight = .semibold
+        static var statValueFont: Font { statValueStyle.font.weight(statValueWeight) }
+
+        static let statLabelStyle: TextStyle = .caption
+        static var statLabelFont: Font { statLabelStyle.font }
+
+        static let statDeltaStyle: TextStyle = .caption2
+        static let statDeltaWeight: Font.Weight = .medium
+        static var statDeltaFont: Font { statDeltaStyle.font.weight(statDeltaWeight) }
+
+        /// Longest rolling title (the year window).
+        static let widestTitle = "Last \(PeriodSummary.days(for: .year)) Days"
+        /// Longest realistic hero mileage figure over a 365-day window.
+        static let widestMiles = "8888"
+        /// Longest realistic hero delta for a 365-day window.
+        static let widestHeroDelta = "−888 mi vs prior \(PeriodSummary.days(for: .year)) days"
+    }
+}
+
 /// Title, mileage, and delta for the period summary card.
 private struct PeriodSummaryHero: View {
     let summary: PeriodSummary
@@ -141,11 +206,11 @@ private struct PeriodSummaryHero: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
-                Text(summary.title).font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
+                Text(summary.title).font(PeriodSummaryCard.Typography.titleFont).foregroundStyle(.secondary)
                     .contentTransition(.opacity)
                 if filtered {
                     Image(systemName: "line.3.horizontal.decrease.circle.fill")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(PeriodSummaryCard.Typography.filterIconFont).foregroundStyle(.secondary)
                         .help("Filters applied")
                 }
             }
@@ -155,17 +220,19 @@ private struct PeriodSummaryHero: View {
             }
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(PeriodSummary.milesNumber(summary.current.miles))
-                    .font(.system(size: 48, weight: .bold, design: .rounded))
+                    .font(PeriodSummaryCard.Typography.milesFont)
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
                     .contentTransition(numericContentTransition(value: summary.current.miles, reduceMotion: reduceMotion))
-                Text("mi").font(.title3.weight(.semibold)).foregroundStyle(.secondary)
+                Text(PeriodSummaryCard.Typography.milesUnit)
+                    .font(PeriodSummaryCard.Typography.milesUnitFont)
+                    .foregroundStyle(.secondary)
             }
             Text(summary.deltaText)
                 .contentTransition(numericContentTransition(value: summary.milesDelta, reduceMotion: reduceMotion))
                 .monospacedDigit()
-                .font(.caption.weight(.medium))
+                .font(PeriodSummaryCard.Typography.heroDeltaFont)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
                 .foregroundStyle(heroDelta.color)

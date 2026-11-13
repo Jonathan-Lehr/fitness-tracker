@@ -41,6 +41,74 @@ import SwiftUI
     var cardWidth: CGFloat = 0
 }
 
+extension PeriodSummaryCard.Typography.TextStyle {
+    var nsTextStyle: NSFont.TextStyle {
+        switch self {
+        case .title3: .title3
+        case .headline: .headline
+        case .subheadline: .subheadline
+        case .caption: .caption1
+        case .caption2: .caption2
+        }
+    }
+}
+
+extension PeriodSummaryCard.Typography {
+    static func pointSize(_ style: TextStyle) -> CGFloat {
+        NSFont.preferredFont(forTextStyle: style.nsTextStyle).pointSize
+    }
+
+    static func preferredFont(_ style: TextStyle) -> NSFont {
+        NSFont.preferredFont(forTextStyle: style.nsTextStyle)
+    }
+
+    static func systemFont(style: TextStyle, weight: Font.Weight, monospacedDigits: Bool = false) -> NSFont {
+        let size = pointSize(style)
+        let fontWeight = nsWeight(weight)
+        if monospacedDigits {
+            return NSFont.monospacedDigitSystemFont(ofSize: size, weight: fontWeight)
+        }
+        return NSFont.systemFont(ofSize: size, weight: fontWeight)
+    }
+
+    static var titleNSFont: NSFont { systemFont(style: titleStyle, weight: titleWeight) }
+    static var statValueNSFont: NSFont { systemFont(style: statValueStyle, weight: statValueWeight, monospacedDigits: true) }
+    static var statLabelNSFont: NSFont { preferredFont(statLabelStyle) }
+    static var statDeltaNSFont: NSFont { systemFont(style: statDeltaStyle, weight: statDeltaWeight, monospacedDigits: true) }
+    static var milesUnitNSFont: NSFont { systemFont(style: milesUnitStyle, weight: milesUnitWeight) }
+    static var heroDeltaNSFont: NSFont { systemFont(style: heroDeltaStyle, weight: heroDeltaWeight, monospacedDigits: true) }
+    static var milesNSFont: NSFont {
+        let font = NSFont.systemFont(ofSize: milesSize, weight: nsWeight(milesWeight))
+        return font.fontDescriptor.withDesign(nsDesign(milesDesign))
+            .flatMap { NSFont(descriptor: $0, size: milesSize) } ?? font
+    }
+}
+
+private func nsWeight(_ weight: Font.Weight) -> NSFont.Weight {
+    switch weight {
+    case .ultraLight: .ultraLight
+    case .thin: .thin
+    case .light: .light
+    case .regular: .regular
+    case .medium: .medium
+    case .semibold: .semibold
+    case .bold: .bold
+    case .heavy: .heavy
+    case .black: .black
+    default: .regular
+    }
+}
+
+private func nsDesign(_ design: Font.Design) -> NSFontDescriptor.SystemDesign {
+    switch design {
+    case .default: .default
+    case .serif: .serif
+    case .rounded: .rounded
+    case .monospaced: .monospaced
+    @unknown default: .default
+    }
+}
+
 extension PeriodSummaryCard {
     /// Narrowest card width at which the narrow layout fits worst-case text at full size
     /// (minimumScaleFactor stays as headroom, not relied on). Measured with the same fonts the
@@ -49,12 +117,11 @@ extension PeriodSummaryCard {
         func width(_ text: String, _ font: NSFont) -> CGFloat {
             ceil((text as NSString).size(withAttributes: [.font: font]).width)
         }
-        func size(_ style: NSFont.TextStyle) -> CGFloat { NSFont.preferredFont(forTextStyle: style).pointSize }
 
         // Stats: .headline semibold mono digits / .caption / .caption2 medium mono digits.
-        let valueFont = NSFont.monospacedDigitSystemFont(ofSize: size(.headline), weight: .semibold)
-        let labelFont = NSFont.preferredFont(forTextStyle: .caption1)
-        let deltaFont = NSFont.monospacedDigitSystemFont(ofSize: size(.caption2), weight: .medium)
+        let valueFont = Typography.statValueNSFont
+        let labelFont = Typography.statLabelNSFont
+        let deltaFont = Typography.statDeltaNSFont
         let column = PeriodSummary.Metric.allCases.map { metric in
             let (value, delta) = worstCase(metric)
             return max(width(value, valueFont), width(metric.label, labelFont), width(delta, deltaFont))
@@ -63,13 +130,11 @@ extension PeriodSummaryCard {
         let grid = columnCount * column + (columnCount - 1) * columnSpacing
 
         // Hero (+ 16pt spacer + chart minimum of 80pt): title, big miles, delta line.
-        let titleFont = NSFont.systemFont(ofSize: size(.subheadline), weight: .semibold)
-        let title = width("Last 365 Days", titleFont) + 6 + size(.caption1) * 1.3   // + filter icon
-        let rounded = NSFont.systemFont(ofSize: 48, weight: .bold).fontDescriptor.withDesign(.rounded)
-            .flatMap { NSFont(descriptor: $0, size: 48) } ?? NSFont.systemFont(ofSize: 48, weight: .bold)
-        let miles = width("8888", rounded) + 4 + width("mi", NSFont.systemFont(ofSize: size(.title3), weight: .semibold))
-        let heroDelta = width("−888 mi vs prior 365 days",
-                          NSFont.monospacedDigitSystemFont(ofSize: size(.caption1), weight: .medium))
+        let title = width(Typography.widestTitle, Typography.titleNSFont)
+            + 6 + Typography.pointSize(Typography.filterIconStyle) * 1.3   // + filter icon
+        let miles = width(Typography.widestMiles, Typography.milesNSFont)
+            + 4 + width(Typography.milesUnit, Typography.milesUnitNSFont)
+        let heroDelta = width(Typography.widestHeroDelta, Typography.heroDeltaNSFont)
         let heroRow = max(title, miles, heroDelta) + 16 + 80
 
         // Segmented Week | Month | Year picker.
