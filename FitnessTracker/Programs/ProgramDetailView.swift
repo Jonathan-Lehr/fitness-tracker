@@ -55,6 +55,22 @@ struct ProgramDetailView: View {
         efforts.filter { selected.contains($0.persistentModelID) }
     }
 
+    /// With this many charted rides or fewer, the x-axis labels each ride's date; with more,
+    /// Charts picks evenly spaced dates so the labels don't collide.
+    private static let maxRideDateLabels = 6
+
+    /// Ride dates as x-axis values when there are few enough to label; nil for automatic.
+    private var rideDateAxisValues: [Date]? {
+        chartedEfforts.count <= Self.maxRideDateLabels ? chartedEfforts.map(\.date) : nil
+    }
+
+    /// Month and day, plus the year when the charted rides span more than one year.
+    private var axisDateFormat: Date.FormatStyle {
+        let years = Set(chartedEfforts.map { Calendar.app.component(.year, from: $0.date) })
+        let monthDay = Date.FormatStyle.dateTime.month(.abbreviated).day()
+        return years.count > 1 ? monthDay.year(.twoDigits) : monthDay
+    }
+
     var body: some View {
         List {
             Section {
@@ -97,28 +113,52 @@ struct ProgramDetailView: View {
         }
     }
 
-    /// Metric picker, effort chart, and the current "Best" label.
+    /// Metric picker and effort chart in one row, then the current "Best" label.
     @ViewBuilder
     private var effortChart: some View {
-        Picker("Metric", selection: $metric) {
-            ForEach(ChartMetric.allCases) { Text($0.rawValue).tag($0) }
-        }
-        .pickerStyle(.segmented)
-        Chart {
-            ForEach(chartedEfforts) { workout in
-                LineMark(x: .value("Date", workout.date), y: .value(metric.rawValue, metric.value(workout)))
-                    .interpolationMethod(.catmullRom)
-                PointMark(x: .value("Date", workout.date), y: .value(metric.rawValue, metric.value(workout)))
-                    .foregroundStyle(workout.persistentModelID == best?.persistentModelID ? Color.orange : Color.blue)
-                    .symbolSize(workout.persistentModelID == best?.persistentModelID ? 120 : 30)
+        VStack(spacing: 16) {
+            Picker("Metric", selection: $metric) {
+                ForEach(ChartMetric.allCases) { Text($0.rawValue).tag($0) }
             }
+            .pickerStyle(.segmented)
+            Chart {
+                ForEach(chartedEfforts) { workout in
+                    LineMark(x: .value("Date", workout.date), y: .value(metric.rawValue, metric.value(workout)))
+                        .interpolationMethod(.catmullRom)
+                    PointMark(x: .value("Date", workout.date), y: .value(metric.rawValue, metric.value(workout)))
+                        .foregroundStyle(workout.persistentModelID == best?.persistentModelID ? Color.orange : Color.blue)
+                        .symbolSize(workout.persistentModelID == best?.persistentModelID ? 120 : 30)
+                }
+            }
+            .chartYScale(domain: .automatic(includesZero: false))
+            // Padding keeps the first and last points off the plot edges and leaves room
+            // for their date labels, which would otherwise be clipped ("N…").
+            .chartXScale(range: .plotDimension(padding: 28))
+            .chartXAxis {
+                if let rideDateAxisValues {
+                    AxisMarks(values: rideDateAxisValues) { _ in
+                        AxisGridLine()
+                        AxisTick()
+                        AxisValueLabel(format: axisDateFormat)
+                    }
+                } else {
+                    AxisMarks(values: .automatic(desiredCount: 4)) { _ in
+                        AxisGridLine()
+                        AxisTick()
+                        AxisValueLabel(format: axisDateFormat)
+                    }
+                }
+            }
+            .frame(height: 220)
         }
-        .chartYScale(domain: .automatic(includesZero: false))
-        .frame(height: 220)
+        .padding(.vertical, 4)
+        .animation(.smooth, value: metric)
         if let best {
             Label("Best: \(metric.formattedValue(best)) on \(best.date.formatted(date: .abbreviated, time: .omitted))",
                   systemImage: "star.fill")
                 .foregroundStyle(.orange)
+                .contentTransition(.numericText())
+                .animation(.smooth, value: metric)
         }
     }
 }
