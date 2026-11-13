@@ -4,15 +4,40 @@ import Charts
 
 enum ChartMetric: String, CaseIterable, Identifiable {
     case watts = "Watts"
-    case duration = "Duration"
-    case calories = "Calories"
+    case distance = "Distance"
+    case rpm = "RPM"
 
     var id: String { rawValue }
+
     func value(_ workout: Workout) -> Double {
         switch self {
         case .watts: Double(workout.avgWatts)
-        case .duration: workout.durationMinutes
-        case .calories: Double(workout.calories)
+        case .distance: workout.distanceMiles
+        case .rpm: Double(workout.avgRPM)
+        }
+    }
+
+    /// Rides that recorded this metric. A zero means the value is missing, so plotting it
+    /// would drag the line down to the axis.
+    func recorded(in workouts: [Workout]) -> [Workout] {
+        workouts.filter { value($0) > 0 }
+    }
+
+    /// The ride with the highest value for this metric; on a tie, the earliest one in
+    /// `workouts`. Nil if no ride recorded the metric.
+    func best(in workouts: [Workout]) -> Workout? {
+        recorded(in: workouts).reduce(nil) { currentBest, workout in
+            guard let currentBest, value(currentBest) >= value(workout) else { return workout }
+            return currentBest
+        }
+    }
+
+    /// The metric's value with its unit, e.g. "142 W", "19.14 mi", or "78 RPM".
+    func formattedValue(_ workout: Workout, locale: Locale = .current) -> String {
+        switch self {
+        case .watts: "\(workout.avgWatts.formattedWholeNumber(locale: locale)) W"
+        case .distance: workout.distanceMiles.formattedMilesWithUnit(locale: locale)
+        case .rpm: "\(workout.avgRPM.formattedWholeNumber(locale: locale)) RPM"
         }
     }
 }
@@ -24,7 +49,8 @@ struct ProgramDetailView: View {
     @State private var showCompare = false
 
     private var efforts: [Workout] { program.sortedWorkouts }
-    private var best: Workout? { efforts.max { $0.avgWatts < $1.avgWatts } }
+    private var chartedEfforts: [Workout] { metric.recorded(in: efforts) }
+    private var best: Workout? { metric.best(in: efforts) }
     private var selectedPair: [Workout] {
         efforts.filter { selected.contains($0.persistentModelID) }
     }
@@ -79,7 +105,7 @@ struct ProgramDetailView: View {
         }
         .pickerStyle(.segmented)
         Chart {
-            ForEach(efforts) { workout in
+            ForEach(chartedEfforts) { workout in
                 LineMark(x: .value("Date", workout.date), y: .value(metric.rawValue, metric.value(workout)))
                     .interpolationMethod(.catmullRom)
                 PointMark(x: .value("Date", workout.date), y: .value(metric.rawValue, metric.value(workout)))
@@ -90,7 +116,7 @@ struct ProgramDetailView: View {
         .chartYScale(domain: .automatic(includesZero: false))
         .frame(height: 220)
         if let best {
-            Label("Best: \(best.avgWatts.formattedWholeNumber()) W on \(best.date.formatted(date: .abbreviated, time: .omitted))",
+            Label("Best: \(metric.formattedValue(best)) on \(best.date.formatted(date: .abbreviated, time: .omitted))",
                   systemImage: "star.fill")
                 .foregroundStyle(.orange)
         }
