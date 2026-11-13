@@ -29,54 +29,54 @@ enum SimulatedData {
     ]
 
     static func generate(into context: ModelContext, months: Int = 18) {
-        var rng = SystemRandomNumberGenerator()
-        let cal = Calendar.app
-        let end = cal.startOfDay(for: .now)
-        guard let start = cal.date(byAdding: .month, value: -months, to: end) else { return }
-        let totalDays = Double(cal.dateComponents([.day], from: start, to: end).day ?? 1)
+        var generator = SystemRandomNumberGenerator()
+        let calendar = Calendar.app
+        let end = calendar.startOfDay(for: .now)
+        guard let start = calendar.date(byAdding: .month, value: -months, to: end) else { return }
+        let totalDays = Double(calendar.dateComponents([.day], from: start, to: end).day ?? 1)
 
         let programModels = programs.map { Program.findOrCreate(title: $0.title, in: context) }
 
         var weekStart = start
         while weekStart < end {
             // Occasional off week
-            let ridesThisWeek = Double.random(in: 0..<1, using: &rng) < 0.07 ? Int.random(in: 0...1, using: &rng)
-                                                                             : Int.random(in: 3...5, using: &rng)
-            let days = Array(0..<7).shuffled(using: &rng).prefix(ridesThisWeek)
-            for d in days {
-                guard var date = cal.date(byAdding: .day, value: d, to: weekStart), date < end else { continue }
-                date = cal.date(bySettingHour: Int.random(in: 6...19, using: &rng),
-                                minute: Int.random(in: 0...59, using: &rng), second: 0, of: date) ?? date
+            let ridesThisWeek = Double.random(in: 0..<1, using: &generator) < 0.07 ? Int.random(in: 0...1, using: &generator)
+                                                                             : Int.random(in: 3...5, using: &generator)
+            let days = Array(0..<7).shuffled(using: &generator).prefix(ridesThisWeek)
+            for dayOffset in days {
+                guard var date = calendar.date(byAdding: .day, value: dayOffset, to: weekStart), date < end else { continue }
+                date = calendar.date(bySettingHour: Int.random(in: 6...19, using: &generator),
+                                minute: Int.random(in: 0...59, using: &generator), second: 0, of: date) ?? date
 
                 // Favorites get ~40% of rides (≈15–30 each over 18 months)
-                let idx: Int
-                if Double.random(in: 0..<1, using: &rng) < 0.4 {
-                    idx = Int.random(in: 0..<4, using: &rng)
+                let programIndex: Int
+                if Double.random(in: 0..<1, using: &generator) < 0.4 {
+                    programIndex = Int.random(in: 0..<4, using: &generator)
                 } else {
-                    idx = Int.random(in: 4..<programs.count, using: &rng)
+                    programIndex = Int.random(in: 4..<programs.count, using: &generator)
                 }
-                let p = programs[idx]
-                let progress = Double(cal.dateComponents([.day], from: start, to: date).day ?? 0) / totalDays
-                let watts = max(50, p.baseWatts * (0.88 + 0.2 * progress) + Double.random(in: -6...6, using: &rng))
-                let minutes = p.minutes
-                let rpm = Double.random(in: 70...84, using: &rng)
-                let miles = minutes / 60 * (watts / 6.5) * Double.random(in: 0.95...1.05, using: &rng)
+                let program = programs[programIndex]
+                let progress = Double(calendar.dateComponents([.day], from: start, to: date).day ?? 0) / totalDays
+                let watts = max(50, program.baseWatts * (0.88 + 0.2 * progress) + Double.random(in: -6...6, using: &generator))
+                let minutes = program.minutes
+                let rpm = Double.random(in: 70...84, using: &generator)
+                let miles = minutes / 60 * (watts / 6.5) * Double.random(in: 0.95...1.05, using: &generator)
                 let calories = watts * minutes * 60 / 1000 * 1.1 / 0.24 / 4.184 // approx kcal
-                let incAvg = Double.random(in: 0.5...4.5, using: &rng)
-                let resAvg = Int.random(in: 7...12, using: &rng)
-                let w = Workout(date: date, program: programModels[idx],
+                let inclineAvg = Double.random(in: 0.5...4.5, using: &generator)
+                let resistanceAvg = Int.random(in: 7...12, using: &generator)
+                let workout = Workout(date: date, program: programModels[programIndex],
                                 durationMinutes: minutes,
                                 distanceMiles: (miles * 100).rounded() / 100,
                                 calories: Int(calories),
-                                elevationFeet: Int(incAvg * minutes * Double.random(in: 9...11, using: &rng)),
+                                elevationFeet: Int(inclineAvg * minutes * Double.random(in: 9...11, using: &generator)),
                                 avgRPM: Int(rpm), avgWatts: Int(watts),
-                                inclineAvg: (incAvg * 10).rounded() / 10,
-                                inclineMax: Double(Int.random(in: Int(incAvg) + 4...14, using: &rng)),
-                                resistanceAvg: resAvg, resistanceMax: resAvg + Int.random(in: 3...7, using: &rng),
+                                inclineAvg: (inclineAvg * 10).rounded() / 10,
+                                inclineMax: Double(Int.random(in: Int(inclineAvg) + 4...14, using: &generator)),
+                                resistanceAvg: resistanceAvg, resistanceMax: resistanceAvg + Int.random(in: 3...7, using: &generator),
                                 isSimulated: true)
-                context.insert(w)
+                context.insert(workout)
             }
-            guard let next = cal.date(byAdding: .day, value: 7, to: weekStart) else { break }
+            guard let next = calendar.date(byAdding: .day, value: 7, to: weekStart) else { break }
             weekStart = next
         }
         try? context.save()

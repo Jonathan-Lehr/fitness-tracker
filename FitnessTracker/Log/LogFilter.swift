@@ -10,16 +10,16 @@ struct LogFilter: Equatable {
 
     var isActive: Bool { useDateRange || programTitle != nil || type != nil || minWatts > 0 }
 
-    func matches(_ w: Workout) -> Bool {
+    func matches(_ workout: Workout) -> Bool {
         if useDateRange {
-            let cal = Calendar.app
-            let lo = cal.startOfDay(for: startDate)
-            let hi = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: endDate)) ?? endDate
-            if !DateInterval(start: lo, end: hi).halfOpenContains(w.date) { return false }
+            let calendar = Calendar.app
+            let rangeStart = calendar.startOfDay(for: startDate)
+            let rangeEnd = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: endDate)) ?? endDate
+            if !DateInterval(start: rangeStart, end: rangeEnd).halfOpenContains(workout.date) { return false }
         }
-        if let programTitle, w.title != programTitle { return false }
-        if let type, w.type != type { return false }
-        if w.avgWatts < minWatts { return false }
+        if let programTitle, workout.title != programTitle { return false }
+        if let type, workout.type != type { return false }
+        if workout.avgWatts < minWatts { return false }
         return true
     }
 }

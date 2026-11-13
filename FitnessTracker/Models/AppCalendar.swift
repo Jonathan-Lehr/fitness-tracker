@@ -5,10 +5,10 @@ extension Calendar {
     /// numbering (minimumDaysInFirstWeek = 4), regardless of the device's region settings.
     /// Keeps the device's calendar identifier, time zone and locale otherwise.
     static func mondayFirst(_ base: Calendar = .current) -> Calendar {
-        var c = base
-        c.firstWeekday = 2
-        c.minimumDaysInFirstWeek = 4
-        return c
+        var calendar = base
+        calendar.firstWeekday = 2
+        calendar.minimumDaysInFirstWeek = 4
+        return calendar
     }
 
     /// Shared app calendar (Monday-first weeks).

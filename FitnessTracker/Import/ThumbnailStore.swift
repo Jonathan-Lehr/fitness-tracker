@@ -64,16 +64,16 @@ enum ThumbnailCropper {
     }
 
     static func luminanceStats(_ image: CGImage, side: Int = 16) -> (mean: Double, stdDev: Double)? {
-        var px = [UInt8](repeating: 0, count: side * side * 4)
-        guard let context = CGContext(data: &px, width: side, height: side, bitsPerComponent: 8,
+        var pixels = [UInt8](repeating: 0, count: side * side * 4)
+        guard let context = CGContext(data: &pixels, width: side, height: side, bitsPerComponent: 8,
                                   bytesPerRow: side * 4, space: CGColorSpaceCreateDeviceRGB(),
                                   bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
         context.interpolationQuality = .low
         context.draw(image, in: CGRect(x: 0, y: 0, width: side, height: side))
         var values: [Double] = []
         values.reserveCapacity(side * side)
-        for i in stride(from: 0, to: px.count, by: 4) {
-            values.append((0.2126 * Double(px[i]) + 0.7152 * Double(px[i + 1]) + 0.0722 * Double(px[i + 2])) / 255)
+        for i in stride(from: 0, to: pixels.count, by: 4) {
+            values.append((0.2126 * Double(pixels[i]) + 0.7152 * Double(pixels[i + 1]) + 0.0722 * Double(pixels[i + 2])) / 255)
         }
         let mean = values.reduce(0, +) / Double(values.count)
         let variance = values.reduce(0) { $0 + ($1 - mean) * ($1 - mean) } / Double(values.count)

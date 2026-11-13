@@ -13,9 +13,9 @@ enum WorkoutType: String, CaseIterable, Identifiable, Codable {
     var label: String { rawValue.capitalized }
 
     static func infer(from title: String) -> WorkoutType {
-        let t = title.lowercased()
+        let loweredTitle = title.lowercased()
         for type in WorkoutType.allCases where type != .other {
-            if t.contains(type.rawValue) { return type }
+            if loweredTitle.contains(type.rawValue) { return type }
         }
         return .other
     }
@@ -61,8 +61,8 @@ final class Program {
         if let existing = all.first(where: { normalizedTitleKey($0.title) == key }) {
             return existing
         }
-        let p = Program(title: trimmed)
-        context.insert(p)
-        return p
+        let program = Program(title: trimmed)
+        context.insert(program)
+        return program
     }
 }

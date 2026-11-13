@@ -56,7 +56,7 @@ struct ProgramDetailView: View {
         }
         .sheet(isPresented: $showCompare) {
             if selectedPair.count == 2 {
-                CompareView(a: selectedPair[0], b: selectedPair[1])
+                CompareView(earlier: selectedPair[0], later: selectedPair[1])
             }
         }
     }

@@ -1,27 +1,30 @@
 import SwiftUI
 
 struct CompareView: View {
-    let a: Workout   // earlier
-    let b: Workout   // later
+    let earlier: Workout
+    let later: Workout
     @Environment(\.dismiss) private var dismiss
 
     private struct Row: Identifiable {
         var id: String { name }
-        let name: String, a: Double, b: Double, fractionLength: Int
+        let name: String
+        let earlier: Double
+        let later: Double
+        let fractionLength: Int
     }
 
     private var rows: [Row] {
         [
-            Row(name: "Duration (min)", a: a.durationMinutes, b: b.durationMinutes, fractionLength: 0),
-            Row(name: "Distance (mi)", a: a.distanceMiles, b: b.distanceMiles, fractionLength: 2),
-            Row(name: "Calories", a: Double(a.calories), b: Double(b.calories), fractionLength: 0),
-            Row(name: "Elevation (ft)", a: Double(a.elevationFeet), b: Double(b.elevationFeet), fractionLength: 0),
-            Row(name: "Avg RPM", a: Double(a.avgRPM), b: Double(b.avgRPM), fractionLength: 0),
-            Row(name: "Avg Watts", a: Double(a.avgWatts), b: Double(b.avgWatts), fractionLength: 0),
-            Row(name: "Incline Avg %", a: a.inclineAvg, b: b.inclineAvg, fractionLength: 1),
-            Row(name: "Incline Max %", a: a.inclineMax, b: b.inclineMax, fractionLength: 1),
-            Row(name: "Resistance Avg", a: Double(a.resistanceAvg), b: Double(b.resistanceAvg), fractionLength: 0),
-            Row(name: "Resistance Max", a: Double(a.resistanceMax), b: Double(b.resistanceMax), fractionLength: 0),
+            Row(name: "Duration (min)", earlier: earlier.durationMinutes, later: later.durationMinutes, fractionLength: 0),
+            Row(name: "Distance (mi)", earlier: earlier.distanceMiles, later: later.distanceMiles, fractionLength: 2),
+            Row(name: "Calories", earlier: Double(earlier.calories), later: Double(later.calories), fractionLength: 0),
+            Row(name: "Elevation (ft)", earlier: Double(earlier.elevationFeet), later: Double(later.elevationFeet), fractionLength: 0),
+            Row(name: "Avg RPM", earlier: Double(earlier.avgRPM), later: Double(later.avgRPM), fractionLength: 0),
+            Row(name: "Avg Watts", earlier: Double(earlier.avgWatts), later: Double(later.avgWatts), fractionLength: 0),
+            Row(name: "Incline Avg %", earlier: earlier.inclineAvg, later: later.inclineAvg, fractionLength: 1),
+            Row(name: "Incline Max %", earlier: earlier.inclineMax, later: later.inclineMax, fractionLength: 1),
+            Row(name: "Resistance Avg", earlier: Double(earlier.resistanceAvg), later: Double(later.resistanceAvg), fractionLength: 0),
+            Row(name: "Resistance Max", earlier: Double(earlier.resistanceMax), later: Double(later.resistanceMax), fractionLength: 0),
         ]
     }
 
@@ -30,18 +33,18 @@ struct CompareView: View {
             Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 10) {
                 GridRow {
                     Text("")
-                    Text(a.date.formatted(date: .abbreviated, time: .omitted)).bold()
-                    Text(b.date.formatted(date: .abbreviated, time: .omitted)).bold()
+                    Text(earlier.date.formatted(date: .abbreviated, time: .omitted)).bold()
+                    Text(later.date.formatted(date: .abbreviated, time: .omitted)).bold()
                     Text("Δ").bold()
                 }
                 Divider()
-                ForEach(rows) { r in
-                    let delta = r.b - r.a
+                ForEach(rows) { row in
+                    let delta = row.later - row.earlier
                     GridRow {
-                        Text(r.name).foregroundStyle(.secondary)
-                        Text(formattedValue(r.a, fractionLength: r.fractionLength)).monospacedDigit()
-                        Text(formattedValue(r.b, fractionLength: r.fractionLength)).monospacedDigit()
-                        Text(formattedDelta(delta, fractionLength: r.fractionLength))
+                        Text(row.name).foregroundStyle(.secondary)
+                        Text(formattedValue(row.earlier, fractionLength: row.fractionLength)).monospacedDigit()
+                        Text(formattedValue(row.later, fractionLength: row.fractionLength)).monospacedDigit()
+                        Text(formattedDelta(delta, fractionLength: row.fractionLength))
                             .monospacedDigit()
                             .foregroundStyle(delta == 0 ? Color.secondary : (delta > 0 ? Color.green : Color.red))
                     }
@@ -49,7 +52,7 @@ struct CompareView: View {
             }
             .padding()
             .frame(maxHeight: .infinity, alignment: .top)
-            .navigationTitle(a.title)
+            .navigationTitle(earlier.title)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }

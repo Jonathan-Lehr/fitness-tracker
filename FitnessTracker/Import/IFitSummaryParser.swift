@@ -67,10 +67,10 @@ enum IFitSummaryParser {
         var summary = parse(lines: lines, calendar: calendar)
         if let title = titleByProximity(items) { summary.title = title }
         // Geometry fallbacks when the unit landed on a different "line" than its value.
-        if summary.distanceMiles == nil, let distanceText = valueLeftOf(unitPattern: miUnit, in: items) {
+        if summary.distanceMiles == nil, let distanceText = valueLeftOf(unitPattern: milesUnit, in: items) {
             summary.distanceMiles = parseDistance(distanceText + " mi")
         }
-        if summary.elevationFeet == nil, let elevationText = valueLeftOf(unitPattern: ftUnit, in: items) {
+        if summary.elevationFeet == nil, let elevationText = valueLeftOf(unitPattern: feetUnit, in: items) {
             summary.elevationFeet = parseElevation(elevationText + " ft")
         }
         return summary
@@ -98,19 +98,19 @@ enum IFitSummaryParser {
         if let m = firstMatch(#"(\d{2,4})\s*avg\s*watts?"#, in: text) { summary.avgWatts = Int(m[1]) }
 
         // Incline "2.6 % avg · 10.0 % max"
-        let dec = #"(\d{1,2}(?:[.,]\d)?)"#
-        if let m = firstMatch(dec + #"\s*%\s*avg"#, in: text) { summary.inclineAvg = inclinePercent(m[1]) }
-        if let m = firstMatch(dec + #"\s*%\s*max"#, in: text) { summary.inclineMax = inclinePercent(m[1]) }
+        let decimalPattern = #"(\d{1,2}(?:[.,]\d)?)"#
+        if let m = firstMatch(decimalPattern + #"\s*%\s*avg"#, in: text) { summary.inclineAvg = inclinePercent(m[1]) }
+        if let m = firstMatch(decimalPattern + #"\s*%\s*max"#, in: text) { summary.inclineMax = inclinePercent(m[1]) }
 
         // Resistance "10 avg · 16 max" (no % sign; prefer text after the word Resistance)
-        let resText: String
+        let resistanceText: String
         if let range = text.range(of: "resistance", options: .caseInsensitive) {
-            resText = String(text[range.upperBound...])
+            resistanceText = String(text[range.upperBound...])
         } else {
-            resText = text
+            resistanceText = text
         }
-        if let m = firstMatch(#"(?<![\d.%])(\d{1,2})\s*avg\b(?!\s*(?:rpm|watt))"#, in: resText) { summary.resistanceAvg = Int(m[1]) }
-        if let m = firstMatch(#"(?<![\d.])(\d{1,2})\s*max\b"#, in: resText.replacingOccurrences(of: #"\d+(?:[.,]\d)?\s*%\s*max"#, with: "", options: .regularExpression)) {
+        if let m = firstMatch(#"(?<![\d.%])(\d{1,2})\s*avg\b(?!\s*(?:rpm|watt))"#, in: resistanceText) { summary.resistanceAvg = Int(m[1]) }
+        if let m = firstMatch(#"(?<![\d.])(\d{1,2})\s*max\b"#, in: resistanceText.replacingOccurrences(of: #"\d+(?:[.,]\d)?\s*%\s*max"#, with: "", options: .regularExpression)) {
             summary.resistanceMax = Int(m[1])
         }
         return summary
@@ -119,19 +119,19 @@ enum IFitSummaryParser {
     // MARK: Distance & elevation (camera OCR is noisiest here)
 
     /// Fuzzy "mi": OCR often reads ml, rni, mI, m1, or "mi." (only matched right after a number).
-    static let miUnit = #"(?:mi|ml|rni|m[I1l|]|nni)\b\.?"#
+    static let milesUnit = #"(?:mi|ml|rni|m[I1l|]|nni)\b\.?"#
     /// Fuzzy "ft": ff, fl, f t, it, Ft.
-    static let ftUnit = #"(?:f\s?t|ff|fl|[iI]t)\b"#
+    static let feetUnit = #"(?:f\s?t|ff|fl|[iI]t)\b"#
 
     static func parseDistance(_ text: String) -> Double? {
         // 1) number + mi; decimal may be ".", ",", a space, or dropped.
-        if let m = firstMatch(#"(?<![\d.,])(\d{1,2})\s?[.,·:\s]\s?(\d{1,2})\s*"# + miUnit, in: text),
-           let v = Double("\(m[1]).\(m[2])"), validDistance(v) { return v }
-        if let m = firstMatch(#"(?<![\d.,])(\d{1,4})\s*"# + miUnit, in: text), let v = droppedDecimal(m[1]) { return v }
+        if let m = firstMatch(#"(?<![\d.,])(\d{1,2})\s?[.,·:\s]\s?(\d{1,2})\s*"# + milesUnit, in: text),
+           let miles = Double("\(m[1]).\(m[2])"), validDistance(miles) { return miles }
+        if let m = firstMatch(#"(?<![\d.,])(\d{1,4})\s*"# + milesUnit, in: text), let miles = droppedDecimal(m[1]) { return miles }
         // 2) unit missing/garbled: a two-decimal number not followed by % (iFit shows miles as x.xx,
         //    incline uses one decimal plus %).
         if let m = firstMatch(#"(?<![\d.,])(\d{1,2})[.,](\d{2})(?![\d%]|\s*%)"#, in: text),
-           let v = Double("\(m[1]).\(m[2])"), validDistance(v) { return v }
+           let miles = Double("\(m[1]).\(m[2])"), validDistance(miles) { return miles }
         return nil
     }
 
@@ -149,12 +149,12 @@ enum IFitSummaryParser {
 
     static func parseElevation(_ text: String) -> Int? {
         // Thousands separators: "1,543", "1.543", "1 543", or none.
-        let num = #"(?<![\d.,])(\d{1,2}[,.\s]\d{3}|\d{1,5})"#
-        if let m = firstMatch(num + #"\s*"# + ftUnit, in: text), let v = integer(m[1]), validElevation(v) { return v }
+        let numberPattern = #"(?<![\d.,])(\d{1,2}[,.\s]\d{3}|\d{1,5})"#
+        if let m = firstMatch(numberPattern + #"\s*"# + feetUnit, in: text), let elevation = integer(m[1]), validElevation(elevation) { return elevation }
         // Unit missing: the stats row is "... cals (est) <ft> <rpm> avg rpm ...", so take the
         // number between calories and the rpm value.
-        if let m = firstMatch(#"ca[l1I|]s?\s*(?:\(?\s*est\s*\)?)?\s*"# + num + #"\b(?!\s*avg)\D{0,6}\d{2,3}\s*avg\s*rpm"#, in: text),
-           let v = integer(m[1]), validElevation(v) { return v }
+        if let m = firstMatch(#"ca[l1I|]s?\s*(?:\(?\s*est\s*\)?)?\s*"# + numberPattern + #"\b(?!\s*avg)\D{0,6}\d{2,3}\s*avg\s*rpm"#, in: text),
+           let elevation = integer(m[1]), validElevation(elevation) { return elevation }
         return nil
     }
 
@@ -235,9 +235,9 @@ enum IFitSummaryParser {
         guard let m = firstMatch(pattern, in: text),
               var hour = Int(m[1]), let minute = Int(m[2]),
               let month = monthIndex(m[4]), let day = Int(m[5]), let year = Int(m[6]) else { return nil }
-        let pm = m[3].lowercased() == "p"
+        let isPM = m[3].lowercased() == "p"
         if hour == 12 { hour = 0 }
-        if pm { hour += 12 }
+        if isPM { hour += 12 }
         return calendar.date(from: DateComponents(year: year, month: month, day: day, hour: hour, minute: minute))
     }
 
@@ -292,8 +292,8 @@ enum IFitSummaryParser {
 
     /// Returns capture groups (index 0 = whole match; missing groups are "").
     static func firstMatch(_ pattern: String, in text: String) -> [String]? {
-        guard let re = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]),
-              let m = re.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) else { return nil }
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]),
+              let m = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) else { return nil }
         return (0..<m.numberOfRanges).map { i in
             Range(m.range(at: i), in: text).map { String(text[$0]) } ?? ""
         }

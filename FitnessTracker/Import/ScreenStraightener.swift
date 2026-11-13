@@ -26,8 +26,9 @@ struct ScreenQuadrilateral: Equatable {
     /// Farthest any corner sits from the matching corner of the quadrilateral's bounding box.
     /// Near zero means the screen is already square to the photo's frame.
     var skew: Double {
-        let xs = corners.map(\.x), ys = corners.map(\.y)
-        guard let minX = xs.min(), let maxX = xs.max(), let minY = ys.min(), let maxY = ys.max() else { return 0 }
+        let xCoordinates = corners.map(\.x)
+        let yCoordinates = corners.map(\.y)
+        guard let minX = xCoordinates.min(), let maxX = xCoordinates.max(), let minY = yCoordinates.min(), let maxY = yCoordinates.max() else { return 0 }
         let boundingCorners = [CGPoint(x: minX, y: maxY), CGPoint(x: maxX, y: maxY),
                                CGPoint(x: maxX, y: minY), CGPoint(x: minX, y: minY)]
         return zip(corners, boundingCorners)

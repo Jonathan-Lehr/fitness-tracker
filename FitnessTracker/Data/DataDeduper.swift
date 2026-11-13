@@ -10,7 +10,7 @@ enum DataDeduper {
         return Program.normalizedTitleKey(title) + "|\(minute)"
     }
 
-    static func key(_ w: Workout) -> String { key(title: w.title, date: w.date) }
+    static func key(_ workout: Workout) -> String { key(title: workout.title, date: workout.date) }
 
     static func run(_ context: ModelContext) {
         var changed = false
@@ -21,10 +21,10 @@ enum DataDeduper {
         for (_, group) in byTitle where group.count > 1 {
             let sorted = group.sorted { ($0.workouts?.count ?? 0) > ($1.workouts?.count ?? 0) }
             let keeper = sorted[0]
-            for dup in sorted.dropFirst() {
-                for w in dup.workouts ?? [] { w.program = keeper }
-                dup.workouts = []
-                context.delete(dup)
+            for duplicate in sorted.dropFirst() {
+                for workout in duplicate.workouts ?? [] { workout.program = keeper }
+                duplicate.workouts = []
+                context.delete(duplicate)
                 changed = true
             }
         }
@@ -33,8 +33,8 @@ enum DataDeduper {
         let workouts = (try? context.fetch(FetchDescriptor<Workout>())) ?? []
         for (_, group) in Dictionary(grouping: workouts, by: key) where group.count > 1 {
             let sorted = group.sorted { score($0) > score($1) }
-            for dup in sorted.dropFirst() {
-                context.delete(dup)
+            for duplicate in sorted.dropFirst() {
+                context.delete(duplicate)
                 changed = true
             }
         }
@@ -42,7 +42,7 @@ enum DataDeduper {
         if changed { try? context.save() }
     }
 
-    private static func score(_ w: Workout) -> Int {
-        (w.photoData != nil ? 2 : 0) + ((w.notes?.isEmpty == false) ? 1 : 0)
+    private static func score(_ workout: Workout) -> Int {
+        (workout.photoData != nil ? 2 : 0) + ((workout.notes?.isEmpty == false) ? 1 : 0)
     }
 }

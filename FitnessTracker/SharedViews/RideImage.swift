@@ -30,6 +30,12 @@ struct RideImage: View {
     let aspect: Double
     @State private var image: CGImage?
 
+    /// Restarts the thumbnail task when the focus changes, e.g. once the backfill analyzes the photo.
+    private var taskID: ThumbnailTaskID {
+        ThumbnailTaskID(model: workout.persistentModelID, focus: workout.thumbnailFocus,
+                        analysisVersion: workout.thumbnailFocusAnalysisVersion)
+    }
+
     var body: some View {
         ZStack {
             ScenePlaceholder(type: workout.type)
@@ -49,12 +55,6 @@ struct RideImage: View {
             image = await ThumbnailStore.shared.thumbnail(id: id, data: data, aspect: aspect,
                                                           focus: workout.thumbnailFocus)
         }
-    }
-
-    /// Restarts the thumbnail task when the focus changes, e.g. once the backfill analyzes the photo.
-    private var taskID: ThumbnailTaskID {
-        ThumbnailTaskID(model: workout.persistentModelID, focus: workout.thumbnailFocus,
-                        analysisVersion: workout.thumbnailFocusAnalysisVersion)
     }
 
     private struct ThumbnailTaskID: Equatable {

@@ -26,10 +26,10 @@ enum OrientationLock {
         mask = newMask
         for scene in UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }) {
             for window in scene.windows {
-                var vc = window.rootViewController
-                while let c = vc {
-                    c.setNeedsUpdateOfSupportedInterfaceOrientations()
-                    vc = c.presentedViewController
+                var viewController = window.rootViewController
+                while let controller = viewController {
+                    controller.setNeedsUpdateOfSupportedInterfaceOrientations()
+                    viewController = controller.presentedViewController
                 }
             }
             if portraitOnly {

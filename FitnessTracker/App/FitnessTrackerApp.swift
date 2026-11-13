@@ -9,9 +9,9 @@ enum AppEnvironment {
     /// True under XCTest or SwiftUI previews: use an in-memory store with no CloudKit,
     /// so unsigned CI builds (no iCloud entitlement) still work.
     static var isTestOrPreview: Bool {
-        let env = ProcessInfo.processInfo.environment
-        return env["XCTestConfigurationFilePath"] != nil
-            || env["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
+        let environment = ProcessInfo.processInfo.environment
+        return environment["XCTestConfigurationFilePath"] != nil
+            || environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
             || NSClassFromString("XCTestCase") != nil
     }
 

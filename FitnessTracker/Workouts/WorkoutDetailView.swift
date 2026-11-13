@@ -13,6 +13,11 @@ struct WorkoutDetailView: View {
     /// Notes text lines up with the text inside the summary card.
     private var notesInset: CGFloat { screenMargin + WorkoutSummaryCard.contentInset }
 
+    private var hasNote: Bool {
+        let notes = workout.notes?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return !notes.isEmpty
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
@@ -42,11 +47,6 @@ struct WorkoutDetailView: View {
         .sheet(item: $noteEditing) { noteEditing in
             NoteEditView(editing: noteEditing)
         }
-    }
-
-    private var hasNote: Bool {
-        let notes = workout.notes?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return !notes.isEmpty
     }
 
     @ViewBuilder private var notesSection: some View {
@@ -110,6 +110,32 @@ struct WorkoutSummaryCard: View {
     /// Additional stats use two equal columns.
     private let additionalColumns = Array(repeating: GridItem(.flexible(), spacing: 12, alignment: .leading), count: 2)
 
+    private var wattsValue: String {
+        workout.avgWatts > 0 ? workout.avgWatts.formattedWholeNumber() : "—"
+    }
+
+    private var secondaryStats: [StatTile] {
+        [
+            StatTile(value: workout.durationMinutes.formattedMinutes(), label: "Duration",
+                     numericValue: workout.durationMinutes),
+            StatTile(value: workout.calories.formattedWholeNumber(), label: "Calories",
+                     numericValue: Double(workout.calories)),
+            StatTile(value: "\(workout.elevationFeet.formattedWholeNumber()) ft", label: "Elevation",
+                     numericValue: Double(workout.elevationFeet)),
+            StatTile(value: workout.avgRPM > 0 ? workout.avgRPM.formattedWholeNumber() : "—", label: "RPM",
+                     numericValue: Double(workout.avgRPM)),
+        ]
+    }
+
+    private var additionalStatTiles: [StatTile] {
+        [
+            StatTile(value: "\(workout.inclineAvg.formattedPercent(fractionLength: 1)) / \(workout.inclineMax.formattedPercent(fractionLength: 1))",
+                     label: "Incline avg / max"),
+            StatTile(value: "\(workout.resistanceAvg.formattedWholeNumber()) / \(workout.resistanceMax.formattedWholeNumber())",
+                     label: "Resistance avg / max"),
+        ]
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             photo
@@ -159,23 +185,6 @@ struct WorkoutSummaryCard: View {
         }
     }
 
-    private var wattsValue: String {
-        workout.avgWatts > 0 ? workout.avgWatts.formattedWholeNumber() : "—"
-    }
-
-    private var secondaryStats: [StatTile] {
-        [
-            StatTile(value: workout.durationMinutes.formattedMinutes(), label: "Duration",
-                     numericValue: workout.durationMinutes),
-            StatTile(value: workout.calories.formattedWholeNumber(), label: "Calories",
-                     numericValue: Double(workout.calories)),
-            StatTile(value: "\(workout.elevationFeet.formattedWholeNumber()) ft", label: "Elevation",
-                     numericValue: Double(workout.elevationFeet)),
-            StatTile(value: workout.avgRPM > 0 ? workout.avgRPM.formattedWholeNumber() : "—", label: "RPM",
-                     numericValue: Double(workout.avgRPM)),
-        ]
-    }
-
     private var additionalStats: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Additional Stats")
@@ -183,15 +192,6 @@ struct WorkoutSummaryCard: View {
                 .foregroundStyle(.secondary)
             statGrid(additionalStatTiles, columns: additionalColumns)
         }
-    }
-
-    private var additionalStatTiles: [StatTile] {
-        [
-            StatTile(value: "\(workout.inclineAvg.formattedPercent(fractionLength: 1)) / \(workout.inclineMax.formattedPercent(fractionLength: 1))",
-                     label: "Incline avg / max"),
-            StatTile(value: "\(workout.resistanceAvg.formattedWholeNumber()) / \(workout.resistanceMax.formattedWholeNumber())",
-                     label: "Resistance avg / max"),
-        ]
     }
 
     private func statGrid(_ tiles: [StatTile], columns: [GridItem]) -> some View {

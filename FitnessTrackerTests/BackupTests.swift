@@ -132,8 +132,8 @@ final class BackupTests: XCTestCase {
             XCTAssertEqual(error as? BackupError, .unreadable("missing version"))
         }
         // v1 without fractional seconds still decodes.
-        let v1 = #"{"version": 1, "exportedAt": "2026-10-24T12:00:00Z", "programs": [{"id": "x ride", "title": "X Ride", "type": "other"}], "workouts": []}"#
-        let file = try BackupService.decode(Data(v1.utf8))
+        let version1JSON = #"{"version": 1, "exportedAt": "2026-10-24T12:00:00Z", "programs": [{"id": "x ride", "title": "X Ride", "type": "other"}], "workouts": []}"#
+        let file = try BackupService.decode(Data(version1JSON.utf8))
         XCTAssertEqual(file.version, 1)
         XCTAssertEqual(file.programs.first?.title, "X Ride")
     }

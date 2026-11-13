@@ -5,10 +5,10 @@ import XCTest
 @MainActor
 final class WindowSizingTests: XCTestCase {
     func testNarrowMinWidthIsSaneAndBelowWideBreakpoint() {
-        let w = PeriodSummaryCard.narrowMinWidth
-        print("narrowMinWidth = \(w)")
-        XCTAssertGreaterThan(w, 150)
-        XCTAssertLessThan(w, 560)   // below the 6-column (wide) breakpoint
+        let narrowMinWidth = PeriodSummaryCard.narrowMinWidth
+        print("narrowMinWidth = \(narrowMinWidth)")
+        XCTAssertGreaterThan(narrowMinWidth, 150)
+        XCTAssertLessThan(narrowMinWidth, 560)   // below the 6-column (wide) breakpoint
     }
 
     func testMinWidthAddsChrome() {
@@ -18,8 +18,8 @@ final class WindowSizingTests: XCTestCase {
     }
 
     func testDefaultHeightIsEightyPercentOfVisible() {
-        let s = WindowSizing.defaultSize(visible: CGRect(x: 0, y: 0, width: 1512, height: 944))
-        XCTAssertEqual(s.height, 755)
+        let size = WindowSizing.defaultSize(visible: CGRect(x: 0, y: 0, width: 1512, height: 944))
+        XCTAssertEqual(size.height, 755)
         XCTAssertEqual(WindowSizing.defaultSize(visible: CGRect(x: 0, y: 0, width: 800, height: 400)).height,
                        WindowSizing.minHeight)
     }

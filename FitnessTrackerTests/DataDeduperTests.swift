@@ -14,11 +14,11 @@ final class DataDeduperTests: XCTestCase {
         SeedData.insertRealRides(context)
         let date = Date(timeIntervalSince1970: 1_760_000_000)
         for _ in 0..<2 {
-            let p = Program(title: "Green River Recovery Ride")
-            context.insert(p)
+            let program = Program(title: "Green River Recovery Ride")
+            context.insert(program)
             context.insert(TestSupport.ride(
                 date: date,
-                program: p,
+                program: program,
                 durationMinutes: 1,
                 distanceMiles: 1,
                 calories: 1,

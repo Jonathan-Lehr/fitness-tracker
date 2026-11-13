@@ -21,10 +21,10 @@ enum TextRecognizer {
         let handler = VNImageRequestHandler(cgImage: image, options: [:])
         try handler.perform([request])
         let observations = request.results ?? []
-        return observations.compactMap { obs in
-            guard let text = obs.topCandidates(1).first?.string else { return nil }
-            let b = obs.boundingBox
-            return RecognizedText(text: text, box: CGRect(x: b.minX, y: 1 - b.maxY, width: b.width, height: b.height))
+        return observations.compactMap { observation in
+            guard let text = observation.topCandidates(1).first?.string else { return nil }
+            let boundingBox = observation.boundingBox
+            return RecognizedText(text: text, box: CGRect(x: boundingBox.minX, y: 1 - boundingBox.maxY, width: boundingBox.width, height: boundingBox.height))
         }
     }
 }

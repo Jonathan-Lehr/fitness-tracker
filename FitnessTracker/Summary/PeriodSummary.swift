@@ -86,15 +86,15 @@ struct PeriodSummary {
         if (metric == .watts && wattsDelta == nil) || (metric == .rpm && rpmDelta == nil) { return "—" }
         let change = delta(metric)
         let arrow = change > 0 ? "▲" : (change < 0 ? "▼" : "–")
-        let mag = abs(change)
+        let magnitude = abs(change)
         let value: String
         switch metric {
-        case .rides: value = Int(mag).formattedWholeNumber(locale: locale)
-        case .time: value = mag.formattedMinutes(locale: locale)
-        case .calories: value = "\(Int(mag).formattedWholeNumber(locale: locale)) cal"
-        case .elevation: value = "\(Int(mag).formattedWholeNumber(locale: locale)) ft"
-        case .watts: value = "\(Int(mag).formattedWholeNumber(locale: locale)) W"
-        case .rpm: value = "\(Int(mag).formattedWholeNumber(locale: locale)) rpm"
+        case .rides: value = Int(magnitude).formattedWholeNumber(locale: locale)
+        case .time: value = magnitude.formattedMinutes(locale: locale)
+        case .calories: value = "\(Int(magnitude).formattedWholeNumber(locale: locale)) cal"
+        case .elevation: value = "\(Int(magnitude).formattedWholeNumber(locale: locale)) ft"
+        case .watts: value = "\(Int(magnitude).formattedWholeNumber(locale: locale)) W"
+        case .rpm: value = "\(Int(magnitude).formattedWholeNumber(locale: locale)) rpm"
         }
         return "\(arrow) \(value)"
     }
@@ -255,8 +255,8 @@ struct PeriodSummary {
     /// `computeCalendar`'s totals), newest first like the Log.
     static func calendarWorkouts(_ workouts: [Workout], period: GroupingPeriod, containing date: Date,
                                  calendar: Calendar = .app) -> [Workout] {
-        let i = calendarInterval(period, containing: date, calendar: calendar)
-        return workouts.filter { i.halfOpenContains($0.date) }.sorted { $0.date > $1.date }
+        let interval = calendarInterval(period, containing: date, calendar: calendar)
+        return workouts.filter { interval.halfOpenContains($0.date) }.sorted { $0.date > $1.date }
     }
 
     var title: String {
@@ -270,10 +270,10 @@ struct PeriodSummary {
     var dateRangeText: String {
         let lastDay = calendar.date(byAdding: .day, value: -1, to: interval.end) ?? interval.start
         let base = Date.FormatStyle(calendar: calendar, timeZone: calendar.timeZone)
-        let md = base.month(.abbreviated).day()
-        let mdy = md.year()
+        let monthDay = base.month(.abbreviated).day()
+        let monthDayYear = monthDay.year()
         let sameYear = calendar.component(.year, from: interval.start) == calendar.component(.year, from: lastDay)
-        return "\(interval.start.formatted(sameYear ? md : mdy)) – \(lastDay.formatted(mdy))"
+        return "\(interval.start.formatted(sameYear ? monthDay : monthDayYear)) – \(lastDay.formatted(monthDayYear))"
     }
 
     /// What the deltas compare against, e.g. "prior 7 days", "prior week".
