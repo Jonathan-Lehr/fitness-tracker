@@ -1,0 +1,20 @@
+import XCTest
+@testable import FitnessTracker
+
+final class InflectionTests: XCTestCase {
+    private let usLocale = Locale(identifier: "en_US")
+
+    func testInflectedAgreesWithTheCount() {
+        XCTAssertEqual(inflected("^[\(0) ride](inflect: true)", locale: usLocale), "0 rides")
+        XCTAssertEqual(inflected("^[\(1) ride](inflect: true)", locale: usLocale), "1 ride")
+        XCTAssertEqual(inflected("^[\(2) ride](inflect: true)", locale: usLocale), "2 rides")
+    }
+
+    func testInflectedKeepsTheSurroundingText() {
+        XCTAssertEqual(
+            inflected("^[\(1) field](inflect: true) couldn't be read", locale: usLocale),
+            "1 field couldn't be read"
+        )
+        XCTAssertEqual(inflected("^[\(3) new program](inflect: true)", locale: usLocale), "3 new programs")
+    }
+}

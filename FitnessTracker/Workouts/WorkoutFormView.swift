@@ -93,7 +93,7 @@ private struct WorkoutFormEditor: View {
     }
 
     private var missingFieldsBanner: some View {
-        Label("\(missing.count) field\(missing.count == 1 ? "" : "s") couldn't be read from the photo. Check the flagged values.",
+        Label("^[\(missing.count) field](inflect: true) couldn't be read from the photo. Check the flagged values.",
               systemImage: "exclamationmark.triangle.fill")
             .foregroundStyle(.orange)
     }

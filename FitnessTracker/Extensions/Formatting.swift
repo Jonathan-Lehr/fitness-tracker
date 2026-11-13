@@ -75,6 +75,13 @@ extension Int {
     }
 }
 
+/// A localized string with Foundation's automatic grammar agreement applied, for text that
+/// isn't shown through SwiftUI `Text` (which applies it on its own). Mark the count and noun
+/// with `^[\(count) ride](inflect: true)` to get "1 ride" and "2 rides".
+func inflected(_ resource: String.LocalizationValue, locale: Locale = .current) -> String {
+    String(AttributedString(localized: resource, locale: locale).characters)
+}
+
 /// Average watts with a unit, or `placeholder` when there is no value.
 /// Call sites pass "—" or "— W" because list, grid, and detail use different empty states.
 func formattedAverageWatts(_ watts: Double?, placeholder: String, locale: Locale = .current) -> String {

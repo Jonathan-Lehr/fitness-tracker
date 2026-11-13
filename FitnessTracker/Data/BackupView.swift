@@ -19,6 +19,8 @@ struct BackupView: View {
     @State private var errorMessage: String?
 
     private var realCount: Int { workouts.filter { !$0.isSimulated }.count }
+    /// Rides the export will include: all of them, or only real ones when simulated rides are excluded.
+    private var exportCount: Int { includeSimulated ? workouts.count : realCount }
 
     var body: some View {
         NavigationStack {
@@ -33,7 +35,7 @@ struct BackupView: View {
                 } header: {
                     Text("Export")
                 } footer: {
-                    Text("Saves \(includeSimulated ? workouts.count : realCount) rides, with photos, to a JSON file.")
+                    Text("Saves ^[\(exportCount) ride](inflect: true), with photos, to a JSON file.")
                 }
 
                 Section {
