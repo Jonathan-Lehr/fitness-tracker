@@ -47,9 +47,10 @@ struct CompareView: View {
     }
 }
 
-/// Column widths shared by the header and every row so the values line up.
+/// Column widths shared by the header and every row so the values line up. The label column
+/// fits the longest label ("Avg watts"); the two value columns split whatever width is left.
 private struct CompareColumns: DynamicProperty {
-    @ScaledMetric(relativeTo: .body) var valueWidth: CGFloat = 72
+    @ScaledMetric(relativeTo: .body) var labelWidth: CGFloat = 84
     @ScaledMetric(relativeTo: .body) var changeWidth: CGFloat = 64
 }
 
@@ -73,7 +74,7 @@ private struct CompareColumnsHeader: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(title)
-            Spacer(minLength: 0)
+                .frame(width: columns.labelWidth, alignment: .leading)
             dateColumn(earlierDate)
             dateColumn(laterDate)
             Text("Change")
@@ -85,7 +86,7 @@ private struct CompareColumnsHeader: View {
         Text(date.formatted(dateFormat))
             .lineLimit(1)
             .minimumScaleFactor(0.8)
-            .frame(width: columns.valueWidth, alignment: .trailing)
+            .frame(maxWidth: .infinity, alignment: .trailing)
     }
 }
 
@@ -117,7 +118,7 @@ private struct ComparedStatRow: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
-            Spacer(minLength: 0)
+                .frame(width: columns.labelWidth, alignment: .leading)
             valueText(stat.earlierValue)
             valueText(stat.laterValue)
             changePill
@@ -131,7 +132,7 @@ private struct ComparedStatRow: View {
             .monospacedDigit()
             .lineLimit(1)
             .minimumScaleFactor(0.8)
-            .frame(width: columns.valueWidth, alignment: .trailing)
+            .frame(maxWidth: .infinity, alignment: .trailing)
     }
 
     private var changePill: some View {
