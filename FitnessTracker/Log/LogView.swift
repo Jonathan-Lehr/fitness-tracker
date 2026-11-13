@@ -268,7 +268,7 @@ struct SectionHeader: View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.headline)
-                Text("\(totals.count.formattedWholeNumber()) rides · \(totals.minutes.formattedMinutes()) · \(wattsText) · \(totals.feet.formattedWholeNumber()) ft")
+                Text("^[\(totals.count) ride](inflect: true) · \(totals.minutes.formattedMinutes()) · \(wattsText) · \(totals.feet.formattedWholeNumber()) ft")
                     .font(.subheadline)
             }
             Spacer()

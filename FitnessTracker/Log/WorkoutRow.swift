@@ -10,12 +10,17 @@ struct WorkoutRow: View {
         let base = Date.FormatStyle.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute()
         return workout.date.formatted(showYear ? base.year() : base)
     }
+
+    /// "—" for a ride with no watts, matching the grid cards and the detail view.
+    private var wattsText: String {
+        formattedAverageWatts(workout.avgWatts > 0 ? Double(workout.avgWatts) : nil, placeholder: "—")
+    }
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(workout.title).font(.body.weight(.semibold))
                 Spacer()
-                Text("\(workout.avgWatts.formattedWholeNumber()) W").monospacedDigit().foregroundStyle(.orange)
+                Text(wattsText).monospacedDigit().foregroundStyle(.orange)
             }
             HStack(spacing: 12) {
                 Text(dateText)

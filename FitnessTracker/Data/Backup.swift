@@ -86,9 +86,13 @@ struct ImportSummary: Equatable {
     var replaced = false
 
     var message: String {
-        var parts = ["\(workoutsAdded) ride\(workoutsAdded == 1 ? "" : "s") added"]
-        if workoutsSkipped > 0 { parts.append("\(workoutsSkipped) duplicate\(workoutsSkipped == 1 ? "" : "s") skipped") }
-        if programsAdded > 0 { parts.append("\(programsAdded) new program\(programsAdded == 1 ? "" : "s")") }
+        var parts = [inflected("^[\(workoutsAdded) ride](inflect: true) added")]
+        if workoutsSkipped > 0 {
+            parts.append(inflected("^[\(workoutsSkipped) duplicate](inflect: true) skipped"))
+        }
+        if programsAdded > 0 {
+            parts.append(inflected("^[\(programsAdded) new program](inflect: true)"))
+        }
         return (replaced ? "Replaced all data. " : "") + parts.joined(separator: ", ") + "."
     }
 }
