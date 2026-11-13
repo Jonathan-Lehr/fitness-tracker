@@ -54,6 +54,9 @@ struct ProgramDetailView: View {
     private var selectedPair: [Workout] {
         efforts.filter { selected.contains($0.persistentModelID) }
     }
+    /// Comparing needs two efforts, so with fewer the selection circles, header prompt,
+    /// and Compare button are hidden.
+    private var canCompare: Bool { efforts.count >= 2 }
 
     /// With this many charted rides or fewer, the x-axis labels each ride's date; with more,
     /// Charts picks evenly spaced dates so the labels don't collide.
@@ -83,17 +86,21 @@ struct ProgramDetailView: View {
                         workout: workout,
                         isSelected: selected.contains(workout.persistentModelID),
                         isBest: workout.persistentModelID == best?.persistentModelID,
-                        onToggle: { toggle(workout) }
+                        onToggle: canCompare ? { toggle(workout) } : nil
                     )
                 }
             } header: {
-                Text("\(efforts.count.formattedWholeNumber()) efforts · select two to compare")
+                if canCompare {
+                    Text("\(efforts.count.formattedWholeNumber()) efforts · select two to compare")
+                }
             }
         }
         .navigationTitle(program.title)
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button("Compare") { showCompare = true }.disabled(selectedPair.count != 2)
+            if canCompare {
+                ToolbarItem(placement: .primaryAction) {
+                    Button("Compare") { showCompare = true }.disabled(selectedPair.count != 2)
+                }
             }
         }
         .sheet(isPresented: $showCompare) {
@@ -168,14 +175,17 @@ private struct ProgramEffortRow: View {
     let workout: Workout
     let isSelected: Bool
     let isBest: Bool
-    let onToggle: () -> Void
+    /// Toggles selection for comparing; nil hides the selection circle.
+    let onToggle: (() -> Void)?
 
     var body: some View {
         HStack {
-            Button(action: onToggle) {
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+            if let onToggle {
+                Button(action: onToggle) {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                }
+                .buttonStyle(.borderless)
             }
-            .buttonStyle(.borderless)
             NavigationLink(value: workout) {
                 HStack {
                     WorkoutRow(workout: workout, showYear: true)
