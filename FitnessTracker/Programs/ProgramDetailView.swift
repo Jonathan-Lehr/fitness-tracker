@@ -3,16 +3,16 @@ import SwiftData
 import Charts
 
 enum ChartMetric: String, CaseIterable, Identifiable {
-    case watts = "Watts"
     case distance = "Distance"
+    case watts = "Watts"
     case rpm = "RPM"
 
     var id: String { rawValue }
 
     func value(_ workout: Workout) -> Double {
         switch self {
-        case .watts: Double(workout.avgWatts)
         case .distance: workout.distanceMiles
+        case .watts: Double(workout.avgWatts)
         case .rpm: Double(workout.avgRPM)
         }
     }
@@ -35,8 +35,8 @@ enum ChartMetric: String, CaseIterable, Identifiable {
     /// The metric's value with its unit, e.g. "142 W", "19.14 mi", or "78 RPM".
     func formattedValue(_ workout: Workout, locale: Locale = .current) -> String {
         switch self {
-        case .watts: "\(workout.avgWatts.formattedWholeNumber(locale: locale)) W"
         case .distance: workout.distanceMiles.formattedMilesWithUnit(locale: locale)
+        case .watts: "\(workout.avgWatts.formattedWholeNumber(locale: locale)) W"
         case .rpm: "\(workout.avgRPM.formattedWholeNumber(locale: locale)) RPM"
         }
     }
@@ -44,7 +44,7 @@ enum ChartMetric: String, CaseIterable, Identifiable {
 
 struct ProgramDetailView: View {
     let program: Program
-    @State private var metric: ChartMetric = .watts
+    @State private var metric: ChartMetric = .distance
     @State private var selected: Set<PersistentIdentifier> = []
     @State private var showCompare = false
 
