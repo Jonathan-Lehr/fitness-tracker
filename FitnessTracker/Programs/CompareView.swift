@@ -1,77 +1,166 @@
 import SwiftUI
 
+/// Side-by-side stats for two efforts of the same program, grouped into sections, with the
+/// change from the earlier ride to the later one.
 struct CompareView: View {
     let earlier: Workout
     let later: Workout
     @Environment(\.dismiss) private var dismiss
 
-    private struct Row: Identifiable {
-        var id: String { name }
-        let name: String
-        let earlier: Double
-        let later: Double
-        let fractionLength: Int
-    }
-
-    private var rows: [Row] {
-        [
-            Row(name: "Duration (min)", earlier: earlier.durationMinutes, later: later.durationMinutes, fractionLength: 0),
-            Row(name: "Distance (mi)", earlier: earlier.distanceMiles, later: later.distanceMiles, fractionLength: 2),
-            Row(name: "Calories", earlier: Double(earlier.calories), later: Double(later.calories), fractionLength: 0),
-            Row(name: "Elevation (ft)", earlier: Double(earlier.elevationFeet), later: Double(later.elevationFeet), fractionLength: 0),
-            Row(name: "Avg RPM", earlier: Double(earlier.avgRPM), later: Double(later.avgRPM), fractionLength: 0),
-            Row(name: "Avg Watts", earlier: Double(earlier.avgWatts), later: Double(later.avgWatts), fractionLength: 0),
-            Row(name: "Incline Avg %", earlier: earlier.inclineAvg, later: later.inclineAvg, fractionLength: 1),
-            Row(name: "Incline Max %", earlier: earlier.inclineMax, later: later.inclineMax, fractionLength: 1),
-            Row(name: "Resistance Avg", earlier: Double(earlier.resistanceAvg), later: Double(later.resistanceAvg), fractionLength: 0),
-            Row(name: "Resistance Max", earlier: Double(earlier.resistanceMax), later: Double(later.resistanceMax), fractionLength: 0),
-        ]
+    private var sections: [ComparedSection] {
+        ComparedSection.all(earlier: earlier, later: later)
     }
 
     var body: some View {
         NavigationStack {
-            Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 10) {
-                GridRow {
-                    Text("")
-                    Text(earlier.date.formatted(date: .abbreviated, time: .omitted)).bold()
-                    Text(later.date.formatted(date: .abbreviated, time: .omitted)).bold()
-                    Text("Δ").bold()
-                }
-                Divider()
-                ForEach(rows) { row in
-                    let delta = row.later - row.earlier
-                    GridRow {
-                        Text(row.name).foregroundStyle(.secondary)
-                        Text(formattedValue(row.earlier, fractionLength: row.fractionLength)).monospacedDigit()
-                        Text(formattedValue(row.later, fractionLength: row.fractionLength)).monospacedDigit()
-                        Text(formattedDelta(delta, fractionLength: row.fractionLength))
-                            .monospacedDigit()
-                            .foregroundStyle(delta == 0 ? Color.secondary : (delta > 0 ? Color.green : Color.red))
+            List {
+                ForEach(sections) { section in
+                    Section {
+                        ForEach(section.stats) { stat in
+                            ComparedStatRow(stat: stat)
+                        }
+                    } header: {
+                        if section.title == sections.first?.title {
+                            CompareColumnsHeader(title: section.title, earlierDate: earlier.date, laterDate: later.date)
+                        } else {
+                            Text(section.title)
+                        }
                     }
                 }
             }
-            .padding()
-            .frame(maxHeight: .infinity, alignment: .top)
+            #if os(iOS)
+            .listStyle(.insetGrouped)
+            #else
+            .listStyle(.inset)
+            #endif
             .navigationTitle(earlier.title)
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }
         }
         #if os(macOS)
-        .frame(minWidth: 480, minHeight: 420)
+        .frame(minWidth: 480, minHeight: 520)
         #endif
     }
+}
 
-    /// Whole-number stats use locale grouping; fractional stats (miles, incline) stay ungrouped.
-    private func formattedValue(_ value: Double, fractionLength: Int) -> String {
-        fractionLength == 0
-            ? value.formattedWholeNumber()
-            : value.formattedNumber(fractionLength: fractionLength)
+/// Column widths shared by the header and every row so the values line up. The label column
+/// just fits the longest label ("Avg watts"); the two value columns split whatever width is left.
+private struct CompareColumns: DynamicProperty {
+    @ScaledMetric(relativeTo: .body) var labelWidth: CGFloat = 76
+    @ScaledMetric(relativeTo: .body) var changeWidth: CGFloat = 68
+    /// Extra space before the Change column, so the later ride's values and date don't crowd it.
+    @ScaledMetric(relativeTo: .body) var changeLeadingGap: CGFloat = 10
+}
+
+/// The first section's header: its title, then the two ride dates and "Change" over their columns.
+private struct CompareColumnsHeader: View {
+    let title: String
+    let earlierDate: Date
+    let laterDate: Date
+    private let columns = CompareColumns()
+
+    /// Month and day when both rides are in the same year; otherwise the short numeric date
+    /// ("10/27/25"), which includes the year and still fits the column.
+    private var dateFormat: Date.FormatStyle {
+        let calendar = Calendar.app
+        let sameYear = calendar.component(.year, from: earlierDate) == calendar.component(.year, from: laterDate)
+        return sameYear
+            ? .dateTime.month(.abbreviated).day()
+            : .dateTime.month(.defaultDigits).day().year(.twoDigits)
     }
 
-    private func formattedDelta(_ value: Double, fractionLength: Int) -> String {
-        fractionLength == 0
-            ? value.formattedSignedWholeNumber()
-            : value.formattedSignedNumber(fractionLength: fractionLength)
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(title)
+                .frame(width: columns.labelWidth, alignment: .leading)
+            dateColumn(earlierDate)
+            dateColumn(laterDate)
+            Text("Change")
+                .frame(width: columns.changeWidth, alignment: .trailing)
+                .padding(.leading, columns.changeLeadingGap)
+        }
     }
+
+    private func dateColumn(_ date: Date) -> some View {
+        Text(date.formatted(dateFormat))
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .frame(maxWidth: .infinity, alignment: .trailing)
+    }
+}
+
+/// One stat: label, both values, and the change as a small arrow pill.
+private struct ComparedStatRow: View {
+    let stat: ComparedStat
+    private let columns = CompareColumns()
+
+    private var changeColor: Color {
+        guard stat.preference == .higherIsBetter else { return .secondary }
+        switch stat.trend {
+        case .up: return .green
+        case .down: return .red
+        case .unchanged: return .secondary
+        }
+    }
+
+    private var arrowName: String? {
+        switch stat.trend {
+        case .up: "arrow.up"
+        case .down: "arrow.down"
+        case .unchanged: nil
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(stat.label)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .frame(width: columns.labelWidth, alignment: .leading)
+            valueText(stat.earlierValue)
+            valueText(stat.laterValue)
+            changePill
+                .frame(width: columns.changeWidth, alignment: .trailing)
+                .padding(.leading, columns.changeLeadingGap)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func valueText(_ value: Double) -> some View {
+        Text(stat.formatValue(value, .current))
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .frame(maxWidth: .infinity, alignment: .trailing)
+    }
+
+    private var changePill: some View {
+        HStack(spacing: 2) {
+            if let arrowName {
+                Image(systemName: arrowName)
+                    .imageScale(.small)
+                    .fontWeight(.bold)
+            }
+            Text(stat.changeText())
+                .monospacedDigit()
+        }
+        .font(.footnote.weight(.semibold))
+        .foregroundStyle(changeColor)
+        .lineLimit(1)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 3)
+        .background(changeColor.opacity(0.15), in: Capsule())
+    }
+}
+
+#Preview("Compare") {
+    let container = PreviewSupport.container()
+    let workouts = PreviewSupport.workouts(in: container)
+    CompareView(earlier: workouts[0], later: workouts[1])
+        .modelContainer(container)
 }
