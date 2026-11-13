@@ -60,8 +60,18 @@ private struct CompareColumnsHeader: View {
     let laterDate: Date
     private let columns = CompareColumns()
 
+    /// Month and day when both rides are in the same year; otherwise the short numeric date
+    /// ("10/27/25"), which includes the year and still fits the column.
+    private var dateFormat: Date.FormatStyle {
+        let calendar = Calendar.app
+        let sameYear = calendar.component(.year, from: earlierDate) == calendar.component(.year, from: laterDate)
+        return sameYear
+            ? .dateTime.month(.abbreviated).day()
+            : .dateTime.month(.defaultDigits).day().year(.twoDigits)
+    }
+
     var body: some View {
-        HStack(alignment: .bottom, spacing: 8) {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(title)
             Spacer(minLength: 0)
             dateColumn(earlierDate)
@@ -72,12 +82,10 @@ private struct CompareColumnsHeader: View {
     }
 
     private func dateColumn(_ date: Date) -> some View {
-        VStack(alignment: .trailing, spacing: 0) {
-            Text(date.formatted(.dateTime.month(.abbreviated).day()))
-            Text(date.formatted(.dateTime.year()))
-                .foregroundStyle(.tertiary)
-        }
-        .frame(width: columns.valueWidth, alignment: .trailing)
+        Text(date.formatted(dateFormat))
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .frame(width: columns.valueWidth, alignment: .trailing)
     }
 }
 
