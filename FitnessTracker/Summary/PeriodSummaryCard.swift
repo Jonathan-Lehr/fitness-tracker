@@ -29,8 +29,8 @@ struct PeriodSummaryCard: View {
     static let narrowColumns = 3
 
     private var wideColumnWidth: CGFloat {
-        let n = CGFloat(Self.wideColumns)
-        return max(0, (cardWidth - (n - 1) * Self.columnSpacing) / n)
+        let columnCount = CGFloat(Self.wideColumns)
+        return max(0, (cardWidth - (columnCount - 1) * Self.columnSpacing) / columnCount)
     }
 
     private var wideHeroWidth: CGFloat {
@@ -38,15 +38,15 @@ struct PeriodSummaryCard: View {
     }
 
     private var wideChartWidth: CGFloat {
-        let col = wideColumnWidth
+        let columnWidth = wideColumnWidth
         let span = Self.wideColumns - Self.heroColumns            // columns 3…6
-        let last = lastStatWidth > 0 ? min(lastStatWidth, col) : col
-        return max(0, CGFloat(span - 1) * (col + Self.columnSpacing) + last)
+        let lastColumnWidth = lastStatWidth > 0 ? min(lastStatWidth, columnWidth) : columnWidth
+        return max(0, CGFloat(span - 1) * (columnWidth + Self.columnSpacing) + lastColumnWidth)
     }
 
     #if os(iOS)
-    @Environment(\.verticalSizeClass) private var vSize
-    private var useWideLayout: Bool { vSize == .compact || cardWidth > 600 }
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+    private var useWideLayout: Bool { verticalSizeClass == .compact || cardWidth > 600 }
     #else
     // Six columns need room; a narrow Mac window falls back to the 3-column grid.
     private var useWideLayout: Bool { cardWidth == 0 || cardWidth >= 560 }

@@ -5,6 +5,8 @@ struct InProgressComparisonView: View {
     let comparison: PartialPeriodComparison
 
     private var noun: String { comparison.period.rawValue.lowercased() }
+    private var currentTotal: Totals { comparison.currentTotals }
+    private var previousTotal: Totals { comparison.previousTotals }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -26,9 +28,9 @@ struct InProgressComparisonView: View {
                     Text("Last \(noun)").font(.caption).foregroundStyle(.secondary).dataColumn()
                     Text("Change").font(.caption).foregroundStyle(.secondary).changeColumn()
                 }
-                row("Ride time", cur.minutes, prev.minutes) { $0.formattedMinutes() }
-                row("Distance", cur.miles, prev.miles) { $0.formattedMilesWithUnit() }
-                row("Calories", Double(cur.calories), Double(prev.calories)) { $0.formattedWholeNumber() }
+                row("Ride time", currentTotal.minutes, previousTotal.minutes) { $0.formattedMinutes() }
+                row("Distance", currentTotal.miles, previousTotal.miles) { $0.formattedMilesWithUnit() }
+                row("Calories", Double(currentTotal.calories), Double(previousTotal.calories)) { $0.formattedWholeNumber() }
                 wattsRow
             }
             .font(.subheadline.monospacedDigit())
@@ -37,24 +39,21 @@ struct InProgressComparisonView: View {
         .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
     }
 
-    private var cur: Totals { comparison.currentTotals }
-    private var prev: Totals { comparison.previousTotals }
-
-    private func row(_ title: String, _ a: Double, _ b: Double, format: (Double) -> String) -> some View {
+    private func row(_ title: String, _ currentValue: Double, _ previousValue: Double, format: (Double) -> String) -> some View {
         GridRow {
             Text(title).lineLimit(1).fixedSize()
-            Text(format(a)).dataColumn()
-            Text(format(b)).foregroundStyle(.secondary).dataColumn()
-            Text(Self.change(a, b)).foregroundStyle(.secondary).changeColumn()
+            Text(format(currentValue)).dataColumn()
+            Text(format(previousValue)).foregroundStyle(.secondary).dataColumn()
+            Text(Self.change(currentValue, previousValue)).foregroundStyle(.secondary).changeColumn()
         }
     }
 
     private var wattsRow: some View {
         GridRow {
             Text("Avg Watts").lineLimit(1).fixedSize()
-            Text(formattedAverageWatts(cur.averageWatts, placeholder: "— W")).dataColumn()
-            Text(formattedAverageWatts(prev.averageWatts, placeholder: "— W")).foregroundStyle(.secondary).dataColumn()
-            Text(cur.averageWatts.flatMap { a in prev.averageWatts.map { Self.change(a, $0) } } ?? "—")
+            Text(formattedAverageWatts(currentTotal.averageWatts, placeholder: "— W")).dataColumn()
+            Text(formattedAverageWatts(previousTotal.averageWatts, placeholder: "— W")).foregroundStyle(.secondary).dataColumn()
+            Text(currentTotal.averageWatts.flatMap { currentWatts in previousTotal.averageWatts.map { Self.change(currentWatts, $0) } } ?? "—")
                 .foregroundStyle(.secondary).changeColumn()
         }
     }
@@ -66,9 +65,9 @@ struct InProgressComparisonView: View {
         return percent.formattedSignedWholeNumber(locale: locale) + "%"
     }
 
-    static func range(_ i: DateInterval) -> String {
-        let start = i.start.formatted(.dateTime.month(.abbreviated).day())
-        let end = i.end.formatted(.dateTime.month(.abbreviated).day().hour().minute())
+    static func range(_ interval: DateInterval) -> String {
+        let start = interval.start.formatted(.dateTime.month(.abbreviated).day())
+        let end = interval.end.formatted(.dateTime.month(.abbreviated).day().hour().minute())
         return "\(start) – \(end)"
     }
 }

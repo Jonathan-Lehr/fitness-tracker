@@ -26,6 +26,11 @@ struct AddRideView: View {
     @State private var isDropTargeted = false
     @State private var errorMessage: String?
 
+    private var isProcessing: Bool {
+        if case .processing = stage { return true }
+        return false
+    }
+
     var body: some View {
         switch stage {
         case .form(let editing):
@@ -33,11 +38,6 @@ struct AddRideView: View {
         case .choose, .processing:
             chooser
         }
-    }
-
-    private var isProcessing: Bool {
-        if case .processing = stage { return true }
-        return false
     }
 
     private var chooser: some View {

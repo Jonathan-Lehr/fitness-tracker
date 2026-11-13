@@ -6,15 +6,15 @@ enum SeedData {
 
     struct Ride {
         let date: String, title: String
-        let minutes: Double, miles: Double, cal: Int, feet: Int, rpm: Int, watts: Int
-        let incAvg: Double, incMax: Double, resAvg: Int, resMax: Int
+        let minutes: Double, miles: Double, calories: Int, elevationFeet: Int, rpm: Int, watts: Int
+        let inclineAvg: Double, inclineMax: Double, resistanceAvg: Int, resistanceMax: Int
     }
 
     static let realRides: [Ride] = [
-        Ride(date: "2026-10-12 14:54", title: "Green River Recovery Ride", minutes: 42, miles: 10.02, cal: 310, feet: 599, rpm: 79, watts: 79, incAvg: 1.0, incMax: 9.0, resAvg: 11, resMax: 16),
-        Ride(date: "2026-10-15 12:34", title: "Hurrah Pass Endurance Ride", minutes: 65, miles: 13.88, cal: 499, feet: 1745, rpm: 77, watts: 85, incAvg: 2.6, incMax: 10.0, resAvg: 10, resMax: 16),
-        Ride(date: "2026-10-18 15:35", title: "Devils Garden Interval Ride", minutes: 46, miles: 9.50, cal: 385, feet: 1543, rpm: 74, watts: 97, incAvg: 3.7, incMax: 12.0, resAvg: 9, resMax: 15),
-        Ride(date: "2026-10-20 16:06", title: "Mineral Bottom Endurance Ride", minutes: 48, miles: 9.85, cal: 376, feet: 1542, rpm: 75, watts: 88, incAvg: 3.6, incMax: 10.0, resAvg: 8, resMax: 15),
+        Ride(date: "2026-10-12 14:54", title: "Green River Recovery Ride", minutes: 42, miles: 10.02, calories: 310, elevationFeet: 599, rpm: 79, watts: 79, inclineAvg: 1.0, inclineMax: 9.0, resistanceAvg: 11, resistanceMax: 16),
+        Ride(date: "2026-10-15 12:34", title: "Hurrah Pass Endurance Ride", minutes: 65, miles: 13.88, calories: 499, elevationFeet: 1745, rpm: 77, watts: 85, inclineAvg: 2.6, inclineMax: 10.0, resistanceAvg: 10, resistanceMax: 16),
+        Ride(date: "2026-10-18 15:35", title: "Devils Garden Interval Ride", minutes: 46, miles: 9.50, calories: 385, elevationFeet: 1543, rpm: 74, watts: 97, inclineAvg: 3.7, inclineMax: 12.0, resistanceAvg: 9, resistanceMax: 15),
+        Ride(date: "2026-10-20 16:06", title: "Mineral Bottom Endurance Ride", minutes: 48, miles: 9.85, calories: 376, elevationFeet: 1542, rpm: 75, watts: 88, inclineAvg: 3.6, inclineMax: 10.0, resistanceAvg: 8, resistanceMax: 15),
     ]
 
     /// Inserts the real rides once per device (tracked in UserDefaults so deleting them doesn't
@@ -39,16 +39,16 @@ enum SeedData {
     static func insertRealRides(_ context: ModelContext) {
         let existing = (try? context.fetch(FetchDescriptor<Workout>())) ?? []
         let existingKeys = Set(existing.map(DataDeduper.key))
-        for r in realRides {
-            let date = rideDateFormatter.date(from: r.date) ?? .now
-            if existingKeys.contains(DataDeduper.key(title: r.title, date: date)) { continue }
-            let program = Program.findOrCreate(title: r.title, in: context)
-            let w = Workout(date: date, program: program,
-                            durationMinutes: r.minutes, distanceMiles: r.miles, calories: r.cal,
-                            elevationFeet: r.feet, avgRPM: r.rpm, avgWatts: r.watts,
-                            inclineAvg: r.incAvg, inclineMax: r.incMax,
-                            resistanceAvg: r.resAvg, resistanceMax: r.resMax)
-            context.insert(w)
+        for ride in realRides {
+            let date = rideDateFormatter.date(from: ride.date) ?? .now
+            if existingKeys.contains(DataDeduper.key(title: ride.title, date: date)) { continue }
+            let program = Program.findOrCreate(title: ride.title, in: context)
+            let workout = Workout(date: date, program: program,
+                            durationMinutes: ride.minutes, distanceMiles: ride.miles, calories: ride.calories,
+                            elevationFeet: ride.elevationFeet, avgRPM: ride.rpm, avgWatts: ride.watts,
+                            inclineAvg: ride.inclineAvg, inclineMax: ride.inclineMax,
+                            resistanceAvg: ride.resistanceAvg, resistanceMax: ride.resistanceMax)
+            context.insert(workout)
         }
         try? context.save()
     }

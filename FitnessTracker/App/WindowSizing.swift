@@ -46,8 +46,8 @@ extension PeriodSummaryCard {
     /// (minimumScaleFactor stays as headroom, not relied on). Measured with the same fonts the
     /// card uses, so it tracks the system's text-style sizes.
     static var narrowMinWidth: CGFloat {
-        func w(_ s: String, _ f: NSFont) -> CGFloat {
-            ceil((s as NSString).size(withAttributes: [.font: f]).width)
+        func width(_ text: String, _ font: NSFont) -> CGFloat {
+            ceil((text as NSString).size(withAttributes: [.font: font]).width)
         }
         func size(_ style: NSFont.TextStyle) -> CGFloat { NSFont.preferredFont(forTextStyle: style).pointSize }
 
@@ -55,33 +55,33 @@ extension PeriodSummaryCard {
         let valueFont = NSFont.monospacedDigitSystemFont(ofSize: size(.headline), weight: .semibold)
         let labelFont = NSFont.preferredFont(forTextStyle: .caption1)
         let deltaFont = NSFont.monospacedDigitSystemFont(ofSize: size(.caption2), weight: .medium)
-        let column = PeriodSummary.Metric.allCases.map { m in
-            let (value, delta) = worstCase(m)
-            return max(w(value, valueFont), w(m.label, labelFont), w(delta, deltaFont))
+        let column = PeriodSummary.Metric.allCases.map { metric in
+            let (value, delta) = worstCase(metric)
+            return max(width(value, valueFont), width(metric.label, labelFont), width(delta, deltaFont))
         }.max() ?? 0
-        let n = CGFloat(narrowColumns)
-        let grid = n * column + (n - 1) * columnSpacing
+        let columnCount = CGFloat(narrowColumns)
+        let grid = columnCount * column + (columnCount - 1) * columnSpacing
 
         // Hero (+ 16pt spacer + chart minimum of 80pt): title, big miles, delta line.
         let titleFont = NSFont.systemFont(ofSize: size(.subheadline), weight: .semibold)
-        let title = w("Last 365 Days", titleFont) + 6 + size(.caption1) * 1.3   // + filter icon
+        let title = width("Last 365 Days", titleFont) + 6 + size(.caption1) * 1.3   // + filter icon
         let rounded = NSFont.systemFont(ofSize: 48, weight: .bold).fontDescriptor.withDesign(.rounded)
             .flatMap { NSFont(descriptor: $0, size: 48) } ?? NSFont.systemFont(ofSize: 48, weight: .bold)
-        let miles = w("8888", rounded) + 4 + w("mi", NSFont.systemFont(ofSize: size(.title3), weight: .semibold))
-        let heroDelta = w("−888 mi vs prior 365 days",
+        let miles = width("8888", rounded) + 4 + width("mi", NSFont.systemFont(ofSize: size(.title3), weight: .semibold))
+        let heroDelta = width("−888 mi vs prior 365 days",
                           NSFont.monospacedDigitSystemFont(ofSize: size(.caption1), weight: .medium))
         let heroRow = max(title, miles, heroDelta) + 16 + 80
 
         // Segmented Week | Month | Year picker.
-        let picker = GroupingPeriod.allCases.map { w($0.rawValue, NSFont.systemFont(ofSize: NSFont.systemFontSize)) + 24 }
+        let picker = GroupingPeriod.allCases.map { width($0.rawValue, NSFont.systemFont(ofSize: NSFont.systemFontSize)) + 24 }
             .reduce(0, +)
 
         return ceil(max(grid, heroRow, picker))
     }
 
     /// Longest realistic text per stat over a 365-day window (≈ a ride a day).
-    private static func worstCase(_ m: PeriodSummary.Metric) -> (value: String, delta: String) {
-        switch m {
+    private static func worstCase(_ metric: PeriodSummary.Metric) -> (value: String, delta: String) {
+        switch metric {
         case .rides: ("888", "▲ 888")
         case .time: ("888h 88m", "▲ 888h 88m")
         case .watts: ("888 W", "▲ 888 W")

@@ -77,11 +77,11 @@ struct RideGridSection: View {
     var body: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 16, alignment: .top)],
                   alignment: .leading, spacing: 16) {
-            ForEach(days, id: \.day) { g in
+            ForEach(days, id: \.day) { day in
                 VStack(alignment: .leading, spacing: 8) {
-                    DayHeader(day: g.day)
-                    ForEach(g.items) { w in
-                        Button { onOpen(w) } label: { RideTile(workout: w) }
+                    DayHeader(day: day.day)
+                    ForEach(day.items) { workout in
+                        Button { onOpen(workout) } label: { RideTile(workout: workout) }
                             // borderless on Mac: List + .plain can still treat the enclosing
                             // row as the hit target and activate oddly with several buttons.
                             #if os(macOS)
@@ -90,7 +90,7 @@ struct RideGridSection: View {
                             .buttonStyle(.plain)
                             #endif
                             .contextMenu {
-                                Button(role: .destructive) { onDelete(w) } label: {
+                                Button(role: .destructive) { onDelete(workout) } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
                             }

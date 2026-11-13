@@ -69,15 +69,17 @@ final class RideGridTests: XCTestCase {
     }
 
     private func image(_ fill: (Int, Int) -> UInt8, width: Int = 64, height: Int = 64) -> CGImage {
-        var px = [UInt8](repeating: 255, count: width * height * 4)
-        for y in 0..<height { for x in 0..<width {
-            let value = fill(x, y)
-            let index = (y * width + x) * 4
-            px[index] = value
-            px[index + 1] = value
-            px[index + 2] = value
-        } }
-        let context = CGContext(data: &px, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+        var pixels = [UInt8](repeating: 255, count: width * height * 4)
+        for y in 0..<height {
+            for x in 0..<width {
+                let value = fill(x, y)
+                let index = (y * width + x) * 4
+                pixels[index] = value
+                pixels[index + 1] = value
+                pixels[index + 2] = value
+            }
+        }
+        let context = CGContext(data: &pixels, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
                             space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
         return context.makeImage()!
     }
@@ -89,11 +91,11 @@ final class RideGridTests: XCTestCase {
     }
 
     private func jpeg(_ image: CGImage) -> Data {
-        let out = NSMutableData()
-        let dest = CGImageDestinationCreateWithData(out, UTType.jpeg.identifier as CFString, 1, nil)!
-        CGImageDestinationAddImage(dest, image, nil)
-        CGImageDestinationFinalize(dest)
-        return out as Data
+        let jpegData = NSMutableData()
+        let destination = CGImageDestinationCreateWithData(jpegData, UTType.jpeg.identifier as CFString, 1, nil)!
+        CGImageDestinationAddImage(destination, image, nil)
+        CGImageDestinationFinalize(destination)
+        return jpegData as Data
     }
 
     func testThumbnailFallsBackForUnreadableOrDarkPhoto() {

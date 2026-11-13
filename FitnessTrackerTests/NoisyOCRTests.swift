@@ -17,21 +17,21 @@ final class NoisyOCRTests: XCTestCase {
             ("13.88 rn", 13.88),       // unit garbled beyond recognition
         ]
         for (token, want) in variants {
-            let s = parse(header + ["1 hr 5 min", token] + tail)
-            XCTAssertEqual(s.distanceMiles ?? -1, want, accuracy: 0.001, "distance from '\(token)'")
-            XCTAssertEqual(s.elevationFeet, 1745, "elevation alongside '\(token)'")
+            let summary = parse(header + ["1 hr 5 min", token] + tail)
+            XCTAssertEqual(summary.distanceMiles ?? -1, want, accuracy: 0.001, "distance from '\(token)'")
+            XCTAssertEqual(summary.elevationFeet, 1745, "elevation alongside '\(token)'")
         }
     }
 
     func testDistanceUnitOnSeparateLaterLine() {
         // Perspective skew: "mi" grouped with a different line than its value.
-        let s = parse(header + ["1 hr 5 min 13.88", "499 cals (est) 1745 ft 77 avg rpm 85 avg watts", "mi"])
-        XCTAssertEqual(s.distanceMiles ?? -1, 13.88, accuracy: 0.001)
+        let summary = parse(header + ["1 hr 5 min 13.88", "499 cals (est) 1745 ft 77 avg rpm 85 avg watts", "mi"])
+        XCTAssertEqual(summary.distanceMiles ?? -1, 13.88, accuracy: 0.001)
     }
 
     func testDistanceRejectsOutOfRange() {
-        let s = parse(header + ["1 hr 5 min", "99.99 mi"] + tail)
-        XCTAssertNil(s.distanceMiles)
+        let summary = parse(header + ["1 hr 5 min", "99.99 mi"] + tail)
+        XCTAssertNil(summary.distanceMiles)
     }
 
     func testElevationVariants() {
@@ -43,17 +43,17 @@ final class NoisyOCRTests: XCTestCase {
             ("599 ft", 599),
         ]
         for (token, want) in variants {
-            let s = parse(header + ["1 hr 5 min", "13.88 mi", "499 cals (est)", token, "77 avg rpm", "85 avg watts"])
-            XCTAssertEqual(s.elevationFeet, want, "elevation from '\(token)'")
-            XCTAssertEqual(s.distanceMiles ?? -1, 13.88, accuracy: 0.001, "distance alongside '\(token)'")
-            XCTAssertEqual(s.calories, 499, "calories alongside '\(token)'")
-            XCTAssertEqual(s.avgRPM, 77, "rpm alongside '\(token)'")
+            let summary = parse(header + ["1 hr 5 min", "13.88 mi", "499 cals (est)", token, "77 avg rpm", "85 avg watts"])
+            XCTAssertEqual(summary.elevationFeet, want, "elevation from '\(token)'")
+            XCTAssertEqual(summary.distanceMiles ?? -1, 13.88, accuracy: 0.001, "distance alongside '\(token)'")
+            XCTAssertEqual(summary.calories, 499, "calories alongside '\(token)'")
+            XCTAssertEqual(summary.avgRPM, 77, "rpm alongside '\(token)'")
         }
     }
 
     func testElevationRejectsOutOfRange() {
-        let s = parse(header + ["13.88 mi", "499 cals (est)", "45000 ft", "77 avg rpm"])
-        XCTAssertNil(s.elevationFeet)
+        let summary = parse(header + ["13.88 mi", "499 cals (est)", "45000 ft", "77 avg rpm"])
+        XCTAssertNil(summary.elevationFeet)
     }
 
     func testGeometryPairsUnitOnlyObservations() {
@@ -68,9 +68,9 @@ final class NoisyOCRTests: XCTestCase {
             RecognizedText(text: "ft", box: CGRect(x: 0.495, y: 0.38, width: 0.015, height: 0.018)),
             RecognizedText(text: "77 avg rpm", box: CGRect(x: 0.53, y: 0.35, width: 0.08, height: 0.03)),
         ]
-        let s = IFitSummaryParser.parse(items: items)
-        XCTAssertEqual(s.distanceMiles ?? -1, 13.88, accuracy: 0.001)
-        XCTAssertEqual(s.elevationFeet, 1745)
+        let summary = IFitSummaryParser.parse(items: items)
+        XCTAssertEqual(summary.distanceMiles ?? -1, 13.88, accuracy: 0.001)
+        XCTAssertEqual(summary.elevationFeet, 1745)
     }
 
     func testValueLeftOf() {
@@ -78,6 +78,6 @@ final class NoisyOCRTests: XCTestCase {
             RecognizedText(text: "9.50", box: CGRect(x: 0.2, y: 0.4, width: 0.05, height: 0.03)),
             RecognizedText(text: "mi", box: CGRect(x: 0.255, y: 0.41, width: 0.02, height: 0.02)),
         ]
-        XCTAssertEqual(IFitSummaryParser.valueLeftOf(unitPattern: IFitSummaryParser.miUnit, in: items), "9.50")
+        XCTAssertEqual(IFitSummaryParser.valueLeftOf(unitPattern: IFitSummaryParser.milesUnit, in: items), "9.50")
     }
 }

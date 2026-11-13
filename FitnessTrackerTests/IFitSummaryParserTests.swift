@@ -6,19 +6,19 @@ struct ExpectedRide {
     let title: String
     let year, month, day, hour, minute: Int
     let minutes: Double, miles: Double
-    let cal, ft, rpm, watts: Int
-    let incAvg, incMax: Double
-    let resAvg, resMax: Int
+    let calories: Int, elevationFeet: Int, rpm: Int, watts: Int
+    let inclineAvg: Double, inclineMax: Double
+    let resistanceAvg: Int, resistanceMax: Int
 
     static let all: [ExpectedRide] = [
         ExpectedRide(file: "ride-2026-10-12", title: "Green River Recovery Ride", year: 2026, month: 10, day: 12, hour: 14, minute: 54,
-                     minutes: 42, miles: 10.02, cal: 310, ft: 599, rpm: 79, watts: 79, incAvg: 1.0, incMax: 9.0, resAvg: 11, resMax: 16),
+                     minutes: 42, miles: 10.02, calories: 310, elevationFeet: 599, rpm: 79, watts: 79, inclineAvg: 1.0, inclineMax: 9.0, resistanceAvg: 11, resistanceMax: 16),
         ExpectedRide(file: "ride-2026-10-15", title: "Hurrah Pass Endurance Ride", year: 2026, month: 10, day: 15, hour: 12, minute: 34,
-                     minutes: 65, miles: 13.88, cal: 499, ft: 1745, rpm: 77, watts: 85, incAvg: 2.6, incMax: 10.0, resAvg: 10, resMax: 16),
+                     minutes: 65, miles: 13.88, calories: 499, elevationFeet: 1745, rpm: 77, watts: 85, inclineAvg: 2.6, inclineMax: 10.0, resistanceAvg: 10, resistanceMax: 16),
         ExpectedRide(file: "ride-2026-10-18", title: "Devils Garden Interval Ride", year: 2026, month: 10, day: 18, hour: 15, minute: 35,
-                     minutes: 46, miles: 9.50, cal: 385, ft: 1543, rpm: 74, watts: 97, incAvg: 3.7, incMax: 12.0, resAvg: 9, resMax: 15),
+                     minutes: 46, miles: 9.50, calories: 385, elevationFeet: 1543, rpm: 74, watts: 97, inclineAvg: 3.7, inclineMax: 12.0, resistanceAvg: 9, resistanceMax: 15),
         ExpectedRide(file: "ride-2026-10-20", title: "Mineral Bottom Endurance Ride", year: 2026, month: 10, day: 20, hour: 16, minute: 6,
-                     minutes: 48, miles: 9.85, cal: 376, ft: 1542, rpm: 75, watts: 88, incAvg: 3.6, incMax: 10.0, resAvg: 8, resMax: 15),
+                     minutes: 48, miles: 9.85, calories: 376, elevationFeet: 1542, rpm: 75, watts: 88, inclineAvg: 3.6, inclineMax: 10.0, resistanceAvg: 8, resistanceMax: 15),
     ]
 
     /// Returns a list of human-readable mismatches (empty = all correct).
@@ -26,27 +26,27 @@ struct ExpectedRide {
     private var inclineTolerance: Double { 0.3 + 0.001 }
 
     func mismatches(_ summary: IFitSummary, calendar: Calendar = .current) -> [String] {
-        var out: [String] = []
-        func check<T: Equatable>(_ name: String, _ got: T?, _ want: T) {
-            if got != want { out.append("\(name): got \(got.map { "\($0)" } ?? "nil"), want \(want)") }
+        var failures: [String] = []
+        func check<T: Equatable>(_ name: String, _ actual: T?, _ expected: T) {
+            if actual != expected { failures.append("\(name): got \(actual.map { "\($0)" } ?? "nil"), want \(expected)") }
         }
-        func checkD(_ name: String, _ got: Double?, _ want: Double, tolerance: Double = 0.001) {
-            if got == nil || abs(got! - want) > tolerance { out.append("\(name): got \(got.map { "\($0)" } ?? "nil"), want \(want)") }
+        func checkD(_ name: String, _ actual: Double?, _ expected: Double, tolerance: Double = 0.001) {
+            if actual == nil || abs(actual! - expected) > tolerance { failures.append("\(name): got \(actual.map { "\($0)" } ?? "nil"), want \(expected)") }
         }
         check("title", summary.title, title)
         check("date", summary.date, calendar.date(from: DateComponents(year: year, month: month, day: day, hour: hour, minute: minute))!)
         checkD("duration", summary.durationMinutes, minutes)
         checkD("distance", summary.distanceMiles, miles)
-        check("calories", summary.calories, cal)
-        check("elevation", summary.elevationFeet, ft)
+        check("calories", summary.calories, calories)
+        check("elevation", summary.elevationFeet, elevationFeet)
         check("rpm", summary.avgRPM, rpm)
         check("watts", summary.avgWatts, watts)
         // OCR can misread a single incline digit (macOS 26 reads "2.6" as "28" -> 2.8), so allow ±0.3.
-        checkD("inclineAvg", summary.inclineAvg, incAvg, tolerance: inclineTolerance)
-        checkD("inclineMax", summary.inclineMax, incMax, tolerance: inclineTolerance)
-        check("resistanceAvg", summary.resistanceAvg, resAvg)
-        check("resistanceMax", summary.resistanceMax, resMax)
-        return out
+        checkD("inclineAvg", summary.inclineAvg, inclineAvg, tolerance: inclineTolerance)
+        checkD("inclineMax", summary.inclineMax, inclineMax, tolerance: inclineTolerance)
+        check("resistanceAvg", summary.resistanceAvg, resistanceAvg)
+        check("resistanceMax", summary.resistanceMax, resistanceMax)
+        return failures
     }
 }
 

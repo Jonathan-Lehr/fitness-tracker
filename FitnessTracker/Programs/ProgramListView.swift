@@ -6,15 +6,15 @@ struct ProgramListView: View {
 
     var body: some View {
         NavigationStack {
-            List(programs.filter { !($0.workouts ?? []).isEmpty }) { p in
-                NavigationLink(value: p) {
+            List(programs.filter { !($0.workouts ?? []).isEmpty }) { program in
+                NavigationLink(value: program) {
                     HStack {
                         VStack(alignment: .leading) {
-                            Text(p.title).font(.body.weight(.semibold))
-                            Text(p.type.label).font(.caption).foregroundStyle(.secondary)
+                            Text(program.title).font(.body.weight(.semibold))
+                            Text(program.type.label).font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Text("\((p.workouts?.count ?? 0).formattedWholeNumber())×").monospacedDigit().foregroundStyle(.secondary)
+                        Text("\((program.workouts?.count ?? 0).formattedWholeNumber())×").monospacedDigit().foregroundStyle(.secondary)
                     }
                 }
             }

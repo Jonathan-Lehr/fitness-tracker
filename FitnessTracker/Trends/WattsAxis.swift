@@ -13,10 +13,10 @@ enum WattsAxis {
     /// Returns nil when there are no valid (finite, > 0) values; the chart then uses its default scale.
     static func domain(for values: [Double]) -> ClosedRange<Double>? {
         let valid = values.filter { $0.isFinite && $0 > 0 }
-        guard let lo = valid.min(), let hi = valid.max() else { return nil }
-        let pad = max((hi - lo) * 0.1, minimumPadding)
-        let lower = max(0, ((lo - pad) / step).rounded(.down) * step)
-        let upper = ((hi + pad) / step).rounded(.up) * step
+        guard let minimum = valid.min(), let maximum = valid.max() else { return nil }
+        let padding = max((maximum - minimum) * 0.1, minimumPadding)
+        let lower = max(0, ((minimum - padding) / step).rounded(.down) * step)
+        let upper = ((maximum + padding) / step).rounded(.up) * step
         return lower...upper
     }
 
@@ -52,15 +52,15 @@ enum WattsAxis {
         let sorted = points.sorted { $0.start < $1.start }
         guard var run = sorted.first.map({ [$0] }) else { return [] }
         var result: [Segment] = []
-        for p in sorted.dropFirst() {
-            let prev = run[run.count - 1]
-            let next = calendar.date(byAdding: period.component, value: 1, to: prev.start) ?? prev.start
-            if p.start <= next {
-                run.append(p)
+        for point in sorted.dropFirst() {
+            let previousPoint = run[run.count - 1]
+            let next = calendar.date(byAdding: period.component, value: 1, to: previousPoint.start) ?? previousPoint.start
+            if point.start <= next {
+                run.append(point)
             } else {
                 result.append(Segment(isGap: false, points: run))
-                result.append(Segment(isGap: true, points: [prev, p]))
-                run = [p]
+                result.append(Segment(isGap: true, points: [previousPoint, point]))
+                run = [point]
             }
         }
         result.append(Segment(isGap: false, points: run))

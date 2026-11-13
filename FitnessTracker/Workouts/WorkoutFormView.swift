@@ -49,6 +49,13 @@ private struct WorkoutFormEditor: View {
     let onCancel: () -> Void
     let onSave: () -> Void
 
+    private var notesBinding: Binding<String> {
+        Binding(
+            get: { workout.notes ?? "" },
+            set: { workout.notes = $0.isEmpty ? nil : $0 }
+        )
+    }
+
     var body: some View {
         Form {
             if !missing.isEmpty {
@@ -128,13 +135,6 @@ private struct WorkoutFormEditor: View {
         Button("Remove Photo", role: .destructive) {
             workout.replacePhoto(with: nil)
         }
-    }
-
-    private var notesBinding: Binding<String> {
-        Binding(
-            get: { workout.notes ?? "" },
-            set: { workout.notes = $0.isEmpty ? nil : $0 }
-        )
     }
 
     @ViewBuilder
