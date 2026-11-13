@@ -39,7 +39,7 @@ final class CalendarPeriodSummaryTests: XCTestCase {
             ride(date(2026, 11, 9, 0, 0), 99),    // Mon Nov 9 → next week, excluded
         ]
         let summary = summary(rides, .week, date(2026, 11, 4))
-        XCTAssertEqual(s.kind, .calendar)
+        XCTAssertEqual(summary.kind, .calendar)
         XCTAssertEqual(summary.interval.start, date(2026, 11, 2, 0))
         XCTAssertEqual(summary.interval.end, date(2026, 11, 9, 0))
         XCTAssertEqual(summary.current.count, 2)
@@ -152,7 +152,7 @@ final class CalendarPeriodSummaryTests: XCTestCase {
         let summary = summary([], .month, date(2026, 5, 5))
         XCTAssertEqual(summary.current.count, 0)
         XCTAssertEqual(summary.deltaText, "±0.0 mi vs prior month")
-        XCTAssertEqual(s.valueText(.watts).value, "—")
+        XCTAssertEqual(summary.valueText(.watts).value, "—")
     }
 
     // MARK: Rolling summaries are unchanged
@@ -160,7 +160,7 @@ final class CalendarPeriodSummaryTests: XCTestCase {
     func testRollingSummaryStillRolling() {
         let now = date(2026, 11, 4)
         let summary = PeriodSummary.compute([ride(date(2026, 10, 29), 3)], period: .week, now: now, calendar: calendar)
-        XCTAssertEqual(s.kind, .rolling)
+        XCTAssertEqual(summary.kind, .rolling)
         XCTAssertEqual(summary.interval.start, date(2026, 10, 29, 0))
         XCTAssertEqual(summary.title, "Last 7 Days")
         XCTAssertEqual(summary.deltaText, "+3.0 mi vs prior 7 days")
