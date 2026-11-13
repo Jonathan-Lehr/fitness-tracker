@@ -81,7 +81,9 @@ final class WattsAxisTests: XCTestCase {
 
     // MARK: Segments
 
-    private func point(_ year: Int, _ month: Int, _ day: Int, _ watts: Double) -> WattsAxis.Point { .init(start: day(year, month, day), watts: watts) }
+    private func point(_ year: Int, _ month: Int, _ day: Int, _ watts: Double) -> WattsAxis.Point {
+        .init(start: self.day(year, month, day), watts: watts)
+    }
 
     func testSegmentsEmptyAndSingle() {
         XCTAssertEqual(WattsAxis.segments([], period: .week, calendar: newYorkCalendar), [])
