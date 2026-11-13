@@ -48,10 +48,12 @@ struct CompareView: View {
 }
 
 /// Column widths shared by the header and every row so the values line up. The label column
-/// fits the longest label ("Avg watts"); the two value columns split whatever width is left.
+/// just fits the longest label ("Avg watts"); the two value columns split whatever width is left.
 private struct CompareColumns: DynamicProperty {
-    @ScaledMetric(relativeTo: .body) var labelWidth: CGFloat = 84
-    @ScaledMetric(relativeTo: .body) var changeWidth: CGFloat = 64
+    @ScaledMetric(relativeTo: .body) var labelWidth: CGFloat = 76
+    @ScaledMetric(relativeTo: .body) var changeWidth: CGFloat = 68
+    /// Extra space before the Change column, so the later ride's values and date don't crowd it.
+    @ScaledMetric(relativeTo: .body) var changeLeadingGap: CGFloat = 10
 }
 
 /// The first section's header: its title, then the two ride dates and "Change" over their columns.
@@ -79,6 +81,7 @@ private struct CompareColumnsHeader: View {
             dateColumn(laterDate)
             Text("Change")
                 .frame(width: columns.changeWidth, alignment: .trailing)
+                .padding(.leading, columns.changeLeadingGap)
         }
     }
 
@@ -123,6 +126,7 @@ private struct ComparedStatRow: View {
             valueText(stat.laterValue)
             changePill
                 .frame(width: columns.changeWidth, alignment: .trailing)
+                .padding(.leading, columns.changeLeadingGap)
         }
         .accessibilityElement(children: .combine)
     }
