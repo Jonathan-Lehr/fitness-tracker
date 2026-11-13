@@ -96,6 +96,7 @@ struct ProgramDetailView: View {
             } footer: {
                 if !canCompare {
                     Text("Log another ride of this program to see your trend and compare efforts.")
+                        .padding(.top, 12)
                 }
             }
         }
