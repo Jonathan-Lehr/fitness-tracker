@@ -3,30 +3,72 @@ import SwiftData
 import Charts
 
 enum ChartMetric: String, CaseIterable, Identifiable {
+    case distance = "Distance"
     case watts = "Watts"
-    case duration = "Duration"
-    case calories = "Calories"
+    case rpm = "RPM"
 
     var id: String { rawValue }
+
     func value(_ workout: Workout) -> Double {
         switch self {
+        case .distance: workout.distanceMiles
         case .watts: Double(workout.avgWatts)
-        case .duration: workout.durationMinutes
-        case .calories: Double(workout.calories)
+        case .rpm: Double(workout.avgRPM)
+        }
+    }
+
+    /// Rides that recorded this metric. A zero means the value is missing, so plotting it
+    /// would drag the line down to the axis.
+    func recorded(in workouts: [Workout]) -> [Workout] {
+        workouts.filter { value($0) > 0 }
+    }
+
+    /// The ride with the highest value for this metric; on a tie, the earliest one in
+    /// `workouts`. Nil if no ride recorded the metric.
+    func best(in workouts: [Workout]) -> Workout? {
+        recorded(in: workouts).reduce(nil) { currentBest, workout in
+            guard let currentBest, value(currentBest) >= value(workout) else { return workout }
+            return currentBest
+        }
+    }
+
+    /// The metric's value with its unit, e.g. "142 W", "19.14 mi", or "78 RPM".
+    func formattedValue(_ workout: Workout, locale: Locale = .current) -> String {
+        switch self {
+        case .distance: workout.distanceMiles.formattedMilesWithUnit(locale: locale)
+        case .watts: "\(workout.avgWatts.formattedWholeNumber(locale: locale)) W"
+        case .rpm: "\(workout.avgRPM.formattedWholeNumber(locale: locale)) RPM"
         }
     }
 }
 
 struct ProgramDetailView: View {
     let program: Program
-    @State private var metric: ChartMetric = .watts
+    @State private var metric: ChartMetric = .distance
     @State private var selected: Set<PersistentIdentifier> = []
     @State private var showCompare = false
 
     private var efforts: [Workout] { program.sortedWorkouts }
-    private var best: Workout? { efforts.max { $0.avgWatts < $1.avgWatts } }
+    private var chartedEfforts: [Workout] { metric.recorded(in: efforts) }
+    private var best: Workout? { metric.best(in: efforts) }
     private var selectedPair: [Workout] {
         efforts.filter { selected.contains($0.persistentModelID) }
+    }
+
+    /// With this many charted rides or fewer, the x-axis labels each ride's date; with more,
+    /// Charts picks evenly spaced dates so the labels don't collide.
+    private static let maxRideDateLabels = 6
+
+    /// Ride dates as x-axis values when there are few enough to label; nil for automatic.
+    private var rideDateAxisValues: [Date]? {
+        chartedEfforts.count <= Self.maxRideDateLabels ? chartedEfforts.map(\.date) : nil
+    }
+
+    /// Month and day, plus the year when the charted rides span more than one year.
+    private var axisDateFormat: Date.FormatStyle {
+        let years = Set(chartedEfforts.map { Calendar.app.component(.year, from: $0.date) })
+        let monthDay = Date.FormatStyle.dateTime.month(.abbreviated).day()
+        return years.count > 1 ? monthDay.year(.twoDigits) : monthDay
     }
 
     var body: some View {
@@ -71,28 +113,52 @@ struct ProgramDetailView: View {
         }
     }
 
-    /// Metric picker, effort chart, and the current "Best" label.
+    /// Metric picker and effort chart in one row, then the current "Best" label.
     @ViewBuilder
     private var effortChart: some View {
-        Picker("Metric", selection: $metric) {
-            ForEach(ChartMetric.allCases) { Text($0.rawValue).tag($0) }
-        }
-        .pickerStyle(.segmented)
-        Chart {
-            ForEach(efforts) { workout in
-                LineMark(x: .value("Date", workout.date), y: .value(metric.rawValue, metric.value(workout)))
-                    .interpolationMethod(.catmullRom)
-                PointMark(x: .value("Date", workout.date), y: .value(metric.rawValue, metric.value(workout)))
-                    .foregroundStyle(workout.persistentModelID == best?.persistentModelID ? Color.orange : Color.blue)
-                    .symbolSize(workout.persistentModelID == best?.persistentModelID ? 120 : 30)
+        VStack(spacing: 16) {
+            Picker("Metric", selection: $metric) {
+                ForEach(ChartMetric.allCases) { Text($0.rawValue).tag($0) }
             }
+            .pickerStyle(.segmented)
+            Chart {
+                ForEach(chartedEfforts) { workout in
+                    LineMark(x: .value("Date", workout.date), y: .value(metric.rawValue, metric.value(workout)))
+                        .interpolationMethod(.catmullRom)
+                    PointMark(x: .value("Date", workout.date), y: .value(metric.rawValue, metric.value(workout)))
+                        .foregroundStyle(workout.persistentModelID == best?.persistentModelID ? Color.orange : Color.blue)
+                        .symbolSize(workout.persistentModelID == best?.persistentModelID ? 120 : 30)
+                }
+            }
+            .chartYScale(domain: .automatic(includesZero: false))
+            // Padding keeps the first and last points off the plot edges and leaves room
+            // for their date labels, which would otherwise be clipped ("N…").
+            .chartXScale(range: .plotDimension(padding: 28))
+            .chartXAxis {
+                if let rideDateAxisValues {
+                    AxisMarks(values: rideDateAxisValues) { _ in
+                        AxisGridLine()
+                        AxisTick()
+                        AxisValueLabel(format: axisDateFormat)
+                    }
+                } else {
+                    AxisMarks(values: .automatic(desiredCount: 4)) { _ in
+                        AxisGridLine()
+                        AxisTick()
+                        AxisValueLabel(format: axisDateFormat)
+                    }
+                }
+            }
+            .frame(height: 220)
         }
-        .chartYScale(domain: .automatic(includesZero: false))
-        .frame(height: 220)
+        .padding(.vertical, 4)
+        .animation(.smooth, value: metric)
         if let best {
-            Label("Best: \(best.avgWatts.formattedWholeNumber()) W on \(best.date.formatted(date: .abbreviated, time: .omitted))",
+            Label("Best: \(metric.formattedValue(best)) on \(best.date.formatted(date: .abbreviated, time: .omitted))",
                   systemImage: "star.fill")
                 .foregroundStyle(.orange)
+                .contentTransition(.numericText())
+                .animation(.smooth, value: metric)
         }
     }
 }
