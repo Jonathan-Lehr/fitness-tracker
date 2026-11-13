@@ -93,6 +93,10 @@ struct ProgramDetailView: View {
                 if canCompare {
                     Text("\(efforts.count.formattedWholeNumber()) efforts · select two to compare")
                 }
+            } footer: {
+                if !canCompare {
+                    Text("Log another ride of this program to see your trend and compare efforts.")
+                }
             }
         }
         .navigationTitle(program.title)
