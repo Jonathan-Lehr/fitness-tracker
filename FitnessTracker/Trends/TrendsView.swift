@@ -40,7 +40,7 @@ struct TrendsView: View {
                             .font(.caption).foregroundStyle(.secondary)
                     }
 
-                    chart("Ride Time (min)", buckets: buckets) { bucket in
+                    chart("Workout Time (min)", buckets: buckets) { bucket in
                         BarMark(x: .value("Period", bucket.start, unit: unit), y: .value("Minutes", bucket.totals.minutes))
                     }
                     chart("Distance (mi)", buckets: buckets) { bucket in
@@ -74,7 +74,7 @@ struct TrendsView: View {
     }
 }
 
-/// Average Watts per period over rides that recorded watts (periods without watts are omitted),
+/// Average Watts per period over workouts that recorded watts (periods without watts are omitted),
 /// with the Y axis fitted to the plotted values (see `WattsAxis`).
 private struct AverageWattsChart: View {
     let points: [WattsAxis.Point]
@@ -108,7 +108,7 @@ private struct AverageWattsChart: View {
             .chartYAxis { AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) }
             .overlay {
                 if points.isEmpty {
-                    Text("No rides with watts").font(.caption).foregroundStyle(.secondary)
+                    Text("No workouts with watts").font(.caption).foregroundStyle(.secondary)
                 }
             }
             .frame(height: 180)

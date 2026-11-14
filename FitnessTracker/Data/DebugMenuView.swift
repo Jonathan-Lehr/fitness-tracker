@@ -15,9 +15,9 @@ struct DebugMenuView: View {
         var id: Self { self }
         var title: String {
             switch self {
-            case .generate: "Generate simulated rides?"
-            case .removeSimulated: "Remove simulated rides?"
-            case .clearAll: "Delete every ride and program?"
+            case .generate: "Generate simulated workouts?"
+            case .removeSimulated: "Remove simulated workouts?"
+            case .clearAll: "Delete every workout and program?"
             }
         }
         var confirm: String {
@@ -42,12 +42,12 @@ struct DebugMenuView: View {
                     Button("Backup & Restore…") { showBackup = true }
                 }
                 Section("Simulated Data") {
-                    Button("Generate 18 Months of Rides") { pending = .generate }
-                    Button("Remove Simulated Rides", role: .destructive) { pending = .removeSimulated }
+                    Button("Generate 18 Months of Workouts") { pending = .generate }
+                    Button("Remove Simulated Workouts", role: .destructive) { pending = .removeSimulated }
                 }
                 Section("Real Data") {
-                    Button("Re-insert the 4 Real Rides") {
-                        SeedData.insertRealRides(context)
+                    Button("Re-insert the 4 Real Workouts") {
+                        SeedData.insertRealWorkouts(context)
                         dismiss()
                     }
                     Button("Clear ALL Data", role: .destructive) { pending = .clearAll }
@@ -64,7 +64,7 @@ struct DebugMenuView: View {
                 Button(action.confirm, role: action == .generate ? nil : .destructive) { perform(action) }
                 Button("Cancel", role: .cancel) {}
             } message: { _ in
-                Text("This changes your ride data. You can export a JSON backup first and restore it later.")
+                Text("This changes your workout data. You can export a JSON backup first and restore it later.")
             }
             .backupExporter(isPresented: $showExporter, document: backupDocument) { result in
                 // Only continue with the action if the backup was actually saved.

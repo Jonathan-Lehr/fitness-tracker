@@ -4,14 +4,14 @@ import ImageIO
 import UniformTypeIdentifiers
 @testable import FitnessTracker
 
-final class RideGridTests: XCTestCase {
+final class RowStyleTests: XCTestCase {
     private let calendar = Calendar.app
 
     private func date(_ year: Int, _ month: Int, _ day: Int, _ hour: Int) -> Date {
         TestSupport.date(year: year, month: month, day: day, hour: hour, calendar: calendar)
     }
 
-    func testDayGroupsNewestFirstWithRidesNewestFirst() {
+    func testDayGroupsNewestFirstWithWorkoutsNewestFirst() {
         let dates = [date(2025, 3, 10, 9), date(2025, 3, 14, 7), date(2025, 3, 14, 18), date(2025, 3, 13, 12)]
         let groups = DayGroup.group(dates, date: { $0 }, calendar: calendar)
         XCTAssertEqual(groups.map(\.day), [date(2025, 3, 14, 0), date(2025, 3, 13, 0), date(2025, 3, 10, 0)])
@@ -23,13 +23,13 @@ final class RideGridTests: XCTestCase {
         XCTAssertTrue(DayGroup<Date>.group([], date: { $0 }).isEmpty)
     }
 
-    func testLayoutRawValuesStableForStorage() {
-        XCTAssertEqual(LogLayout(rawValue: "list"), .list)
-        XCTAssertEqual(LogLayout(rawValue: "grid"), .grid)
+    func testRawValuesMatchTheStoredLogLayoutValues() {
+        XCTAssertEqual(RowStyle(rawValue: "list"), .compact)
+        XCTAssertEqual(RowStyle(rawValue: "grid"), .expanded)
     }
 
-    func testGridIsTheFirstLayoutSegment() {
-        XCTAssertEqual(LogLayout.allCases, [.grid, .list])
+    func testExpandedIsTheFirstRowStyleSegment() {
+        XCTAssertEqual(RowStyle.allCases, [.expanded, .compact])
     }
 
     func testCropRectIsTopAnchoredTallAndRightOfCenter() throws {
@@ -126,7 +126,7 @@ final class RideGridTests: XCTestCase {
 
     func testSampleScreenshotsProduceUsableCropsAtCardAspects() throws {
         let bundle = Bundle(for: Self.self)
-        let urls = ["ride-2026-10-12", "ride-2026-10-15", "ride-2026-10-18", "ride-2026-10-20"]
+        let urls = ["workout-2026-10-12", "workout-2026-10-15", "workout-2026-10-18", "workout-2026-10-20"]
             .compactMap { bundle.url(forResource: $0, withExtension: "jpg") }
         XCTAssertEqual(urls.count, 4, "sample photos should be bundled")
         for url in urls {

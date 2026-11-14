@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Side-by-side stats for two efforts of the same program, grouped into sections, with the
-/// change from the earlier ride to the later one.
+/// change from the earlier workout to the later one.
 struct CompareView: View {
     let earlier: Workout
     let later: Workout
@@ -52,18 +52,18 @@ struct CompareView: View {
 private struct CompareColumns: DynamicProperty {
     @ScaledMetric(relativeTo: .body) var labelWidth: CGFloat = 76
     @ScaledMetric(relativeTo: .body) var changeWidth: CGFloat = 68
-    /// Extra space before the Change column, so the later ride's values and date don't crowd it.
+    /// Extra space before the Change column, so the later workout's values and date don't crowd it.
     @ScaledMetric(relativeTo: .body) var changeLeadingGap: CGFloat = 10
 }
 
-/// The first section's header: its title, then the two ride dates and "Change" over their columns.
+/// The first section's header: its title, then the two workout dates and "Change" over their columns.
 private struct CompareColumnsHeader: View {
     let title: String
     let earlierDate: Date
     let laterDate: Date
     private let columns = CompareColumns()
 
-    /// Month and day when both rides are in the same year; otherwise the short numeric date
+    /// Month and day when both workouts are in the same year; otherwise the short numeric date
     /// ("10/27/25"), which includes the year and still fits the column.
     private var dateFormat: Date.FormatStyle {
         let calendar = Calendar.app

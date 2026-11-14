@@ -2,7 +2,7 @@ import XCTest
 @testable import FitnessTracker
 
 /// Calendar-period (past week / month / year) summaries: Monday-first weeks, local-time
-/// boundaries across DST, month lengths and leap years, ride filtering and comparisons.
+/// boundaries across DST, month lengths and leap years, workout filtering and comparisons.
 final class CalendarPeriodSummaryTests: XCTestCase {
     var calendar: Calendar = {
         var calendar = Calendar(identifier: .gregorian)
@@ -15,8 +15,8 @@ final class CalendarPeriodSummaryTests: XCTestCase {
         TestSupport.date(year: year, month: month, day: day, hour: hour, minute: minute, calendar: calendar)
     }
 
-    func ride(_ date: Date, _ miles: Double, minutes: Double = 30, watts: Int = 85, rpm: Int = 75) -> Workout {
-        TestSupport.ride(
+    func workout(_ date: Date, _ miles: Double, minutes: Double = 30, watts: Int = 85, rpm: Int = 75) -> Workout {
+        TestSupport.workout(
             date: date,
             durationMinutes: minutes,
             distanceMiles: miles,
@@ -25,20 +25,20 @@ final class CalendarPeriodSummaryTests: XCTestCase {
         )
     }
 
-    func summary(_ rides: [Workout], _ period: GroupingPeriod, _ date: Date) -> PeriodSummary {
-        PeriodSummary.computeCalendar(rides, period: period, containing: date, calendar: calendar)
+    func summary(_ workouts: [Workout], _ period: GroupingPeriod, _ date: Date) -> PeriodSummary {
+        PeriodSummary.computeCalendar(workouts, period: period, containing: date, calendar: calendar)
     }
 
     // MARK: Week
 
     func testWeekIsMondayToSundayWithPriorWeek() {
-        let rides = [
-            ride(date(2026, 11, 1, 23, 59), 4),   // Sun Nov 1 → prior week
-            ride(date(2026, 11, 2, 0, 0), 10),    // Mon Nov 2 midnight → this week
-            ride(date(2026, 11, 8, 23, 59), 5),   // Sun Nov 8 → this week
-            ride(date(2026, 11, 9, 0, 0), 99),    // Mon Nov 9 → next week, excluded
+        let workouts = [
+            workout(date(2026, 11, 1, 23, 59), 4),   // Sun Nov 1 → prior week
+            workout(date(2026, 11, 2, 0, 0), 10),    // Mon Nov 2 midnight → this week
+            workout(date(2026, 11, 8, 23, 59), 5),   // Sun Nov 8 → this week
+            workout(date(2026, 11, 9, 0, 0), 99),    // Mon Nov 9 → next week, excluded
         ]
-        let summary = summary(rides, .week, date(2026, 11, 4))
+        let summary = summary(workouts, .week, date(2026, 11, 4))
         XCTAssertEqual(summary.kind, .calendar)
         XCTAssertEqual(summary.interval.start, date(2026, 11, 2, 0))
         XCTAssertEqual(summary.interval.end, date(2026, 11, 9, 0))
@@ -67,7 +67,7 @@ final class CalendarPeriodSummaryTests: XCTestCase {
     }
 
     func testWeekSpanningNewYear() {
-        let summary = summary([ride(date(2027, 1, 1), 7)], .week, date(2026, 12, 30))
+        let summary = summary([workout(date(2027, 1, 1), 7)], .week, date(2026, 12, 30))
         XCTAssertEqual(summary.interval.start, date(2026, 12, 28, 0))
         XCTAssertEqual(summary.title, "Week of Dec 28, 2026")
         XCTAssertEqual(summary.dateRangeText, "Dec 28, 2026 – Jan 3, 2027")
@@ -89,13 +89,13 @@ final class CalendarPeriodSummaryTests: XCTestCase {
 
     func testMonthAcrossDSTStartAndPriorMonth() {
         // DST starts Sun Mar 8, 2026 in New York.
-        let rides = [
-            ride(date(2026, 2, 28, 23), 3),          // February → prior
-            ride(date(2026, 3, 8, 3), 6),            // just after the spring-forward gap
-            ride(date(2026, 3, 31, 23, 59), 2),
-            ride(date(2026, 4, 1, 0), 50),           // April, excluded
+        let workouts = [
+            workout(date(2026, 2, 28, 23), 3),          // February → prior
+            workout(date(2026, 3, 8, 3), 6),            // just after the spring-forward gap
+            workout(date(2026, 3, 31, 23, 59), 2),
+            workout(date(2026, 4, 1, 0), 50),           // April, excluded
         ]
-        let summary = summary(rides, .month, date(2026, 3, 15))
+        let summary = summary(workouts, .month, date(2026, 3, 15))
         XCTAssertEqual(summary.interval.start, date(2026, 3, 1, 0))
         XCTAssertEqual(summary.interval.end, date(2026, 4, 1, 0))
         for bucket in summary.buckets { XCTAssertEqual(calendar.component(.hour, from: bucket.start), 0) }
@@ -110,8 +110,8 @@ final class CalendarPeriodSummaryTests: XCTestCase {
     // MARK: Year
 
     func testYearHasTwelveMonthsFromJanuary() {
-        let rides = [ride(date(2025, 12, 31, 23), 9), ride(date(2026, 1, 1, 0), 4), ride(date(2026, 12, 31, 22), 1)]
-        let summary = summary(rides, .year, date(2026, 6, 1))
+        let workouts = [workout(date(2025, 12, 31, 23), 9), workout(date(2026, 1, 1, 0), 4), workout(date(2026, 12, 31, 22), 1)]
+        let summary = summary(workouts, .year, date(2026, 6, 1))
         XCTAssertEqual(summary.interval.start, date(2026, 1, 1, 0))
         XCTAssertEqual(summary.interval.end, date(2027, 1, 1, 0))
         XCTAssertEqual(summary.buckets.count, 12)
@@ -128,7 +128,7 @@ final class CalendarPeriodSummaryTests: XCTestCase {
     }
 
     func testLeapYearPreviousYearComparison() {
-        let summary = summary([ride(date(2028, 2, 29), 5)], .year, date(2029, 3, 1))
+        let summary = summary([workout(date(2028, 2, 29), 5)], .year, date(2029, 3, 1))
         XCTAssertEqual(summary.previous.miles, 5, accuracy: 0.001)
         XCTAssertEqual(summary.previous.count, 1)
     }
@@ -136,12 +136,12 @@ final class CalendarPeriodSummaryTests: XCTestCase {
     // MARK: Metrics
 
     func testWattsAndRPMDurationWeightedSkippingZeros() {
-        let rides = [
-            ride(date(2026, 11, 3), 5, minutes: 30, watts: 100, rpm: 80),
-            ride(date(2026, 11, 4), 5, minutes: 60, watts: 70, rpm: 0),     // RPM not recorded
-            ride(date(2026, 11, 5), 5, minutes: 20, watts: 0, rpm: 90),     // watts not recorded
+        let workouts = [
+            workout(date(2026, 11, 3), 5, minutes: 30, watts: 100, rpm: 80),
+            workout(date(2026, 11, 4), 5, minutes: 60, watts: 70, rpm: 0),     // RPM not recorded
+            workout(date(2026, 11, 5), 5, minutes: 20, watts: 0, rpm: 90),     // watts not recorded
         ]
-        let summary = summary(rides, .week, date(2026, 11, 4))
+        let summary = summary(workouts, .week, date(2026, 11, 4))
         XCTAssertEqual(summary.current.averageWatts!, (100 * 30 + 70 * 60) / 90.0, accuracy: 0.001)
         XCTAssertEqual(summary.current.averageRPM!, (80 * 30 + 90 * 20) / 50.0, accuracy: 0.001)
         XCTAssertNil(summary.previous.averageWatts)
@@ -159,7 +159,7 @@ final class CalendarPeriodSummaryTests: XCTestCase {
 
     func testRollingSummaryStillRolling() {
         let now = date(2026, 11, 4)
-        let summary = PeriodSummary.compute([ride(date(2026, 10, 29), 3)], period: .week, now: now, calendar: calendar)
+        let summary = PeriodSummary.compute([workout(date(2026, 10, 29), 3)], period: .week, now: now, calendar: calendar)
         XCTAssertEqual(summary.kind, .rolling)
         XCTAssertEqual(summary.interval.start, date(2026, 10, 29, 0))
         XCTAssertEqual(summary.title, "Last 7 Days")
@@ -209,9 +209,9 @@ final class CalendarPeriodSummaryTests: XCTestCase {
     }
 
     func testNavigatingToEmptyPeriodGivesZeroSummary() {
-        let rides = [ride(date(2026, 11, 4), 10)]
+        let workouts = [workout(date(2026, 11, 4), 10)]
         let previousSelection = selection(.week, date(2026, 11, 4)).moved(by: -1, calendar: calendar)
-        let summary = PeriodSummary.computeCalendar(rides, period: .week, containing: previousSelection.start, calendar: calendar)
+        let summary = PeriodSummary.computeCalendar(workouts, period: .week, containing: previousSelection.start, calendar: calendar)
         XCTAssertEqual(summary.current.count, 0)
         XCTAssertEqual(summary.current.miles, 0)
         XCTAssertEqual(summary.buckets.count, 7)
@@ -222,33 +222,33 @@ final class CalendarPeriodSummaryTests: XCTestCase {
     // MARK: Workout list
 
     func testPeriodWorkoutsBoundariesAndNewestFirst() {
-        let priorSunday = ride(date(2026, 11, 1, 23, 59), 1)
-        let weekStartMonday = ride(date(2026, 11, 2, 0, 0), 2)
-        let thursdayRide = ride(date(2026, 11, 5, 7), 3)
-        let weekEndSunday = ride(date(2026, 11, 8, 23, 59), 4)
-        let nextMonday = ride(date(2026, 11, 9, 0, 0), 5)
-        let list = PeriodSummary.calendarWorkouts([thursdayRide, nextMonday, priorSunday, weekEndSunday, weekStartMonday], period: .week, containing: date(2026, 11, 4), calendar: calendar)
+        let priorSunday = workout(date(2026, 11, 1, 23, 59), 1)
+        let weekStartMonday = workout(date(2026, 11, 2, 0, 0), 2)
+        let thursdayWorkout = workout(date(2026, 11, 5, 7), 3)
+        let weekEndSunday = workout(date(2026, 11, 8, 23, 59), 4)
+        let nextMonday = workout(date(2026, 11, 9, 0, 0), 5)
+        let list = PeriodSummary.calendarWorkouts([thursdayWorkout, nextMonday, priorSunday, weekEndSunday, weekStartMonday], period: .week, containing: date(2026, 11, 4), calendar: calendar)
         XCTAssertEqual(list.map(\.distanceMiles), [4, 3, 2])
-        let periodSummary = summary([thursdayRide, nextMonday, priorSunday, weekEndSunday, weekStartMonday], .week, date(2026, 11, 4))
+        let periodSummary = summary([thursdayWorkout, nextMonday, priorSunday, weekEndSunday, weekStartMonday], .week, date(2026, 11, 4))
         XCTAssertEqual(periodSummary.current.count, list.count)
         XCTAssertEqual(periodSummary.current.miles, list.reduce(0) { $0 + $1.distanceMiles }, accuracy: 0.001)
     }
 
     func testPeriodWorkoutsFollowNavigation() {
-        let rides = [ride(date(2026, 10, 30), 1), ride(date(2026, 11, 3), 2), ride(date(2026, 12, 2), 3)]
+        let workouts = [workout(date(2026, 10, 30), 1), workout(date(2026, 11, 3), 2), workout(date(2026, 12, 2), 3)]
         var selection = self.selection(.month, date(2026, 11, 15))
-        XCTAssertEqual(PeriodSummary.calendarWorkouts(rides, period: .month, containing: selection.start, calendar: calendar).map(\.distanceMiles), [2])
+        XCTAssertEqual(PeriodSummary.calendarWorkouts(workouts, period: .month, containing: selection.start, calendar: calendar).map(\.distanceMiles), [2])
         selection = selection.moved(by: -1, calendar: calendar)
-        XCTAssertEqual(PeriodSummary.calendarWorkouts(rides, period: .month, containing: selection.start, calendar: calendar).map(\.distanceMiles), [1])
+        XCTAssertEqual(PeriodSummary.calendarWorkouts(workouts, period: .month, containing: selection.start, calendar: calendar).map(\.distanceMiles), [1])
         selection = selection.moved(by: 2, calendar: calendar)
-        XCTAssertEqual(PeriodSummary.calendarWorkouts(rides, period: .month, containing: selection.start, calendar: calendar).map(\.distanceMiles), [3])
+        XCTAssertEqual(PeriodSummary.calendarWorkouts(workouts, period: .month, containing: selection.start, calendar: calendar).map(\.distanceMiles), [3])
         selection = selection.moved(by: 1, calendar: calendar)                   // January 2027: empty
-        XCTAssertTrue(PeriodSummary.calendarWorkouts(rides, period: .month, containing: selection.start, calendar: calendar).isEmpty)
-        XCTAssertEqual(summary(rides, .month, selection.start).current.count, 0)
+        XCTAssertTrue(PeriodSummary.calendarWorkouts(workouts, period: .month, containing: selection.start, calendar: calendar).isEmpty)
+        XCTAssertEqual(summary(workouts, .month, selection.start).current.count, 0)
     }
 
     func testPeriodWorkoutsAcrossDSTWeek() {
-        let late = ride(date(2026, 11, 1, 23, 30), 6)           // after fall-back, still Sun Nov 1
+        let late = workout(date(2026, 11, 1, 23, 30), 6)           // after fall-back, still Sun Nov 1
         let list = PeriodSummary.calendarWorkouts([late], period: .week, containing: date(2026, 10, 27), calendar: calendar)
         XCTAssertEqual(list.count, 1)
     }
@@ -261,7 +261,7 @@ final class CalendarPeriodSummaryTests: XCTestCase {
         XCTAssertEqual(first.start, date(2026, 9, 14, 0))
         XCTAssertFalse(first.hasPrevious(earliest: earliest, calendar: calendar))
         XCTAssertTrue(first.moved(by: 1, calendar: calendar).hasPrevious(earliest: earliest, calendar: calendar))
-        // Empty weeks between the earliest ride and now remain reachable.
+        // Empty weeks between the earliest workout and now remain reachable.
         XCTAssertTrue(selection(.week, date(2026, 10, 5)).hasPrevious(earliest: earliest, calendar: calendar))
     }
 
@@ -280,7 +280,7 @@ final class CalendarPeriodSummaryTests: XCTestCase {
     func testClampKeepsSelectionWithinEarliestAndCurrent() {
         let now = date(2026, 11, 4)
         let earliest = date(2026, 6, 10)
-        // Before the earliest ride's month → clamped up to June.
+        // Before the earliest workout's month → clamped up to June.
         XCTAssertEqual(selection(.month, date(2026, 2, 3)).clamped(earliest: earliest, now: now, calendar: calendar).start, date(2026, 6, 1, 0))
         // Future → clamped down to the current month.
         XCTAssertEqual(selection(.month, date(2027, 1, 3)).clamped(earliest: earliest, now: now, calendar: calendar).start, date(2026, 11, 1, 0))
@@ -292,8 +292,8 @@ final class CalendarPeriodSummaryTests: XCTestCase {
     }
 
     func testFilteredDatasetDrivesEarliest() {
-        // Filtering out the oldest ride moves the Previous bound to the oldest remaining ride.
-        let all = [ride(date(2026, 1, 5), 1, watts: 50), ride(date(2026, 8, 5), 2, watts: 120)]
+        // Filtering out the oldest workout moves the Previous bound to the oldest remaining workout.
+        let all = [workout(date(2026, 1, 5), 1, watts: 50), workout(date(2026, 8, 5), 2, watts: 120)]
         let filtered = all.filter { $0.avgWatts >= 100 }
         let earliest = filtered.map(\.date).min()
         XCTAssertFalse(selection(.month, date(2026, 8, 1)).hasPrevious(earliest: earliest, calendar: calendar))

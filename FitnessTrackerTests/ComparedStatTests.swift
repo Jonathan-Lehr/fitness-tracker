@@ -38,8 +38,8 @@ final class ComparedStatTests: XCTestCase {
 
     func testSectionsCoverEveryStatInOrder() {
         let calendar = Calendar.app
-        let earlier = TestSupport.ride(date: TestSupport.date(year: 2026, month: 10, day: 27, calendar: calendar))
-        let later = TestSupport.ride(date: TestSupport.date(year: 2026, month: 11, day: 4, calendar: calendar))
+        let earlier = TestSupport.workout(date: TestSupport.date(year: 2026, month: 10, day: 27, calendar: calendar))
+        let later = TestSupport.workout(date: TestSupport.date(year: 2026, month: 11, day: 4, calendar: calendar))
         let sections = ComparedSection.all(earlier: earlier, later: later)
         XCTAssertEqual(sections.map(\.title), ["Effort", "Power", "Resistance", "Incline"])
         XCTAssertEqual(sections.flatMap { $0.stats.map(\.label) }, [
@@ -52,8 +52,8 @@ final class ComparedStatTests: XCTestCase {
 
     func testOnlyClearImprovementsAreColored() {
         let calendar = Calendar.app
-        let ride = TestSupport.ride(date: TestSupport.date(year: 2026, month: 11, day: 4, calendar: calendar))
-        let higherIsBetter = ComparedSection.all(earlier: ride, later: ride)
+        let workout = TestSupport.workout(date: TestSupport.date(year: 2026, month: 11, day: 4, calendar: calendar))
+        let higherIsBetter = ComparedSection.all(earlier: workout, later: workout)
             .flatMap(\.stats)
             .filter { $0.preference == .higherIsBetter }
             .map(\.label)

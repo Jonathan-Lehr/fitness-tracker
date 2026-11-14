@@ -49,7 +49,7 @@ final class Workout {
         self.isSimulated = isSimulated
     }
 
-    /// Hand-entry defaults (45 min, 10 mi, and so on) used when adding a ride without a photo.
+    /// Hand-entry defaults (45 min, 10 mi, and so on) used when adding a workout without a photo.
     convenience init(forManualEntry date: Date = .now) {
         self.init(
             date: date,
@@ -85,8 +85,8 @@ final class Workout {
         )
     }
 
-    var title: String { program?.title ?? "Untitled Ride" }
-    var type: WorkoutType { program?.type ?? .other }
+    var title: String { program?.title ?? "Untitled Workout" }
+    var type: TrainingType { program?.type ?? .other }
 }
 
 // MARK: - Thumbnail focus
@@ -111,7 +111,7 @@ extension Workout {
         }
     }
 
-    /// True when the ride has a photo that the current analysis hasn't looked at.
+    /// True when the workout has a photo that the current analysis hasn't looked at.
     var needsThumbnailFocusAnalysis: Bool {
         thumbnailFocusAnalysisVersion < ThumbnailFocusFinder.analysisVersion && photoData != nil
     }

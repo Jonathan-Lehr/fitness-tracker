@@ -1,9 +1,9 @@
 import SwiftUI
 import SwiftData
 
-/// Scenery placeholder tinted by ride type (used when there's no usable photo).
+/// Scenery placeholder tinted by training type (used when there's no usable photo).
 struct ScenePlaceholder: View {
-    let type: WorkoutType
+    let type: TrainingType
     var body: some View {
         GeometryReader { geo in
             let width = geo.size.width
@@ -25,7 +25,7 @@ struct ScenePlaceholder: View {
     }
 }
 
-struct RideImage: View {
+struct WorkoutImage: View {
     let workout: Workout
     let aspect: Double
     @State private var image: CGImage?

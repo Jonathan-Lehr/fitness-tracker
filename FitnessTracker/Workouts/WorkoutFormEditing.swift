@@ -6,8 +6,8 @@ import SwiftData
 /// list isn't duplicated in a draft type.
 ///
 /// Every session uses a scratch `ModelContext` on the same container with autosave disabled,
-/// so unsaved edits stay off other views. New rides (manual defaults or a parser summary) are
-/// inserted into that context when the session is created; existing rides are fetched into it.
+/// so unsaved edits stay off other views. New workouts (manual defaults or a parser summary) are
+/// inserted into that context when the session is created; existing workouts are fetched into it.
 /// Save persists. Cancel just dismisses; dropping the unsaved scratch context discards the edits.
 ///
 /// Presenters create the session (the form cannot, because `@Environment` is unavailable in
@@ -15,10 +15,10 @@ import SwiftData
 @MainActor @Observable
 final class WorkoutFormEditing {
     /// Program title typed in the form. Applied with `Program.findOrCreate` on Save, not by
-    /// renaming the current program (which would rename it for every ride).
+    /// renaming the current program (which would rename it for every workout).
     var title: String
     let workout: Workout
-    /// True when this session is editing a ride that already exists in the store.
+    /// True when this session is editing a workout that already exists in the store.
     let isEditingExisting: Bool
     /// Fields the parser missed, flagged in the form. Empty for manual entry and edits.
     let missingFields: Set<IFitSummary.Field>
@@ -86,7 +86,7 @@ final class WorkoutFormEditing {
         return context
     }
 
-    /// Persists the ride in the scratch context. Nothing is written to the store until this is called.
+    /// Persists the workout in the scratch context. Nothing is written to the store until this is called.
     func save() throws {
         let program = Program.findOrCreate(title: title, in: context)
         workout.program = program

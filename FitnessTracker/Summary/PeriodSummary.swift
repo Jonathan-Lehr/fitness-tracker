@@ -31,7 +31,7 @@ struct PeriodSummary {
     var calendar: Calendar = .app
 
     var milesDelta: Double { current.miles - previous.miles }
-    var ridesDelta: Int { current.count - previous.count }
+    var workoutsDelta: Int { current.count - previous.count }
     var minutesDelta: Double { current.minutes - previous.minutes }
     var caloriesDelta: Int { current.calories - previous.calories }
     var feetDelta: Int { current.feet - previous.feet }
@@ -49,7 +49,7 @@ struct PeriodSummary {
     /// Display order on the card (grid reads left-to-right, top-to-bottom; the last stat's
     /// width sets where the landscape chart ends).
     enum Metric: CaseIterable {
-        case rides
+        case workouts
         case time
         case watts
         case rpm
@@ -58,7 +58,7 @@ struct PeriodSummary {
 
         var label: String {
             switch self {
-            case .rides: "Rides"
+            case .workouts: "Workouts"
             case .time: "Time"
             case .watts: "Watts"
             case .rpm: "RPM"
@@ -71,7 +71,7 @@ struct PeriodSummary {
     /// Signed change vs the previous period, for coloring (>0 up, <0 down, 0 same/unknown).
     func delta(_ metric: Metric) -> Double {
         switch metric {
-        case .rides: Double(ridesDelta)
+        case .workouts: Double(workoutsDelta)
         case .time: minutesDelta.rounded()
         case .calories: Double(caloriesDelta)
         case .elevation: Double(feetDelta)
@@ -89,7 +89,7 @@ struct PeriodSummary {
         let magnitude = abs(change)
         let value: String
         switch metric {
-        case .rides: value = Int(magnitude).formattedWholeNumber(locale: locale)
+        case .workouts: value = Int(magnitude).formattedWholeNumber(locale: locale)
         case .time: value = magnitude.formattedMinutes(locale: locale)
         case .calories: value = "\(Int(magnitude).formattedWholeNumber(locale: locale)) cal"
         case .elevation: value = "\(Int(magnitude).formattedWholeNumber(locale: locale)) ft"
@@ -102,7 +102,7 @@ struct PeriodSummary {
     /// Display value and label for a metric ("—" for averages with no data).
     func valueText(_ metric: Metric, locale: Locale = .current) -> (value: String, label: String) {
         switch metric {
-        case .rides: return (current.count.formattedWholeNumber(locale: locale), metric.label)
+        case .workouts: return (current.count.formattedWholeNumber(locale: locale), metric.label)
         case .time: return (current.minutes.formattedMinutes(locale: locale), metric.label)
         case .calories: return (current.calories.formattedWholeNumber(locale: locale), metric.label)
         case .elevation: return ("\(current.feet.formattedWholeNumber(locale: locale)) ft", metric.label)
@@ -114,7 +114,7 @@ struct PeriodSummary {
     /// Numeric value driving the rolling-digit animation.
     func numericValue(_ metric: Metric) -> Double {
         switch metric {
-        case .rides: return Double(current.count)
+        case .workouts: return Double(current.count)
         case .time: return current.minutes
         case .calories: return Double(current.calories)
         case .elevation: return Double(current.feet)
@@ -127,7 +127,7 @@ struct PeriodSummary {
     /// Nil for an average with no data in the previous window.
     func previousValue(_ metric: Metric) -> Double? {
         switch metric {
-        case .rides: return Double(previous.count)
+        case .workouts: return Double(previous.count)
         case .time: return previous.minutes
         case .calories: return Double(previous.calories)
         case .elevation: return Double(previous.feet)
@@ -211,7 +211,7 @@ struct PeriodSummary {
         let interval = DateInterval(start: start, end: end)
         let previousInterval = DateInterval(start: prevStart, end: start)
 
-        // Half-open [start, end) so a ride at exactly midnight belongs to one window only.
+        // Half-open [start, end) so a workout at exactly midnight belongs to one window only.
         func inside(_ workout: Workout, _ interval: DateInterval) -> Bool { interval.halfOpenContains(workout.date) }
         let current = workouts.filter { inside($0, interval) }
         let previous = workouts.filter { inside($0, previousInterval) }

@@ -17,14 +17,14 @@ enum ChartMetric: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Rides that recorded this metric. A zero means the value is missing, so plotting it
+    /// Workouts that recorded this metric. A zero means the value is missing, so plotting it
     /// would drag the line down to the axis.
     func recorded(in workouts: [Workout]) -> [Workout] {
         workouts.filter { value($0) > 0 }
     }
 
-    /// The ride with the highest value for this metric; on a tie, the earliest one in
-    /// `workouts`. Nil if no ride recorded the metric.
+    /// The workout with the highest value for this metric; on a tie, the earliest one in
+    /// `workouts`. Nil if no workout recorded the metric.
     func best(in workouts: [Workout]) -> Workout? {
         recorded(in: workouts).reduce(nil) { currentBest, workout in
             guard let currentBest, value(currentBest) >= value(workout) else { return workout }
@@ -58,16 +58,16 @@ struct ProgramDetailView: View {
     /// and Compare button are hidden.
     private var canCompare: Bool { efforts.count >= 2 }
 
-    /// With this many charted rides or fewer, the x-axis labels each ride's date; with more,
+    /// With this many charted workouts or fewer, the x-axis labels each workout's date; with more,
     /// Charts picks evenly spaced dates so the labels don't collide.
-    private static let maxRideDateLabels = 6
+    private static let maxWorkoutDateLabels = 6
 
-    /// Ride dates as x-axis values when there are few enough to label; nil for automatic.
-    private var rideDateAxisValues: [Date]? {
-        chartedEfforts.count <= Self.maxRideDateLabels ? chartedEfforts.map(\.date) : nil
+    /// Workout dates as x-axis values when there are few enough to label; nil for automatic.
+    private var workoutDateAxisValues: [Date]? {
+        chartedEfforts.count <= Self.maxWorkoutDateLabels ? chartedEfforts.map(\.date) : nil
     }
 
-    /// Month and day, plus the year when the charted rides span more than one year.
+    /// Month and day, plus the year when the charted workouts span more than one year.
     private var axisDateFormat: Date.FormatStyle {
         let years = Set(chartedEfforts.map { Calendar.app.component(.year, from: $0.date) })
         let monthDay = Date.FormatStyle.dateTime.month(.abbreviated).day()
@@ -95,7 +95,7 @@ struct ProgramDetailView: View {
                 }
             } footer: {
                 if !canCompare {
-                    Text("Log another ride of this program to see your trend and compare efforts.")
+                    Text("Log another workout of this program to see your trend and compare efforts.")
                         .padding(.top, 12)
                 }
             }
@@ -147,8 +147,8 @@ struct ProgramDetailView: View {
             // for their date labels, which would otherwise be clipped ("N…").
             .chartXScale(range: .plotDimension(padding: 28))
             .chartXAxis {
-                if let rideDateAxisValues {
-                    AxisMarks(values: rideDateAxisValues) { _ in
+                if let workoutDateAxisValues {
+                    AxisMarks(values: workoutDateAxisValues) { _ in
                         AxisGridLine()
                         AxisTick()
                         AxisValueLabel(format: axisDateFormat)

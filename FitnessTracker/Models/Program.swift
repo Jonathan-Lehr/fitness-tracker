@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-enum WorkoutType: String, CaseIterable, Identifiable, Codable {
+enum TrainingType: String, CaseIterable, Identifiable, Codable {
     case endurance
     case interval
     case recovery
@@ -12,9 +12,9 @@ enum WorkoutType: String, CaseIterable, Identifiable, Codable {
     var id: String { rawValue }
     var label: String { rawValue.capitalized }
 
-    static func infer(from title: String) -> WorkoutType {
+    static func infer(from title: String) -> TrainingType {
         let loweredTitle = title.lowercased()
-        for type in WorkoutType.allCases where type != .other {
+        for type in TrainingType.allCases where type != .other {
             if loweredTitle.contains(type.rawValue) { return type }
         }
         return .other
@@ -25,17 +25,17 @@ enum WorkoutType: String, CaseIterable, Identifiable, Codable {
 final class Program {
     // No @Attribute(.unique): CloudKit doesn't support it. Uniqueness by title is enforced in code.
     var title: String = ""
-    var typeRaw: String = WorkoutType.other.rawValue
+    var typeRaw: String = TrainingType.other.rawValue
     @Relationship(deleteRule: .cascade, inverse: \Workout.program)
     var workouts: [Workout]? = []
 
-    init(title: String, type: WorkoutType? = nil) {
+    init(title: String, type: TrainingType? = nil) {
         self.title = title
-        self.typeRaw = (type ?? WorkoutType.infer(from: title)).rawValue
+        self.typeRaw = (type ?? TrainingType.infer(from: title)).rawValue
     }
 
-    var type: WorkoutType {
-        get { WorkoutType(rawValue: typeRaw) ?? .other }
+    var type: TrainingType {
+        get { TrainingType(rawValue: typeRaw) ?? .other }
         set { typeRaw = newValue.rawValue }
     }
 

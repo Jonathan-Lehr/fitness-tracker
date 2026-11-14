@@ -12,8 +12,8 @@ final class PartialPeriodComparisonTests: XCTestCase {
         TestSupport.date(year: year, month: month, day: day, hour: hour, minute: minute, calendar: calendar)
     }
 
-    func ride(_ date: Date, minutes: Double = 30, miles: Double = 10, calories: Int = 300, watts: Int = 100) -> Workout {
-        TestSupport.ride(
+    func workout(_ date: Date, minutes: Double = 30, miles: Double = 10, calories: Int = 300, watts: Int = 100) -> Workout {
+        TestSupport.workout(
             date: date,
             durationMinutes: minutes,
             distanceMiles: miles,
@@ -106,11 +106,11 @@ final class PartialPeriodComparisonTests: XCTestCase {
     func testTotalsUseOnlyMatchingWindowsAndExcludeLaterPriorDays() {
         let now = date(2026, 11, 4, 15) // Wed
         let workouts = [
-            ride(date(2026, 11, 2, 7)), ride(date(2026, 11, 4, 14)),   // current
-            ride(date(2026, 10, 26, 7), minutes: 60),                  // previous, in window
-            ride(date(2026, 10, 28, 16)),                              // previous, after same time -> excluded
-            ride(date(2026, 10, 30, 7)),                               // later in prior week -> excluded
-            ride(date(2026, 10, 19, 7)),                               // older
+            workout(date(2026, 11, 2, 7)), workout(date(2026, 11, 4, 14)),   // current
+            workout(date(2026, 10, 26, 7), minutes: 60),                  // previous, in window
+            workout(date(2026, 10, 28, 16)),                              // previous, after same time -> excluded
+            workout(date(2026, 10, 30, 7)),                               // later in prior week -> excluded
+            workout(date(2026, 10, 19, 7)),                               // older
         ]
         let comparison = PartialPeriodComparison(workouts: workouts, period: .week, now: now, calendar: calendar)
         XCTAssertEqual(comparison.currentTotals.count, 2)
@@ -120,7 +120,7 @@ final class PartialPeriodComparisonTests: XCTestCase {
 
     func testNoPriorDataAndMissingWatts() {
         let now = date(2026, 11, 4, 15)
-        let comparison = PartialPeriodComparison(workouts: [ride(date(2026, 11, 3), watts: 0)], period: .week, now: now, calendar: calendar)
+        let comparison = PartialPeriodComparison(workouts: [workout(date(2026, 11, 3), watts: 0)], period: .week, now: now, calendar: calendar)
         XCTAssertEqual(comparison.previousTotals.count, 0)
         XCTAssertNil(comparison.previousTotals.averageWatts)
         XCTAssertNil(comparison.currentTotals.averageWatts)

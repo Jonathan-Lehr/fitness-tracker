@@ -153,7 +153,7 @@ struct WorkoutSummaryCard: View {
     }
 
     private var photo: some View {
-        RideImage(workout: workout, aspect: 16.0 / 9.0)
+        WorkoutImage(workout: workout, aspect: 16.0 / 9.0)
             .frame(maxHeight: 220)
             .clipShape(RoundedRectangle(cornerRadius: 16))
     }

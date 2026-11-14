@@ -1,6 +1,6 @@
 import Foundation
 
-/// One stat in the compare sheet: both rides' values and the change between them.
+/// One stat in the compare sheet: both workouts' values and the change between them.
 struct ComparedStat: Identifiable {
     /// Whether a higher value is an improvement. Only stats where it clearly is get green or red.
     enum Preference {
@@ -8,7 +8,7 @@ struct ComparedStat: Identifiable {
         case neutral
     }
 
-    /// Which way the stat moved from the earlier ride to the later one, after rounding to the
+    /// Which way the stat moved from the earlier workout to the later one, after rounding to the
     /// displayed precision, so a change too small to show counts as unchanged.
     enum Trend: Equatable {
         case up
