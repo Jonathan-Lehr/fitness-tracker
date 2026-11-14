@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 @testable import FitnessTracker
 
-/// Shared in-memory container, date, and ride helpers for unit tests.
+/// Shared in-memory container, date, and workout helpers for unit tests.
 enum TestSupport {
     static func inMemoryContainer() throws -> ModelContainer {
         let schema = Schema([Program.self, Workout.self])
@@ -35,7 +35,7 @@ enum TestSupport {
         calendar.date(from: DateComponents(year: year, month: month, day: day, hour: hour, minute: minute))!
     }
 
-    static func ride(
+    static func workout(
         date: Date,
         program: Program? = nil,
         durationMinutes: Double = 30,

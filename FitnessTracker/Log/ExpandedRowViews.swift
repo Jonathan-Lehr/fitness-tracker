@@ -9,11 +9,11 @@ private extension Workout {
 }
 
 /// Vertical card for the wide (Mac / regular width) day columns.
-struct RideTile: View {
+struct WorkoutTile: View {
     let workout: Workout
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            RideImage(workout: workout, aspect: 2)
+            WorkoutImage(workout: workout, aspect: 2)
                 .overlay(alignment: .topLeading) {
                     TypeTag(type: workout.type).background(.regularMaterial, in: Capsule()).padding(8)
                 }
@@ -31,11 +31,11 @@ struct RideTile: View {
 }
 
 /// Full-width horizontal card for compact (iPhone) width.
-struct RideRowCard: View {
+struct WorkoutRowCard: View {
     let workout: Workout
     var body: some View {
         HStack(spacing: 12) {
-            RideImage(workout: workout, aspect: 4.0 / 3.0)
+            WorkoutImage(workout: workout, aspect: 4.0 / 3.0)
                 .frame(width: 112)
             VStack(alignment: .leading, spacing: 5) {
                 Text(workout.title).font(.headline).lineLimit(2, reservesSpace: true)
@@ -50,7 +50,7 @@ struct RideRowCard: View {
         }
         .background(LogSurface.card, in: RoundedRectangle(cornerRadius: 12))
         .clipShape(RoundedRectangle(cornerRadius: 12))
-        // No stroke: sits on the grouped listRowBackground; Mac RideTile keeps its border.
+        // No stroke: sits on the grouped listRowBackground; Mac WorkoutTile keeps its border.
     }
 }
 
@@ -64,10 +64,10 @@ struct DayHeader: View {
     }
 }
 
-/// Wide (Mac / regular) period section: adaptive day columns. Compact iPhone uses native List rows instead.
-struct RideGridSection: View {
+/// Wide (Mac / regular) period section: adaptive day columns. Compact (iPhone) width uses one List row per card instead.
+struct WorkoutDayColumnsSection: View {
     let workouts: [Workout]
-    /// Opens a single ride detail. Must not use NavigationLink here: several cards share one
+    /// Opens a single workout detail. Must not use NavigationLink here: several cards share one
     /// List row, and multiple NavigationLinks in that row can push several destinations at once.
     let onOpen: (Workout) -> Void
     let onDelete: (Workout) -> Void
@@ -81,7 +81,7 @@ struct RideGridSection: View {
                 VStack(alignment: .leading, spacing: 8) {
                     DayHeader(day: day.day)
                     ForEach(day.items) { workout in
-                        Button { onOpen(workout) } label: { RideTile(workout: workout) }
+                        Button { onOpen(workout) } label: { WorkoutTile(workout: workout) }
                             // borderless on Mac: List + .plain can still treat the enclosing
                             // row as the hit target and activate oddly with several buttons.
                             #if os(macOS)

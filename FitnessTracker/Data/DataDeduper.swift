@@ -2,10 +2,10 @@ import Foundation
 import SwiftData
 
 /// CloudKit can't enforce uniqueness, so two devices can create the same Program or
-/// Workout (e.g. both seed the real rides before syncing). This merges them.
+/// Workout (e.g. both seed the real workouts before syncing). This merges them.
 enum DataDeduper {
     static func key(title: String, date: Date) -> String {
-        // Minute precision: rides are entered from a screen that shows minutes only.
+        // Minute precision: workouts are entered from a screen that shows minutes only.
         let minute = Int(date.timeIntervalSinceReferenceDate / 60)
         return Program.normalizedTitleKey(title) + "|\(minute)"
     }
@@ -15,7 +15,7 @@ enum DataDeduper {
     static func run(_ context: ModelContext) {
         var changed = false
 
-        // 1. Programs with the same title (case-insensitive): keep the one with most rides.
+        // 1. Programs with the same title (case-insensitive): keep the one with most workouts.
         let programs = (try? context.fetch(FetchDescriptor<Program>())) ?? []
         let byTitle = Dictionary(grouping: programs) { Program.normalizedTitleKey($0.title) }
         for (_, group) in byTitle where group.count > 1 {

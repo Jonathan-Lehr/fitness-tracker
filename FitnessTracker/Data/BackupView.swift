@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
 
-/// Export / import of all rides as a versioned JSON backup.
+/// Export / import of all workouts as a versioned JSON backup.
 struct BackupView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
@@ -19,14 +19,14 @@ struct BackupView: View {
     @State private var errorMessage: String?
 
     private var realCount: Int { workouts.filter { !$0.isSimulated }.count }
-    /// Rides the export will include: all of them, or only real ones when simulated rides are excluded.
+    /// Workouts the export will include: all of them, or only real ones when simulated workouts are excluded.
     private var exportCount: Int { includeSimulated ? workouts.count : realCount }
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    Toggle("Include simulated rides", isOn: $includeSimulated)
+                    Toggle("Include simulated workouts", isOn: $includeSimulated)
                     Button {
                         startExport()
                     } label: {
@@ -35,7 +35,7 @@ struct BackupView: View {
                 } header: {
                     Text("Export")
                 } footer: {
-                    Text("Saves ^[\(exportCount) ride](inflect: true), with photos, to a JSON file.")
+                    Text("Saves ^[\(exportCount) workout](inflect: true), with photos, to a JSON file.")
                 }
 
                 Section {
@@ -51,8 +51,8 @@ struct BackupView: View {
                     Text("Import")
                 } footer: {
                     Text(importMode == .merge
-                         ? "Adds rides from the file and skips ones you already have (same program and start time)."
-                         : "Deletes all current rides and programs, then loads the file.")
+                         ? "Adds workouts from the file and skips ones you already have (same program and start time)."
+                         : "Deletes all current workouts and programs, then loads the file.")
                 }
             }
             .formStyle(.grouped)
@@ -70,7 +70,7 @@ struct BackupView: View {
                 Button("Replace All", role: .destructive) { applyPendingImport() }
                 Button("Cancel", role: .cancel) { pendingImport = nil }
             } message: {
-                Text("All current rides will be deleted first. Export a backup now if you might need them.")
+                Text("All current workouts will be deleted first. Export a backup now if you might need them.")
             }
             .alert("Import Complete", isPresented: .isPresented($resultMessage)) {
                 Button("OK") {}

@@ -80,7 +80,7 @@ private struct WorkoutFormEditor: View {
             }
         }
         .formStyle(.grouped)
-        .navigationTitle(editing.isEditingExisting ? "Edit Ride" : "Add Ride")
+        .navigationTitle(editing.isEditingExisting ? "Edit Workout" : "Add Workout")
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel", action: onCancel)

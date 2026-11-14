@@ -79,7 +79,7 @@ struct PeriodSummaryCard: View {
                 statsGrid(columns: Self.wideColumns)
             } else {
                 // Narrow (iPhone portrait, narrow Mac): miles + chart, then a 3-column grid (2 rows):
-                // Rides | Time | Watts / RPM | Elevation | Calories.
+                // Workouts | Time | Watts / RPM | Elevation | Calories.
                 HStack(alignment: .bottom) {
                     PeriodSummaryHero(summary: summary, filtered: filtered)
                         .layoutPriority(1)

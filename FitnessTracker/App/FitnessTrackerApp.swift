@@ -55,7 +55,7 @@ struct FitnessTrackerApp: App {
                     .publisher(for: .NSPersistentStoreRemoteChange)
                     .debounce(for: .seconds(2), scheduler: RunLoop.main)) { _ in
                     DataDeduper.run(container.mainContext)
-                    // Picks up synced or restored rides whose photos haven't been analyzed.
+                    // Picks up synced or restored workouts whose photos haven't been analyzed.
                     Task { await ThumbnailFocusBackfill.run(container.mainContext) }
                 }
         }

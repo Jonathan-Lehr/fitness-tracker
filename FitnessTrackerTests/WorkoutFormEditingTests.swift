@@ -18,9 +18,9 @@ final class WorkoutFormEditingTests: XCTestCase {
         try context.fetch(FetchDescriptor<Workout>()).count
     }
 
-    private func insertSampleRide(into context: ModelContext) throws -> Workout {
+    private func insertSampleWorkout(into context: ModelContext) throws -> Workout {
         let program = Program.findOrCreate(title: "Green River Recovery Ride", in: context)
-        let workout = TestSupport.ride(
+        let workout = TestSupport.workout(
             date: date,
             program: program,
             durationMinutes: 42,
@@ -40,7 +40,7 @@ final class WorkoutFormEditingTests: XCTestCase {
         return workout
     }
 
-    func testNewRideIsNotPersistedUntilSave() throws {
+    func testNewWorkoutIsNotPersistedUntilSave() throws {
         let container = try makeContainer()
         let editing = WorkoutFormEditing.manualEntry(date: date, container: container)
         editing.workout.durationMinutes = 48
@@ -51,7 +51,7 @@ final class WorkoutFormEditingTests: XCTestCase {
         XCTAssertEqual(try workoutCount(freshContext), 0)
     }
 
-    func testSaveInsertsNewRideWithEnteredValues() throws {
+    func testSaveInsertsNewWorkoutWithEnteredValues() throws {
         let container = try makeContainer()
         let editing = WorkoutFormEditing.manualEntry(date: date, container: container)
         editing.title = "Mineral Bottom Endurance Ride"
@@ -70,9 +70,9 @@ final class WorkoutFormEditingTests: XCTestCase {
 
         try editing.save()
 
-        let rides = try ModelContext(container).fetch(FetchDescriptor<Workout>())
-        XCTAssertEqual(rides.count, 1)
-        let workout = try XCTUnwrap(rides.first)
+        let workouts = try ModelContext(container).fetch(FetchDescriptor<Workout>())
+        XCTAssertEqual(workouts.count, 1)
+        let workout = try XCTUnwrap(workouts.first)
         XCTAssertEqual(workout.title, "Mineral Bottom Endurance Ride")
         XCTAssertEqual(workout.date, date)
         XCTAssertEqual(workout.durationMinutes, 48)
@@ -91,7 +91,7 @@ final class WorkoutFormEditingTests: XCTestCase {
     func testEditCancelDoesNotLeakIntoMainContext() throws {
         let container = try makeContainer()
         let context = makeContext(container)
-        let workout = try insertSampleRide(into: context)
+        let workout = try insertSampleWorkout(into: context)
         do {
             let editing = try WorkoutFormEditing.editing(workout, container: container)
             editing.workout.durationMinutes = 99
@@ -116,7 +116,7 @@ final class WorkoutFormEditingTests: XCTestCase {
     func testEditSavePersistsChanges() throws {
         let container = try makeContainer()
         let context = makeContext(container)
-        let workout = try insertSampleRide(into: context)
+        let workout = try insertSampleWorkout(into: context)
         let editing = try WorkoutFormEditing.editing(workout, container: container)
 
         editing.workout.durationMinutes = 50

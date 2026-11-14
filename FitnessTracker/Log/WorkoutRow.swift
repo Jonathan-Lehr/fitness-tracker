@@ -11,7 +11,7 @@ struct WorkoutRow: View {
         return workout.date.formatted(showYear ? base.year() : base)
     }
 
-    /// "—" for a ride with no watts, matching the grid cards and the detail view.
+    /// "—" for a workout with no watts, matching the expanded cards and the detail view.
     private var wattsText: String {
         formattedAverageWatts(workout.avgWatts > 0 ? Double(workout.avgWatts) : nil, placeholder: "—")
     }

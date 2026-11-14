@@ -54,7 +54,7 @@ struct PastPeriodSummaryView: View {
     private var earliest: Date? { workouts.map(\.date).min() }
 
     /// The shown period: the selection clamped to [earliest workout's period, current period],
-    /// so it stays valid if rides are deleted or edited while the sheet is open.
+    /// so it stays valid if workouts are deleted or edited while the sheet is open.
     private var current: PastPeriodSelection { selection.clamped(earliest: earliest) }
     private var canGoBack: Bool { current.hasPrevious(earliest: earliest) }
     private var canGoForward: Bool { current.hasNext() }
@@ -76,7 +76,7 @@ struct PastPeriodSummaryView: View {
 
     var body: some View {
         let periodSummary = summary
-        let rides = periodWorkouts
+        let shownWorkouts = periodWorkouts
         NavigationStack {
             List {
                 Section {
@@ -85,13 +85,13 @@ struct PastPeriodSummaryView: View {
                 } footer: {
                     Text("Compared with the \(periodSummary.comparisonText).")
                 }
-                Section("Rides") {
-                    if rides.isEmpty {
-                        ContentUnavailableView("No Rides", systemImage: "bicycle",
-                                               description: Text(filtered ? "No rides this \(unit.lowercased()) match the filters."
-                                                                 : "No rides this \(unit.lowercased())."))
+                Section("Workouts") {
+                    if shownWorkouts.isEmpty {
+                        ContentUnavailableView("No Workouts", systemImage: "bicycle",
+                                               description: Text(filtered ? "No workouts this \(unit.lowercased()) match the filters."
+                                                                 : "No workouts this \(unit.lowercased())."))
                     }
-                    ForEach(rides) { workout in
+                    ForEach(shownWorkouts) { workout in
                         NavigationLink(value: workout) { WorkoutRow(workout: workout) }
                     }
                 }

@@ -1,11 +1,11 @@
 import Foundation
 import CoreGraphics
 
-/// Builds card thumbnails from a ride's saved (already downscaled) photo.
+/// Builds card thumbnails from a workout's saved (already downscaled) photo.
 /// The saved photo is never modified; thumbnails are derived and cached in memory only.
 enum ThumbnailCropper {
-    /// Source band (fractions of image size). iFit summary screens put the scenery/rider header
-    /// above the title and stats panel, with "Nice job!" text on the left, so the rider usually
+    /// Source band (fractions of image size). iFit summary screens put the scenery/person header
+    /// above the title and stats panel, with "Nice job!" text on the left, so the person usually
     /// sits right of center. The band starts near the top so heads aren't cut; camera shots may
     /// show a sliver of bezel at the top instead.
     static let bandTop = 0.05
@@ -106,7 +106,7 @@ actor ThumbnailStore {
         return cache
     }()
 
-    /// Includes the focus so a ride re-crops once the backfill (or a new photo) changes it.
+    /// Includes the focus so a workout re-crops once the backfill (or a new photo) changes it.
     static func key(id: String, data: Data, aspect: Double, focus: CGRect? = nil) -> String {
         "\(id)|\(data.count)|\(data.hashValue)|\(Int(aspect * 100))|\(focusKey(focus))"
     }

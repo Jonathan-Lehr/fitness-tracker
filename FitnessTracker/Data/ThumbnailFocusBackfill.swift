@@ -1,10 +1,10 @@
 import Foundation
 import SwiftData
 
-/// Analyzes ride photos that have no thumbnail focus yet: rides saved before smart cropping, rides
-/// restored from older backups, and rides analyzed by an older `ThumbnailFocusFinder.analysisVersion`.
+/// Analyzes workout photos that have no thumbnail focus yet: workouts saved before smart cropping, workouts
+/// restored from older backups, and workouts analyzed by an older `ThumbnailFocusFinder.analysisVersion`.
 /// Photos are analyzed one at a time on a background task; results are applied and saved on the
-/// main context so open thumbnails re-crop right away. Rides where Vision found nothing are marked
+/// main context so open thumbnails re-crop right away. Workouts where Vision found nothing are marked
 /// analyzed (focus nil) and skipped from then on.
 @MainActor
 enum ThumbnailFocusBackfill {
@@ -31,7 +31,7 @@ enum ThumbnailFocusBackfill {
         return ((try? context.fetch(descriptor)) ?? []).filter(\.needsThumbnailFocusAnalysis)
     }
 
-    /// The ride may have been deleted (e.g. by DataDeduper) or given a new photo while Vision ran.
+    /// The workout may have been deleted (e.g. by DataDeduper) or given a new photo while Vision ran.
     private static func isStillCurrent(_ workout: Workout, photo: Data) -> Bool {
         !workout.isDeleted && workout.modelContext != nil && workout.photoData == photo
     }

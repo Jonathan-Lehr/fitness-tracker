@@ -5,7 +5,7 @@ struct LogFilter: Equatable {
     var startDate = Calendar.app.date(byAdding: .month, value: -3, to: .now) ?? .now
     var endDate = Date.now
     var programTitle: String? = nil
-    var type: WorkoutType? = nil
+    var type: TrainingType? = nil
     var minWatts = 0
 
     var isActive: Bool { useDateRange || programTitle != nil || type != nil || minWatts > 0 }

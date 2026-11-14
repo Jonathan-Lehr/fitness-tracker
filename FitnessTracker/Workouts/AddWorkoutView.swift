@@ -6,9 +6,9 @@ import UniformTypeIdentifiers
 import UIKit
 #endif
 
-/// Photo-first Add Ride: take/choose a photo of the iFit summary screen, OCR it,
+/// Photo-first Add Workout: take/choose a photo of the iFit summary screen, OCR it,
 /// then review the prefilled form. "Enter manually" opens the empty form.
-struct AddRideView: View {
+struct AddWorkoutView: View {
     private enum Stage {
         case choose
         case processing
@@ -61,7 +61,7 @@ struct AddRideView: View {
                 .padding(.bottom)
             }
             .padding()
-            .navigationTitle("Add Ride")
+            .navigationTitle("Add Workout")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
             }

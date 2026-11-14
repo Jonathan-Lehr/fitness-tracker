@@ -13,8 +13,8 @@ final class PeriodSummaryTests: XCTestCase {
         TestSupport.date(year: year, month: month, day: day, hour: hour, calendar: calendar)
     }
 
-    func ride(_ date: Date, _ miles: Double, minutes: Double = 30, calories: Int = 300, elevationFeet: Int = 500) -> Workout {
-        TestSupport.ride(
+    func workout(_ date: Date, _ miles: Double, minutes: Double = 30, calories: Int = 300, elevationFeet: Int = 500) -> Workout {
+        TestSupport.workout(
             date: date,
             durationMinutes: minutes,
             distanceMiles: miles,
@@ -29,17 +29,17 @@ final class PeriodSummaryTests: XCTestCase {
     // Year  = Fri Oct 23 2025 … Oct 22 2026
     lazy var now = date(2026, 10, 22)
 
-    lazy var rides: [Workout] = [
-        ride(date(2026, 10, 12, 14), 10.02),          // prior 7 days
-        ride(date(2026, 10, 15, 12), 13.88),          // prior 7 days
-        ride(date(2026, 10, 18, 15), 9.50),           // last 7 days
-        ride(date(2026, 10, 20, 16), 9.85, minutes: 48, calories: 376, elevationFeet: 1542), // last 7 days
-        ride(date(2026, 9, 30), 5.0),                 // last 30 days
-        ride(date(2025, 12, 31, 23), 20.0),           // last 365 days only
+    lazy var workouts: [Workout] = [
+        workout(date(2026, 10, 12, 14), 10.02),          // prior 7 days
+        workout(date(2026, 10, 15, 12), 13.88),          // prior 7 days
+        workout(date(2026, 10, 18, 15), 9.50),           // last 7 days
+        workout(date(2026, 10, 20, 16), 9.85, minutes: 48, calories: 376, elevationFeet: 1542), // last 7 days
+        workout(date(2026, 9, 30), 5.0),                 // last 30 days
+        workout(date(2025, 12, 31, 23), 20.0),           // last 365 days only
     ]
 
     func testWeekTotalsAndDelta() {
-        let summary = PeriodSummary.compute(rides, period: .week, now: now, calendar: calendar)
+        let summary = PeriodSummary.compute(workouts, period: .week, now: now, calendar: calendar)
         XCTAssertEqual(summary.interval.start, date(2026, 10, 16, 0))
         XCTAssertEqual(summary.interval.end, date(2026, 10, 23, 0))
         XCTAssertEqual(summary.current.count, 2)
@@ -55,7 +55,7 @@ final class PeriodSummaryTests: XCTestCase {
     }
 
     func testWeekBucketsAreSevenDaysEndingToday() {
-        let summary = PeriodSummary.compute(rides, period: .week, now: now, calendar: calendar)
+        let summary = PeriodSummary.compute(workouts, period: .week, now: now, calendar: calendar)
         XCTAssertEqual(summary.buckets.count, 7)
         XCTAssertEqual(summary.buckets.first?.start, date(2026, 10, 16, 0))
         XCTAssertEqual(summary.buckets.last?.start, date(2026, 10, 22, 0))
@@ -66,7 +66,7 @@ final class PeriodSummaryTests: XCTestCase {
     }
 
     func testMonthIsLast30Days() {
-        let summary = PeriodSummary.compute(rides, period: .month, now: now, calendar: calendar)
+        let summary = PeriodSummary.compute(workouts, period: .month, now: now, calendar: calendar)
         XCTAssertEqual(summary.interval.start, date(2026, 9, 23, 0))
         XCTAssertEqual(summary.current.count, 5)
         XCTAssertEqual(summary.current.miles, 48.25, accuracy: 0.001)
@@ -76,7 +76,7 @@ final class PeriodSummaryTests: XCTestCase {
     }
 
     func testMonthBucketsDailyLabeledWeeklyFromToday() {
-        let summary = PeriodSummary.compute(rides, period: .month, now: now, calendar: calendar)
+        let summary = PeriodSummary.compute(workouts, period: .month, now: now, calendar: calendar)
         XCTAssertEqual(summary.buckets.count, 30)
         XCTAssertEqual(summary.buckets.last?.start, date(2026, 10, 22, 0))
         XCTAssertEqual(summary.buckets.compactMap(\.label), ["24", "1", "8", "15", "22"])
@@ -85,7 +85,7 @@ final class PeriodSummaryTests: XCTestCase {
     }
 
     func testYearIsLast365DaysWithTwelveMonthlyBuckets() {
-        let summary = PeriodSummary.compute(rides, period: .year, now: now, calendar: calendar)
+        let summary = PeriodSummary.compute(workouts, period: .year, now: now, calendar: calendar)
         XCTAssertEqual(summary.interval.start, date(2025, 10, 23, 0))
         XCTAssertEqual(summary.current.count, 6)
         XCTAssertEqual(summary.current.miles, 68.25, accuracy: 0.001)
@@ -112,7 +112,7 @@ final class PeriodSummaryTests: XCTestCase {
         let startOfWindow = date(2026, 10, 16, 0)
         let justBefore = startOfWindow.addingTimeInterval(-60)
         let lateToday = date(2026, 10, 22, 23)
-        let summary = PeriodSummary.compute([ride(startOfWindow, 3), ride(justBefore, 4), ride(lateToday, 5)],
+        let summary = PeriodSummary.compute([workout(startOfWindow, 3), workout(justBefore, 4), workout(lateToday, 5)],
                                       period: .week, now: now, calendar: calendar)
         XCTAssertEqual(summary.current.count, 2)   // midnight Oct 16 and late today
         XCTAssertEqual(summary.previous.count, 1)  // 11:59 PM Oct 15
@@ -128,15 +128,15 @@ final class PeriodSummaryTests: XCTestCase {
     }
 
     func testPerMetricDeltasWeek() {
-        // Last 7 days: 2 rides, 78 min, 676 cal, 2042 ft. Prior 7: 2 rides, 60 min, 600 cal, 1000 ft.
-        let summary = PeriodSummary.compute(rides, period: .week, now: now, calendar: calendar)
-        XCTAssertEqual(summary.ridesDelta, 0)
+        // Last 7 days: 2 workouts, 78 min, 676 cal, 2042 ft. Prior 7: 2 workouts, 60 min, 600 cal, 1000 ft.
+        let summary = PeriodSummary.compute(workouts, period: .week, now: now, calendar: calendar)
+        XCTAssertEqual(summary.workoutsDelta, 0)
         XCTAssertEqual(summary.minutesDelta, 18)
         XCTAssertEqual(summary.caloriesDelta, 76)
         XCTAssertEqual(summary.feetDelta, 1042)
         let usLocale = Locale(identifier: "en_US")
         let german = Locale(identifier: "de_DE")
-        XCTAssertEqual(summary.deltaText(.rides, locale: usLocale), "– 0")
+        XCTAssertEqual(summary.deltaText(.workouts, locale: usLocale), "– 0")
         XCTAssertEqual(summary.deltaText(.time, locale: usLocale), "▲ 18m")
         XCTAssertEqual(summary.deltaText(.calories, locale: usLocale), "▲ 76 cal")
         XCTAssertEqual(summary.deltaText(.elevation, locale: usLocale), "▲ 1,042 ft")
@@ -147,10 +147,10 @@ final class PeriodSummaryTests: XCTestCase {
     }
 
     func testPerMetricDeltasDownAndHours() {
-        let summary = PeriodSummary.compute([ride(date(2026, 10, 14), 20, minutes: 95, calories: 800, elevationFeet: 900)],
+        let summary = PeriodSummary.compute([workout(date(2026, 10, 14), 20, minutes: 95, calories: 800, elevationFeet: 900)],
                                       period: .week, now: now, calendar: calendar)
-        XCTAssertEqual(summary.ridesDelta, -1)
-        XCTAssertEqual(summary.deltaText(.rides), "▼ 1")
+        XCTAssertEqual(summary.workoutsDelta, -1)
+        XCTAssertEqual(summary.deltaText(.workouts), "▼ 1")
         XCTAssertEqual(summary.deltaText(.time), "▼ 1h 35m")
         XCTAssertEqual(summary.deltaText(.calories), "▼ 800 cal")
         XCTAssertEqual(summary.deltaText(.elevation), "▼ 900 ft")
@@ -169,7 +169,7 @@ final class PeriodSummaryTests: XCTestCase {
     }
 
     func testDeltaTextUsesWholeMilesAt100() {
-        let big = (1...12).map { ride(date(2026, 10, $0), 10) }   // 120 mi this month (Oct 1–12), 0 last month
+        let big = (1...12).map { workout(date(2026, 10, $0), 10) }   // 120 mi this month (Oct 1–12), 0 last month
         let summary = PeriodSummary.compute(big, period: .month, now: now, calendar: calendar)
         XCTAssertEqual(summary.current.miles, 120, accuracy: 0.001)
         XCTAssertTrue(summary.deltaText.hasPrefix("+120 mi"), summary.deltaText)
@@ -252,33 +252,33 @@ final class WattsRPMTests: XCTestCase {
         TestSupport.date(year: year, month: month, day: day, hour: hour, calendar: calendar)
     }
 
-    func ride(_ date: Date, minutes: Double, watts: Int, rpm: Int) -> Workout {
-        TestSupport.ride(date: date, durationMinutes: minutes, avgRPM: rpm, avgWatts: watts)
+    func workout(_ date: Date, minutes: Double, watts: Int, rpm: Int) -> Workout {
+        TestSupport.workout(date: date, durationMinutes: minutes, avgRPM: rpm, avgWatts: watts)
     }
     lazy var now = date(2026, 10, 22)
 
     func testTimeWeightedAverages() {
         // 60 min @ 100 W / 80 rpm and 30 min @ 70 W / 74 rpm → (6000+2100)/90 = 90 W, (4800+2220)/90 = 78 rpm.
-        let totals = Totals([ride(now, minutes: 60, watts: 100, rpm: 80), ride(now, minutes: 30, watts: 70, rpm: 74)])
+        let totals = Totals([workout(now, minutes: 60, watts: 100, rpm: 80), workout(now, minutes: 30, watts: 70, rpm: 74)])
         XCTAssertEqual(totals.averageWatts ?? -1, 90, accuracy: 0.001)
         XCTAssertEqual(totals.averageRPM ?? -1, 78, accuracy: 0.001)
     }
 
-    func testRidesWithoutValueAreIgnored() {
-        // A ride with 0 W / 0 rpm (not recorded) doesn't drag the average down.
-        let totals = Totals([ride(now, minutes: 45, watts: 88, rpm: 75), ride(now, minutes: 45, watts: 0, rpm: 0)])
+    func testWorkoutsWithoutValueAreIgnored() {
+        // A workout with 0 W / 0 rpm (not recorded) doesn't drag the average down.
+        let totals = Totals([workout(now, minutes: 45, watts: 88, rpm: 75), workout(now, minutes: 45, watts: 0, rpm: 0)])
         XCTAssertEqual(totals.averageWatts ?? -1, 88, accuracy: 0.001)
         XCTAssertEqual(totals.averageRPM ?? -1, 75, accuracy: 0.001)
     }
 
     func testSimpleMeanWhenNoDurations() {
-        let totals = Totals([ride(now, minutes: 0, watts: 80, rpm: 70), ride(now, minutes: 0, watts: 90, rpm: 80)])
+        let totals = Totals([workout(now, minutes: 0, watts: 80, rpm: 70), workout(now, minutes: 0, watts: 90, rpm: 80)])
         XCTAssertEqual(totals.averageWatts ?? -1, 85, accuracy: 0.001)
         XCTAssertEqual(totals.averageRPM ?? -1, 75, accuracy: 0.001)
     }
 
     func testMissingValuesShowDash() {
-        let totals = Totals([ride(now, minutes: 30, watts: 0, rpm: 0)])
+        let totals = Totals([workout(now, minutes: 30, watts: 0, rpm: 0)])
         XCTAssertNil(totals.averageWatts)
         XCTAssertNil(Totals([]).averageRPM)
         let summary = PeriodSummary.compute([], period: .week, now: now, calendar: calendar)
@@ -290,12 +290,12 @@ final class WattsRPMTests: XCTestCase {
     }
 
     func testDeltasVsPriorWindow() {
-        let rides = [
-            ride(date(2026, 10, 20), minutes: 48, watts: 88, rpm: 75),   // last 7 days
-            ride(date(2026, 10, 18), minutes: 46, watts: 97, rpm: 74),   // last 7 days
-            ride(date(2026, 10, 12), minutes: 42, watts: 79, rpm: 79),   // prior 7 days
+        let workouts = [
+            workout(date(2026, 10, 20), minutes: 48, watts: 88, rpm: 75),   // last 7 days
+            workout(date(2026, 10, 18), minutes: 46, watts: 97, rpm: 74),   // last 7 days
+            workout(date(2026, 10, 12), minutes: 42, watts: 79, rpm: 79),   // prior 7 days
         ]
-        let summary = PeriodSummary.compute(rides, period: .week, now: now, calendar: calendar)
+        let summary = PeriodSummary.compute(workouts, period: .week, now: now, calendar: calendar)
         // Current: (88*48 + 97*46)/94 = 92.4 → 92 W; (75*48 + 74*46)/94 = 74.5 → 75 rpm (rounded)
         XCTAssertEqual(summary.valueText(.watts).value, "92 W")
         XCTAssertEqual(summary.valueText(.watts).label, "Watts")
@@ -308,7 +308,7 @@ final class WattsRPMTests: XCTestCase {
     }
 
     func testNoPriorDataGivesDash() {
-        let summary = PeriodSummary.compute([ride(date(2026, 10, 20), minutes: 48, watts: 88, rpm: 75)],
+        let summary = PeriodSummary.compute([workout(date(2026, 10, 20), minutes: 48, watts: 88, rpm: 75)],
                                       period: .week, now: now, calendar: calendar)
         XCTAssertEqual(summary.valueText(.watts).value, "88 W")
         XCTAssertEqual(summary.valueText(.rpm).value, "75")
@@ -317,7 +317,7 @@ final class WattsRPMTests: XCTestCase {
     }
 
     func testMetricOrder() {
-        XCTAssertEqual(PeriodSummary.Metric.allCases, [.rides, .time, .watts, .rpm, .elevation, .calories])
+        XCTAssertEqual(PeriodSummary.Metric.allCases, [.workouts, .time, .watts, .rpm, .elevation, .calories])
     }
 
     func testStatDeltaTrend() {

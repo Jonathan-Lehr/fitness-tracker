@@ -144,10 +144,10 @@ extension PeriodSummaryCard {
         return ceil(max(grid, heroRow, picker))
     }
 
-    /// Longest realistic text per stat over a 365-day window (≈ a ride a day).
+    /// Longest realistic text per stat over a 365-day window (≈ a workout a day).
     private static func worstCase(_ metric: PeriodSummary.Metric) -> (value: String, delta: String) {
         switch metric {
-        case .rides: ("888", "▲ 888")
+        case .workouts: ("888", "▲ 888")
         case .time: ("888h 88m", "▲ 888h 88m")
         case .watts: ("888 W", "▲ 888 W")
         case .rpm: ("188", "▲ 88 rpm")

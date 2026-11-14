@@ -8,15 +8,15 @@ final class DataDeduperTests: XCTestCase {
         try TestSupport.inMemoryContext()
     }
 
-    func testSeedTwiceThenDedupeLeavesFourRides() throws {
+    func testSeedTwiceThenDedupeLeavesFourWorkouts() throws {
         let context = try makeContext()
         // Simulates two devices each seeding before sync, then merging.
-        SeedData.insertRealRides(context)
+        SeedData.insertRealWorkouts(context)
         let date = Date(timeIntervalSince1970: 1_760_000_000)
         for _ in 0..<2 {
             let program = Program(title: "Green River Recovery Ride")
             context.insert(program)
-            context.insert(TestSupport.ride(
+            context.insert(TestSupport.workout(
                 date: date,
                 program: program,
                 durationMinutes: 1,
@@ -39,14 +39,14 @@ final class DataDeduperTests: XCTestCase {
         XCTAssertEqual(programs.first { $0.title == "Green River Recovery Ride" }?.workouts?.count, 2)
     }
 
-    func testInsertRealRidesSkipsExisting() throws {
+    func testInsertRealWorkoutsSkipsExisting() throws {
         let context = try makeContext()
-        SeedData.insertRealRides(context)
-        SeedData.insertRealRides(context)
+        SeedData.insertRealWorkouts(context)
+        SeedData.insertRealWorkouts(context)
         XCTAssertEqual(try context.fetch(FetchDescriptor<Workout>()).count, 4)
     }
 
-    func testKeepsProgramWithMoreRidesAndReassignsWorkouts() throws {
+    func testKeepsProgramWithMoreWorkoutsAndReassignsWorkouts() throws {
         let context = try makeContext()
         let keeper = Program(title: "Hill Climb")
         let duplicate = Program(title: "hill climb")
@@ -55,9 +55,9 @@ final class DataDeduperTests: XCTestCase {
         let firstDate = Date(timeIntervalSinceReferenceDate: 60 * 10_000)
         let secondDate = Date(timeIntervalSinceReferenceDate: 60 * 10_001)
         let thirdDate = Date(timeIntervalSinceReferenceDate: 60 * 10_002)
-        context.insert(TestSupport.ride(date: firstDate, program: keeper))
-        context.insert(TestSupport.ride(date: secondDate, program: keeper))
-        context.insert(TestSupport.ride(date: thirdDate, program: duplicate))
+        context.insert(TestSupport.workout(date: firstDate, program: keeper))
+        context.insert(TestSupport.workout(date: secondDate, program: keeper))
+        context.insert(TestSupport.workout(date: thirdDate, program: duplicate))
         try context.save()
 
         DataDeduper.run(context)
@@ -137,8 +137,8 @@ final class DataDeduperTests: XCTestCase {
         let program = Program.findOrCreate(title: "Hill Climb", in: context)
         let firstDate = Date(timeIntervalSinceReferenceDate: 60 * 10_000)
         let nextMinute = Date(timeIntervalSinceReferenceDate: 60 * 10_000 + 60)
-        context.insert(TestSupport.ride(date: firstDate, program: program))
-        context.insert(TestSupport.ride(date: nextMinute, program: program))
+        context.insert(TestSupport.workout(date: firstDate, program: program))
+        context.insert(TestSupport.workout(date: nextMinute, program: program))
         try context.save()
 
         DataDeduper.run(context)
@@ -146,7 +146,7 @@ final class DataDeduperTests: XCTestCase {
         XCTAssertEqual(try context.fetch(FetchDescriptor<Workout>()).count, 2)
     }
 
-    /// Two rides on the same program in the same start minute, with optional per-ride extras.
+    /// Two workouts on the same program in the same start minute, with optional per-workout extras.
     private func insertDuplicatePair(
         into context: ModelContext,
         configureFirst: (Workout) -> Void,
@@ -155,10 +155,10 @@ final class DataDeduperTests: XCTestCase {
         let program = Program.findOrCreate(title: "Hill Climb", in: context)
         let firstDate = Date(timeIntervalSinceReferenceDate: 60 * 10_000)
         let sameMinute = Date(timeIntervalSinceReferenceDate: 60 * 10_000 + 30)
-        let firstWorkout = TestSupport.ride(date: firstDate, program: program)
+        let firstWorkout = TestSupport.workout(date: firstDate, program: program)
         configureFirst(firstWorkout)
         context.insert(firstWorkout)
-        let secondWorkout = TestSupport.ride(date: sameMinute, program: program)
+        let secondWorkout = TestSupport.workout(date: sameMinute, program: program)
         configureSecond(secondWorkout)
         context.insert(secondWorkout)
         try context.save()

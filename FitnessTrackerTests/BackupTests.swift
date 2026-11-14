@@ -15,7 +15,7 @@ final class BackupTests: XCTestCase {
 
     func testRoundTripEncodeDecode() throws {
         let context = try makeContext()
-        SeedData.insertRealRides(context)
+        SeedData.insertRealWorkouts(context)
         let workout = try context.fetch(FetchDescriptor<Workout>()).first!
         workout.notes = "Felt strong"
         workout.photoData = Data([0xFF, 0xD8, 0xFF, 0x01])
@@ -36,10 +36,10 @@ final class BackupTests: XCTestCase {
 
     func testExportExcludesSimulatedByDefault() throws {
         let context = try makeContext()
-        SeedData.insertRealRides(context)
+        SeedData.insertRealWorkouts(context)
         let program = Program(title: "Fake Climb")
         context.insert(program)
-        context.insert(TestSupport.ride(
+        context.insert(TestSupport.workout(
             date: .now,
             program: program,
             durationMinutes: 1,
@@ -59,10 +59,10 @@ final class BackupTests: XCTestCase {
 
     func testMergeSkipsDuplicatesAndAddsNew() throws {
         let source = try makeContext()
-        SeedData.insertRealRides(source)
+        SeedData.insertRealWorkouts(source)
         let program = Program(title: "Delicate Arch Climb")
         source.insert(program)
-        source.insert(TestSupport.ride(
+        source.insert(TestSupport.workout(
             date: Date(timeIntervalSince1970: 1_760_500_000),
             program: program,
             durationMinutes: 35,
@@ -79,7 +79,7 @@ final class BackupTests: XCTestCase {
         let backup = try BackupService.decode(BackupService.encode(BackupService.makeBackup(source)))
 
         let target = try makeContext()
-        SeedData.insertRealRides(target)            // already has the 4 real rides
+        SeedData.insertRealWorkouts(target)            // already has the 4 real workouts
         let summary = BackupService.importBackup(backup, into: target, mode: .merge)
         XCTAssertEqual(summary.workoutsAdded, 1)
         XCTAssertEqual(summary.workoutsSkipped, 4)
@@ -96,13 +96,13 @@ final class BackupTests: XCTestCase {
 
     func testReplaceDeletesExistingFirst() throws {
         let source = try makeContext()
-        SeedData.insertRealRides(source)
+        SeedData.insertRealWorkouts(source)
         let backup = BackupService.makeBackup(source)
 
         let target = try makeContext()
         let program = Program(title: "Something Else")
         target.insert(program)
-        target.insert(TestSupport.ride(
+        target.insert(TestSupport.workout(
             date: .now,
             program: program,
             durationMinutes: 1,
@@ -154,7 +154,7 @@ final class BackupTests: XCTestCase {
 
     private func backupWithFocusedPhoto() throws -> BackupFile {
         let context = try makeContext()
-        SeedData.insertRealRides(context)
+        SeedData.insertRealWorkouts(context)
         let workout = try context.fetch(FetchDescriptor<Workout>()).first!
         workout.replacePhoto(with: Data([0xFF, 0xD8, 0xFF, 0x01]), analysis: ThumbnailFocusAnalysis(focus: focus))
         // Whole seconds, since the file stores milliseconds.

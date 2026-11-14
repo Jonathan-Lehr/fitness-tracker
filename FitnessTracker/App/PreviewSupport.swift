@@ -15,7 +15,7 @@ enum PreviewSupport {
         )
         do {
             let container = try ModelContainer(for: schema, configurations: [configuration])
-            SeedData.insertRealRides(container.mainContext)
+            SeedData.insertRealWorkouts(container.mainContext)
             return container
         } catch {
             fatalError("Could not create preview container: \(error)")
@@ -29,7 +29,7 @@ enum PreviewSupport {
 
     static func sampleWorkout(in container: ModelContainer) -> Workout {
         guard let workout = workouts(in: container).first else {
-            fatalError("Preview container has no rides")
+            fatalError("Preview container has no workouts")
         }
         return workout
     }

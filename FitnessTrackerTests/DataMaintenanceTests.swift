@@ -6,7 +6,7 @@ import SwiftData
 final class DataMaintenanceTests: XCTestCase {
     func testDeleteAllRemovesWorkoutsAndPrograms() throws {
         let context = try TestSupport.inMemoryContext()
-        SeedData.insertRealRides(context)
+        SeedData.insertRealWorkouts(context)
         XCTAssertEqual(try context.fetch(FetchDescriptor<Workout>()).count, 4)
         XCTAssertEqual(try context.fetch(FetchDescriptor<Program>()).count, 4)
 
@@ -16,18 +16,18 @@ final class DataMaintenanceTests: XCTestCase {
         XCTAssertEqual(try context.fetch(FetchDescriptor<Program>()).count, 0)
     }
 
-    func testDeleteAllSimulatedOnlyLeavesRealRides() throws {
+    func testDeleteAllSimulatedOnlyLeavesRealWorkouts() throws {
         let context = try TestSupport.inMemoryContext()
-        SeedData.insertRealRides(context)
+        SeedData.insertRealWorkouts(context)
         let realProgram = Program.findOrCreate(title: "Green River Recovery Ride", in: context)
         let simulatedOnlyProgram = Program(title: "Fake Climb")
         context.insert(simulatedOnlyProgram)
-        context.insert(TestSupport.ride(
+        context.insert(TestSupport.workout(
             date: Date(timeIntervalSince1970: 1_770_000_000),
             program: realProgram,
             isSimulated: true
         ))
-        context.insert(TestSupport.ride(
+        context.insert(TestSupport.workout(
             date: Date(timeIntervalSince1970: 1_770_100_000),
             program: simulatedOnlyProgram,
             isSimulated: true

@@ -5,9 +5,9 @@ final class InflectionTests: XCTestCase {
     private let usLocale = Locale(identifier: "en_US")
 
     func testInflectedAgreesWithTheCount() {
-        XCTAssertEqual(inflected("^[\(0) ride](inflect: true)", locale: usLocale), "0 rides")
-        XCTAssertEqual(inflected("^[\(1) ride](inflect: true)", locale: usLocale), "1 ride")
-        XCTAssertEqual(inflected("^[\(2) ride](inflect: true)", locale: usLocale), "2 rides")
+        XCTAssertEqual(inflected("^[\(0) workout](inflect: true)", locale: usLocale), "0 workouts")
+        XCTAssertEqual(inflected("^[\(1) workout](inflect: true)", locale: usLocale), "1 workout")
+        XCTAssertEqual(inflected("^[\(2) workout](inflect: true)", locale: usLocale), "2 workouts")
     }
 
     func testInflectedKeepsTheSurroundingText() {

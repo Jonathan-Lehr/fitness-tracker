@@ -11,17 +11,18 @@ struct LogView: View {
     @State private var showDebug = false
     @State private var showBackup = false
     @State private var pastPeriod: PastPeriodSelection?
-    @AppStorage("logLayout") private var layout: LogLayout = .grid
-    /// Explicit path so grid cards (several per List row) append exactly one destination.
+    /// Stored under the old "logLayout" key so the saved choice survives the rename.
+    @AppStorage("logLayout") private var rowStyle: RowStyle = .expanded
+    /// Explicit path so expanded cards (several per List row) append exactly one destination.
     @State private var path = NavigationPath()
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var sizeClass
-    private var wideGrid: Bool { sizeClass == .regular }
+    private var usesDayColumns: Bool { sizeClass == .regular }
     #else
-    private let wideGrid = true
+    private let usesDayColumns = true
     #endif
 
-    private var layoutPlacement: ToolbarItemPlacement {
+    private var rowStylePlacement: ToolbarItemPlacement {
         #if os(iOS)
         .topBarLeading
         #else
@@ -34,18 +35,18 @@ struct LogView: View {
         let sections = periodSections(from: filteredWorkouts)
         NavigationStack(path: $path) {
             listBody(sections: sections, filteredWorkouts: filteredWorkouts)
-            .navigationTitle("Rides")
+            .navigationTitle("Workouts")
             .navigationDestination(for: Workout.self) { WorkoutDetailView(workout: $0) }
             .toolbar {
                 // Leading placement puts the control in its own group, away from Add/Filters/More.
                 // On iOS 26+ the shared glass background is hidden so the segmented control isn't
                 // wrapped in the toolbar's button chrome (the earlier "button within a button").
-                ToolbarItem(placement: layoutPlacement) {
-                    LogLayoutPicker(layout: $layout)
+                ToolbarItem(placement: rowStylePlacement) {
+                    RowStylePicker(rowStyle: $rowStyle)
                 }
                 .hideSharedToolbarBackgroundIfAvailable()
                 ToolbarItem(placement: .primaryAction) {
-                    Button { showAdd = true } label: { Label("Add Ride", systemImage: "plus") }
+                    Button { showAdd = true } label: { Label("Add Workout", systemImage: "plus") }
                 }
                 ToolbarItem {
                     Button { showFilters = true } label: {
@@ -64,7 +65,7 @@ struct LogView: View {
                     }
                 }
             }
-            .sheet(isPresented: $showAdd) { AddRideView() }
+            .sheet(isPresented: $showAdd) { AddWorkoutView() }
             .sheet(isPresented: $showBackup) { BackupView() }
             .sheet(item: $pastPeriod) { selection in
                 PastPeriodSummaryView(selection: selection, workouts: filteredWorkouts, filtered: filter.isActive)
@@ -100,13 +101,13 @@ struct LogView: View {
     }
 
     private var emptyState: some View {
-        ContentUnavailableView("No Rides", systemImage: "bicycle",
-                               description: Text(filter.isActive ? "No rides match the filters." : "Add a ride to get started."))
+        ContentUnavailableView("No Workouts", systemImage: "bicycle",
+                               description: Text(filter.isActive ? "No workouts match the filters." : "Add a workout to get started."))
     }
 
-    /// One List for both modes: the summary card, empty state and period headers are the same
+    /// One List for both row styles: the summary card, empty state and period headers are the same
     /// views with the same list style, so they keep identical size and position when switching.
-    /// Grid (wide): one multi-column row. Grid (compact): one List row per day/card. List: ride rows.
+    /// Expanded (wide): one row of day columns. Expanded (narrow): one List row per card. Compact: text rows.
     private func listBody(sections: [(start: Date, workouts: [Workout])],
                           filteredWorkouts: [Workout]) -> some View {
         List {
@@ -139,32 +140,33 @@ struct LogView: View {
 
     @ViewBuilder
     private func sectionContent(for workouts: [Workout]) -> some View {
-        if layout == .grid && !wideGrid {
-            compactPhotoSection(workouts: workouts)
-        } else if layout == .grid {
+        if rowStyle == .expanded && !usesDayColumns {
+            expandedRowsSection(workouts: workouts)
+        } else if rowStyle == .expanded {
             // Mac / regular width: adaptive day columns in one List row.
-            RideGridSection(workouts: workouts,
+            WorkoutDayColumnsSection(workouts: workouts,
                              onOpen: { path.append($0) },
                              onDelete: { context.delete($0) })
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
                 .selectionDisabled(true)
         } else {
-            listSection(workouts: workouts)
+            compactRowsSection(workouts: workouts)
         }
     }
 
-    /// Compact iPhone photo-mode: one List row per ride, with a day header on the first ride of each day.
+    /// Expanded rows at compact (iPhone) width: one List row per workout, with a day header on the
+    /// first workout of each day.
     @ViewBuilder
-    private func compactPhotoSection(workouts: [Workout]) -> some View {
-        // One period Section; one List row per ride. Date above first ride of
+    private func expandedRowsSection(workouts: [Workout]) -> some View {
+        // One period Section; one List row per workout. Date above first workout of
         // that day (outside the Button). Keep ~20pt horizontal insets (widths
         // already correct); restore default grouped row backgrounds so the
         // section reads as aligned with the summary.
         let days = DayGroup.group(workouts, date: \.date)
         ForEach(days, id: \.day) { day in
             ForEach(Array(day.items.enumerated()), id: \.element.persistentModelID) { index, workout in
-                CompactPhotoRideRow(
+                ExpandedWorkoutRow(
                     day: day.day,
                     showDayHeader: index == 0,
                     isLastInSection: day.day == days.last?.day && index == day.items.count - 1,
@@ -176,8 +178,8 @@ struct LogView: View {
         }
     }
 
-    /// List-mode period section: text rows with swipe-to-delete.
-    private func listSection(workouts: [Workout]) -> some View {
+    /// Compact rows period section: text rows with swipe-to-delete.
+    private func compactRowsSection(workouts: [Workout]) -> some View {
         ForEach(workouts) { workout in
             NavigationLink(value: workout) { WorkoutRow(workout: workout) }
         }
@@ -187,11 +189,11 @@ struct LogView: View {
     }
 }
 
-/// Toolbar layout toggle: list or grid. Sizing lives here so the control keeps a full hit
-/// target; @ScaledMetric keeps it proportional with Dynamic Type.
-private struct LogLayoutPicker: View {
-    @Binding var layout: LogLayout
-    /// Per-segment width for the layout toggle (HIG minimum hit target on iOS; Mac controls are smaller).
+/// Toolbar row style toggle: expanded or compact. Sizing lives here so the control keeps a full
+/// hit target; @ScaledMetric keeps it proportional with Dynamic Type.
+private struct RowStylePicker: View {
+    @Binding var rowStyle: RowStyle
+    /// Per-segment width for the row style toggle (HIG minimum hit target on iOS; Mac controls are smaller).
     #if os(iOS)
     @ScaledMetric(relativeTo: .body) private var segmentWidth: CGFloat = 44
     #else
@@ -199,8 +201,8 @@ private struct LogLayoutPicker: View {
     #endif
 
     var body: some View {
-        Picker("Layout", selection: $layout) {
-            ForEach(LogLayout.allCases) { option in
+        Picker("Row Style", selection: $rowStyle) {
+            ForEach(RowStyle.allCases) { option in
                 // Image-only labels: Label+iconOnly can collapse to near-zero width
                 // in a toolbar segmented control under trailing-item pressure.
                 Image(systemName: option.systemImage).tag(option)
@@ -213,19 +215,19 @@ private struct LogLayoutPicker: View {
         // that fitted width, and the outer minWidth frame only padded around it without
         // widening the control. Sizing the Picker itself gives each segment a full hit
         // target; @ScaledMetric keeps it proportional with Dynamic Type.
-        .frame(width: segmentWidth * CGFloat(LogLayout.allCases.count))
-        .help("Show rides as a list or a grid")
-        .accessibilityLabel("Layout")
+        .frame(width: segmentWidth * CGFloat(RowStyle.allCases.count))
+        .help("Show workouts as expanded or compact rows")
+        .accessibilityLabel("Row Style")
     }
 }
 
-/// One compact photo-mode List row: optional day label + tappable card.
+/// One expanded List row at compact width: optional day label + tappable card.
 /// Extracted so `listBody` type-checks. Default grouped `listRowBackground` (same family as
 /// the summary row) so the period section reads as aligned; horizontal insets stay ~20.
-private struct CompactPhotoRideRow: View {
+private struct ExpandedWorkoutRow: View {
     let day: Date
     let showDayHeader: Bool
-    /// Extra 6pt inside the section fill on the period's last ride row only.
+    /// Extra 6pt inside the section fill on the period's last workout row only.
     let isLastInSection: Bool
     let workout: Workout
     let onOpen: () -> Void
@@ -234,7 +236,7 @@ private struct CompactPhotoRideRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             if showDayHeader { DayHeader(day: day) }
-            Button(action: onOpen) { RideRowCard(workout: workout) }
+            Button(action: onOpen) { WorkoutRowCard(workout: workout) }
                 .buttonStyle(.plain)
         }
         .listRowInsets(EdgeInsets(top: showDayHeader ? 8 : 4, leading: 20,
@@ -260,7 +262,7 @@ struct SectionHeader: View {
     let totals: Totals
     /// Shows a chevron marking the header as tappable (opens the period's summary).
     var showsDisclosure = false
-    /// Duration-weighted average watts (rides without watts skipped); "— W" if none recorded.
+    /// Duration-weighted average watts (workouts without watts skipped); "— W" if none recorded.
     private var wattsText: String {
         formattedAverageWatts(totals.averageWatts, placeholder: "— W")
     }
@@ -268,7 +270,7 @@ struct SectionHeader: View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.headline)
-                Text("^[\(totals.count) ride](inflect: true) · \(totals.minutes.formattedMinutes()) · \(wattsText) · \(totals.feet.formattedWholeNumber()) ft")
+                Text("^[\(totals.count) workout](inflect: true) · \(totals.minutes.formattedMinutes()) · \(wattsText) · \(totals.feet.formattedWholeNumber()) ft")
                     .font(.subheadline)
             }
             Spacer()

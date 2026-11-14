@@ -43,7 +43,7 @@ final class ScreenStraightenerTests: XCTestCase {
     private func reading(fields: Int) -> OCRReading {
         var summary = IFitSummary()
         let setters: [(inout IFitSummary) -> Void] = [
-            { $0.title = "Ride" }, { $0.date = .now }, { $0.durationMinutes = 30 }, { $0.distanceMiles = 8 },
+            { $0.title = "Workout" }, { $0.date = .now }, { $0.durationMinutes = 30 }, { $0.distanceMiles = 8 },
             { $0.calories = 300 }, { $0.elevationFeet = 500 }, { $0.avgRPM = 75 }, { $0.avgWatts = 90 },
             { $0.inclineAvg = 2 }, { $0.inclineMax = 8 }, { $0.resistanceAvg = 10 }, { $0.resistanceMax = 14 },
         ]

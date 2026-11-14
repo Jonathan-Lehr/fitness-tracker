@@ -42,7 +42,7 @@ struct WorkoutDTO: Codable, Equatable {
     /// Base64 JPEG in JSON (Data's default Codable representation).
     var photoData: Data?
     var isSimulated: Bool
-    /// Thumbnail framing for `photoData`. Optional so backups made before #51 still decode; rides
+    /// Thumbnail framing for `photoData`. Optional so backups made before #51 still decode; workouts
     /// restored without it are analyzed by `ThumbnailFocusBackfill`.
     var thumbnailFocus: ThumbnailFocusDTO?
     var thumbnailFocusAnalysisVersion: Int?
@@ -86,7 +86,7 @@ struct ImportSummary: Equatable {
     var replaced = false
 
     var message: String {
-        var parts = [inflected("^[\(workoutsAdded) ride](inflect: true) added")]
+        var parts = [inflected("^[\(workoutsAdded) workout](inflect: true) added")]
         if workoutsSkipped > 0 {
             parts.append(inflected("^[\(workoutsSkipped) duplicate](inflect: true) skipped"))
         }
@@ -176,7 +176,7 @@ enum BackupService {
         }
     }
 
-    /// Imports a backup. Merge skips rides already present (same title + start minute, the
+    /// Imports a backup. Merge skips workouts already present (same title + start minute, the
     /// DataDeduper key); Replace deletes everything first.
     @discardableResult
     static func importBackup(_ file: BackupFile, into context: ModelContext, mode: ImportMode) -> ImportSummary {
@@ -193,7 +193,7 @@ enum BackupService {
             guard let id else { return nil }
             if let existing = programsByID[id] { return existing }
             let dto = file.programs.first { $0.id == id }
-            let imported = Program(title: dto?.title ?? id, type: dto.flatMap { WorkoutType(rawValue: $0.type) })
+            let imported = Program(title: dto?.title ?? id, type: dto.flatMap { TrainingType(rawValue: $0.type) })
             context.insert(imported)
             programsByID[id] = imported
             summary.programsAdded += 1
@@ -203,7 +203,7 @@ enum BackupService {
         for dto in file.programs where programsByID[dto.id] == nil { _ = program(for: dto.id) }
 
         for dto in file.workouts {
-            let title = dto.programID.flatMap { id in file.programs.first { $0.id == id }?.title } ?? dto.programID ?? "Untitled Ride"
+            let title = dto.programID.flatMap { id in file.programs.first { $0.id == id }?.title } ?? dto.programID ?? "Untitled Workout"
             let key = DataDeduper.key(title: title, date: dto.date)
             if existingKeys.contains(key) {
                 summary.workoutsSkipped += 1

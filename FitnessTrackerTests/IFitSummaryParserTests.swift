@@ -1,7 +1,7 @@
 import XCTest
 @testable import FitnessTracker
 
-struct ExpectedRide {
+struct ExpectedWorkout {
     let file: String
     let title: String
     let year, month, day, hour, minute: Int
@@ -10,14 +10,14 @@ struct ExpectedRide {
     let inclineAvg: Double, inclineMax: Double
     let resistanceAvg: Int, resistanceMax: Int
 
-    static let all: [ExpectedRide] = [
-        ExpectedRide(file: "ride-2026-10-12", title: "Green River Recovery Ride", year: 2026, month: 10, day: 12, hour: 14, minute: 54,
+    static let all: [ExpectedWorkout] = [
+        ExpectedWorkout(file: "workout-2026-10-12", title: "Green River Recovery Ride", year: 2026, month: 10, day: 12, hour: 14, minute: 54,
                      minutes: 42, miles: 10.02, calories: 310, elevationFeet: 599, rpm: 79, watts: 79, inclineAvg: 1.0, inclineMax: 9.0, resistanceAvg: 11, resistanceMax: 16),
-        ExpectedRide(file: "ride-2026-10-15", title: "Hurrah Pass Endurance Ride", year: 2026, month: 10, day: 15, hour: 12, minute: 34,
+        ExpectedWorkout(file: "workout-2026-10-15", title: "Hurrah Pass Endurance Ride", year: 2026, month: 10, day: 15, hour: 12, minute: 34,
                      minutes: 65, miles: 13.88, calories: 499, elevationFeet: 1745, rpm: 77, watts: 85, inclineAvg: 2.6, inclineMax: 10.0, resistanceAvg: 10, resistanceMax: 16),
-        ExpectedRide(file: "ride-2026-10-18", title: "Devils Garden Interval Ride", year: 2026, month: 10, day: 18, hour: 15, minute: 35,
+        ExpectedWorkout(file: "workout-2026-10-18", title: "Devils Garden Interval Ride", year: 2026, month: 10, day: 18, hour: 15, minute: 35,
                      minutes: 46, miles: 9.50, calories: 385, elevationFeet: 1543, rpm: 74, watts: 97, inclineAvg: 3.7, inclineMax: 12.0, resistanceAvg: 9, resistanceMax: 15),
-        ExpectedRide(file: "ride-2026-10-20", title: "Mineral Bottom Endurance Ride", year: 2026, month: 10, day: 20, hour: 16, minute: 6,
+        ExpectedWorkout(file: "workout-2026-10-20", title: "Mineral Bottom Endurance Ride", year: 2026, month: 10, day: 20, hour: 16, minute: 6,
                      minutes: 48, miles: 9.85, calories: 376, elevationFeet: 1542, rpm: 75, watts: 88, inclineAvg: 3.6, inclineMax: 10.0, resistanceAvg: 8, resistanceMax: 15),
     ]
 
@@ -54,7 +54,7 @@ final class IFitSummaryParserTests: XCTestCase {
     /// Approximate OCR output: noisy header, a button on the title line, tokens split
     /// across lines, and chart axis labels that must be ignored.
     static let fixtures: [String: [String]] = [
-        "ride-2026-10-12": [
+        "workout-2026-10-12": [
             "×", "Nice job!", "Keep up the great work",
             "Green River Recovery Ride", "Repeat workout",
             "Last completed 2:54 PM - Oct 12, 2026",
@@ -62,7 +62,7 @@ final class IFitSummaryParserTests: XCTestCase {
             "9 %", "16", "4 %", "8", "-3 %", "0",
             "Incline 1.0 % avg · 9.0 % max", "Resistance 11 avg · 16 max", "NordicTrack", "iFIT",
         ],
-        "ride-2026-10-15": [
+        "workout-2026-10-15": [
             "Nice job!", "Keep up the great work", "Extend your workout",
             "Hurrah Pass Endurance Ride",
             "Last completed 12:34 PM - Oct 15, 2026",
@@ -70,7 +70,7 @@ final class IFitSummaryParserTests: XCTestCase {
             "16", "10 %", "8", "4 %", "-2 %", "0",
             "Incline", "2.6 % avg", "10.0 % max", "Resistance", "10 avg", "16 max",
         ],
-        "ride-2026-10-18": [
+        "workout-2026-10-18": [
             "Nice job!", "eep up the great work",
             "Devils Garden Interval Ride Repeat workout",
             "Last completed 3:35 PM – Oct 18, 2026",
@@ -78,7 +78,7 @@ final class IFitSummaryParserTests: XCTestCase {
             "12 %", "15", "4 %", "8", "-3 %", "1",
             "Incline 3.7 % avg • 12.0 % max", "Resistance 9 avg • 15 max",
         ],
-        "ride-2026-10-20": [
+        "workout-2026-10-20": [
             "Nice job!", "Keep up the great work",
             "Mineral Bottom Endurance Ride", "Repeat workout",
             "Last completed 4:06 PM - Oct 20, 2026",
@@ -89,10 +89,10 @@ final class IFitSummaryParserTests: XCTestCase {
     ]
 
     func testFixtures() {
-        for ride in ExpectedRide.all {
-            let summary = IFitSummaryParser.parse(lines: Self.fixtures[ride.file]!)
-            XCTAssertEqual(ride.mismatches(summary), [], ride.file)
-            XCTAssertTrue(summary.missingFields.isEmpty, ride.file)
+        for workout in ExpectedWorkout.all {
+            let summary = IFitSummaryParser.parse(lines: Self.fixtures[workout.file]!)
+            XCTAssertEqual(workout.mismatches(summary), [], workout.file)
+            XCTAssertTrue(summary.missingFields.isEmpty, workout.file)
         }
     }
 
@@ -132,27 +132,27 @@ final class PhotoOCRIntegrationTests: XCTestCase {
         let bundle = Bundle(for: Self.self)
         var report: [String] = []
         var correctFields = 0, totalFields = 0
-        for ride in ExpectedRide.all {
-            guard let url = bundle.url(forResource: ride.file, withExtension: "jpg") else {
-                XCTFail("Missing test resource \(ride.file).jpg")
+        for workout in ExpectedWorkout.all {
+            guard let url = bundle.url(forResource: workout.file, withExtension: "jpg") else {
+                XCTFail("Missing test resource \(workout.file).jpg")
                 continue
             }
             let data = try Data(contentsOf: url)
             guard let image = ImageTools.cgImage(from: data) else {
-                XCTFail("Undecodable \(ride.file)")
+                XCTFail("Undecodable \(workout.file)")
                 continue
             }
             // Same path as import: the straightened copy is used when it reads at least as many fields.
             let reading = try OCRReading.bestReading(of: image)
             let straightened = ScreenStraightener.straightened(image) != nil
-            print("Straightened \(ride.file): \(straightened ? "yes" : "no")")
+            print("Straightened \(workout.file): \(straightened ? "yes" : "no")")
             let items = reading.items
             let summary = reading.summary
-            let problems = ride.mismatches(summary)
+            let problems = workout.mismatches(summary)
             totalFields += 12
             correctFields += 12 - problems.count
             if !problems.isEmpty {
-                report.append("\(ride.file):\n  " + problems.joined(separator: "\n  ")
+                report.append("\(workout.file):\n  " + problems.joined(separator: "\n  ")
                               + "\n  OCR lines:\n    " + IFitSummaryParser.groupIntoLines(items).joined(separator: "\n    "))
             }
         }

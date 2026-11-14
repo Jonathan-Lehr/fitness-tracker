@@ -28,7 +28,7 @@ struct InProgressComparisonView: View {
                     Text("Last \(noun)").font(.caption).foregroundStyle(.secondary).dataColumn()
                     Text("Change").font(.caption).foregroundStyle(.secondary).changeColumn()
                 }
-                row("Ride time", currentTotal.minutes, previousTotal.minutes) { $0.formattedMinutes() }
+                row("Workout time", currentTotal.minutes, previousTotal.minutes) { $0.formattedMinutes() }
                 row("Distance", currentTotal.miles, previousTotal.miles) { $0.formattedMilesWithUnit() }
                 row("Calories", Double(currentTotal.calories), Double(previousTotal.calories)) { $0.formattedWholeNumber() }
                 wattsRow

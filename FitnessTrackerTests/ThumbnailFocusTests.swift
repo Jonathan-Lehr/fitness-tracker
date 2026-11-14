@@ -156,7 +156,7 @@ final class ThumbnailFocusFinderTests: XCTestCase {
     /// Sanity check on the real iFit screenshots: Vision runs, and any focus it finds sits in the scenic band.
     func testSamplePhotosFocusInsideScenicBand() throws {
         let bundle = Bundle(for: Self.self)
-        for name in ["ride-2026-10-12", "ride-2026-10-15", "ride-2026-10-18", "ride-2026-10-20"] {
+        for name in ["workout-2026-10-12", "workout-2026-10-15", "workout-2026-10-18", "workout-2026-10-20"] {
             let url = try XCTUnwrap(bundle.url(forResource: name, withExtension: "jpg"))
             let stored = try XCTUnwrap(ImageTools.storageJPEG(from: try Data(contentsOf: url)))
             let analysis = try XCTUnwrap(ThumbnailFocusFinder.analyze(photoData: stored), "\(name): Vision failed")
@@ -176,7 +176,7 @@ final class WorkoutThumbnailFocusTests: XCTestCase {
 
     private func makeWorkout() throws -> Workout {
         container = try TestSupport.inMemoryContainer()
-        let workout = TestSupport.ride(
+        let workout = TestSupport.workout(
             date: .now,
             durationMinutes: 30,
             distanceMiles: 8,

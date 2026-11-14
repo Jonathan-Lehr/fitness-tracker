@@ -24,8 +24,8 @@ struct FilterView: View {
                         LabeledContent("Program", value: filter.programTitle ?? "Any")
                     }
                     Picker("Type", selection: $filter.type) {
-                        Text("Any").tag(WorkoutType?.none)
-                        ForEach(WorkoutType.allCases) { Text($0.label).tag(WorkoutType?.some($0)) }
+                        Text("Any").tag(TrainingType?.none)
+                        ForEach(TrainingType.allCases) { Text($0.label).tag(TrainingType?.some($0)) }
                     }
                 }
                 Section("Effort") {

@@ -14,9 +14,9 @@ final class NoteEditingTests: XCTestCase {
         TestSupport.context(on: container, autosaveEnabled: false)
     }
 
-    private func insertRide(into context: ModelContext, notes: String? = nil) throws -> Workout {
+    private func insertWorkout(into context: ModelContext, notes: String? = nil) throws -> Workout {
         let program = Program.findOrCreate(title: "Green River Recovery Ride", in: context)
-        let workout = TestSupport.ride(date: date, program: program, notes: notes)
+        let workout = TestSupport.workout(date: date, program: program, notes: notes)
         context.insert(workout)
         try context.save()
         return workout
@@ -25,7 +25,7 @@ final class NoteEditingTests: XCTestCase {
     func testNoteIsNotPersistedUntilSave() throws {
         let container = try makeContainer()
         let context = makeContext(container)
-        let workout = try insertRide(into: context)
+        let workout = try insertWorkout(into: context)
         let editing = try NoteEditing.editing(workout, container: container)
         editing.notesText = "Felt strong on the climb"
 
@@ -39,7 +39,7 @@ final class NoteEditingTests: XCTestCase {
     func testSavePersistsNote() throws {
         let container = try makeContainer()
         let context = makeContext(container)
-        let workout = try insertRide(into: context)
+        let workout = try insertWorkout(into: context)
         let editing = try NoteEditing.editing(workout, container: container)
         editing.notesText = "  Felt strong on the climb  "
         try editing.save()
@@ -52,7 +52,7 @@ final class NoteEditingTests: XCTestCase {
     func testCancelDoesNotPersistNote() throws {
         let container = try makeContainer()
         let context = makeContext(container)
-        let workout = try insertRide(into: context)
+        let workout = try insertWorkout(into: context)
         do {
             let editing = try NoteEditing.editing(workout, container: container)
             editing.notesText = "Should not be saved"
@@ -69,7 +69,7 @@ final class NoteEditingTests: XCTestCase {
     func testAddingRequiresNonEmptyNote() throws {
         let container = try makeContainer()
         let context = makeContext(container)
-        let workout = try insertRide(into: context)
+        let workout = try insertWorkout(into: context)
         let editing = try NoteEditing.editing(workout, container: container)
 
         XCTAssertFalse(editing.isEditingExistingNote)
@@ -78,14 +78,14 @@ final class NoteEditingTests: XCTestCase {
         XCTAssertFalse(editing.canSave)
         editing.notesText = "   "
         XCTAssertFalse(editing.canSave)
-        editing.notesText = "Good ride"
+        editing.notesText = "Good workout"
         XCTAssertTrue(editing.canSave)
     }
 
     func testEditPrefillsExistingNote() throws {
         let container = try makeContainer()
         let context = makeContext(container)
-        let workout = try insertRide(into: context, notes: "Felt good")
+        let workout = try insertWorkout(into: context, notes: "Felt good")
         let editing = try NoteEditing.editing(workout, container: container)
 
         XCTAssertTrue(editing.isEditingExistingNote)
@@ -97,7 +97,7 @@ final class NoteEditingTests: XCTestCase {
     func testClearingExistingNoteStoresNil() throws {
         let container = try makeContainer()
         let context = makeContext(container)
-        let workout = try insertRide(into: context, notes: "Felt good")
+        let workout = try insertWorkout(into: context, notes: "Felt good")
         let editing = try NoteEditing.editing(workout, container: container)
         editing.notesText = "   "
         XCTAssertTrue(editing.canSave, "editing allows Save so a note can be cleared")
@@ -111,7 +111,7 @@ final class NoteEditingTests: XCTestCase {
     func testCancelDoesNotChangeExistingNote() throws {
         let container = try makeContainer()
         let context = makeContext(container)
-        let workout = try insertRide(into: context, notes: "Felt good")
+        let workout = try insertWorkout(into: context, notes: "Felt good")
         do {
             let editing = try NoteEditing.editing(workout, container: container)
             editing.notesText = "Changed"

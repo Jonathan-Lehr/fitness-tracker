@@ -13,7 +13,7 @@ extension Double {
         return "\(minutes.formattedWholeNumber(locale: locale))m"
     }
 
-    /// Miles for a single ride: always two fraction digits and no grouping, so a value
+    /// Miles for a single workout: always two fraction digits and no grouping, so a value
     /// like 1234.5 stays "1234.50" in en_US instead of "1,234.50".
     func formattedMiles(locale: Locale = .current) -> String {
         formattedNumber(fractionLength: 2, locale: locale)
@@ -77,13 +77,13 @@ extension Int {
 
 /// A localized string with Foundation's automatic grammar agreement applied, for text that
 /// isn't shown through SwiftUI `Text` (which applies it on its own). Mark the count and noun
-/// with `^[\(count) ride](inflect: true)` to get "1 ride" and "2 rides".
+/// with `^[\(count) workout](inflect: true)` to get "1 workout" and "2 workouts".
 func inflected(_ resource: String.LocalizationValue, locale: Locale = .current) -> String {
     String(AttributedString(localized: resource, locale: locale).characters)
 }
 
 /// Average watts with a unit, or `placeholder` when there is no value.
-/// Call sites pass "—" or "— W" because list, grid, and detail use different empty states.
+/// Call sites pass "—" or "— W" because compact rows, expanded cards, and detail use different empty states.
 func formattedAverageWatts(_ watts: Double?, placeholder: String, locale: Locale = .current) -> String {
     watts.map { "\($0.formattedWholeNumber(locale: locale)) W" } ?? placeholder
 }

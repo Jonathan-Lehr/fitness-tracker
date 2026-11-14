@@ -2,7 +2,7 @@
 import Foundation
 import SwiftData
 
-/// Debug-only generator: ~18 months of rides, 3–5 per week, ~20 programs,
+/// Debug-only generator: ~18 months of workouts, 3–5 per week, ~20 programs,
 /// with a few favorites ridden many times and slowly improving watts.
 enum SimulatedData {
     static let programs: [(title: String, baseWatts: Double, minutes: Double, favorite: Bool)] = [
@@ -40,15 +40,15 @@ enum SimulatedData {
         var weekStart = start
         while weekStart < end {
             // Occasional off week
-            let ridesThisWeek = Double.random(in: 0..<1, using: &generator) < 0.07 ? Int.random(in: 0...1, using: &generator)
+            let workoutsThisWeek = Double.random(in: 0..<1, using: &generator) < 0.07 ? Int.random(in: 0...1, using: &generator)
                                                                              : Int.random(in: 3...5, using: &generator)
-            let days = Array(0..<7).shuffled(using: &generator).prefix(ridesThisWeek)
+            let days = Array(0..<7).shuffled(using: &generator).prefix(workoutsThisWeek)
             for dayOffset in days {
                 guard var date = calendar.date(byAdding: .day, value: dayOffset, to: weekStart), date < end else { continue }
                 date = calendar.date(bySettingHour: Int.random(in: 6...19, using: &generator),
                                 minute: Int.random(in: 0...59, using: &generator), second: 0, of: date) ?? date
 
-                // Favorites get ~40% of rides (≈15–30 each over 18 months)
+                // Favorites get ~40% of workouts (≈15–30 each over 18 months)
                 let programIndex: Int
                 if Double.random(in: 0..<1, using: &generator) < 0.4 {
                     programIndex = Int.random(in: 0..<4, using: &generator)

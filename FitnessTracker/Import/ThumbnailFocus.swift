@@ -2,7 +2,7 @@ import Foundation
 import CoreGraphics
 import Vision
 
-/// Result of analyzing a ride photo for thumbnail framing. `focus` is the region worth showing,
+/// Result of analyzing a workout photo for thumbnail framing. `focus` is the region worth showing,
 /// as fractions of the image size with a top-left origin, or nil when nothing stood out. Either
 /// way the analysis is done, so it isn't repeated.
 struct ThumbnailFocusAnalysis: Equatable, Sendable {
@@ -15,7 +15,7 @@ struct ThumbnailFocusCandidates: Equatable {
     var faces: [CGRect] = []
     var salientObjects: [CGRect] = []
 
-    /// The rider is usually the subject, so people win. Attention saliency is the fallback because
+    /// The person is usually the subject, so people win. Attention saliency is the fallback because
     /// it can latch onto the "Nice job!" header text instead of the scenery.
     var preferredRegion: CGRect? {
         [humans, faces, salientObjects].lazy.compactMap(Self.union).first
@@ -26,11 +26,11 @@ struct ThumbnailFocusCandidates: Equatable {
     }
 }
 
-/// Finds the part of a ride photo that thumbnails should frame, using on-device Vision.
+/// Finds the part of a workout photo that thumbnails should frame, using on-device Vision.
 /// Synchronous and CPU/Neural Engine heavy: call it off the main thread.
 enum ThumbnailFocusFinder {
     /// Stored on `Workout` with each result. Bump it when the analysis changes enough that the
-    /// backfill should recompute existing rides.
+    /// backfill should recompute existing workouts.
     static let analysisVersion = 1
 
     /// Long-side size the saved photo is decoded at for analysis; Vision downsamples further anyway.
